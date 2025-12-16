@@ -1044,6 +1044,8 @@
       
         
       
+        
+      
     
     
     
@@ -1106,6 +1108,34 @@
     
   
     System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/loop-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loop Detection
   
 
     
@@ -2231,6 +2261,39 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#how-do-i-signal-task-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I signal task completion?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-triggers-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What triggers loop detection?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-disable-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I disable loop detection?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#what-should-i-put-in-promptmd" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3006,6 +3069,39 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#how-do-i-signal-task-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I signal task completion?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-triggers-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What triggers loop detection?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-disable-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I disable loop detection?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#what-should-i-put-in-promptmd" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3529,10 +3625,12 @@
 <h3 id="who-created-ralph-orchestrator">Who created Ralph Orchestrator?<a class="headerlink" href="#who-created-ralph-orchestrator" title="Permanent link">&para;</a></h3>
 <p>The Ralph Wiggum technique was created by <a href="https://ghuntley.com/ralph/">Geoffrey Huntley</a>. This implementation builds on his concept with additional features like multiple agent support, checkpointing, and comprehensive testing.</p>
 <h3 id="what-ai-agents-does-it-support">What AI agents does it support?<a class="headerlink" href="#what-ai-agents-does-it-support" title="Permanent link">&para;</a></h3>
-<p>Ralph Orchestrator currently supports:
-- <strong>Claude</strong> (Anthropic Claude Code CLI)
-- <strong>Gemini</strong> (Google Gemini CLI)
-- <strong>Q Chat</strong> (Q CLI tool)</p>
+<p>Ralph Orchestrator currently supports:</p>
+<ul>
+<li><strong>Claude</strong> (Anthropic Claude Code CLI)</li>
+<li><strong>Gemini</strong> (Google Gemini CLI)</li>
+<li><strong>Q Chat</strong> (Q CLI tool)</li>
+</ul>
 <p>The system auto-detects available agents and can automatically select the best one.</p>
 <h2 id="installation-setup">Installation &amp; Setup<a class="headerlink" href="#installation-setup" title="Permanent link">&para;</a></h2>
 <h3 id="do-i-need-all-three-ai-agents-installed">Do I need all three AI agents installed?<a class="headerlink" href="#do-i-need-all-three-ai-agents-installed" title="Permanent link">&para;</a></h3>
@@ -3556,90 +3654,127 @@
 <li><strong>Storage</strong>: 20GB available space</li>
 </ul>
 <h3 id="can-i-run-ralph-in-docker">Can I run Ralph in Docker?<a class="headerlink" href="#can-i-run-ralph-in-docker" title="Permanent link">&para;</a></h3>
-<p>Yes! A Dockerfile is provided:
+<p>Yes! A Dockerfile is provided:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>ralph-orchestrator<span class="w"> </span>.
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/workspace<span class="w"> </span>ralph-orchestrator
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h2 id="usage-questions">Usage Questions<a class="headerlink" href="#usage-questions" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-know-when-ralph-is-done">How do I know when Ralph is done?<a class="headerlink" href="#how-do-i-know-when-ralph-is-done" title="Permanent link">&para;</a></h3>
-<p>Ralph stops when:
-1. Maximum iterations are reached (default: 100)
-2. Maximum runtime is exceeded (default: 4 hours)
-3. Cost limits are reached (default: $50)
-4. Too many consecutive errors occur</p>
+<p>Ralph stops when:</p>
+<ol>
+<li>Maximum iterations are reached (default: 100)</li>
+<li>Maximum runtime is exceeded (default: 4 hours)</li>
+<li>Cost limits are reached (default: $50)</li>
+<li>Too many consecutive errors occur</li>
+<li>A completion marker is detected</li>
+<li>Loop detection triggers (repetitive outputs)</li>
+</ol>
+<h3 id="how-do-i-signal-task-completion">How do I signal task completion?<a class="headerlink" href="#how-do-i-signal-task-completion" title="Permanent link">&para;</a></h3>
+<p>Add a checkbox marker to your PROMPT.md:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">- [x]</span> TASK_COMPLETE
+</span></code></pre></div>
+<p>Ralph will detect this marker and stop orchestration immediately. This allows the AI agent to signal "I'm done" instead of relying solely on iteration limits.</p>
+<p><strong>Important</strong>: The marker must be in checkbox format (<code>- [x]</code> or <code>[x]</code>), not plain text.</p>
+<h3 id="what-triggers-loop-detection">What triggers loop detection?<a class="headerlink" href="#what-triggers-loop-detection" title="Permanent link">&para;</a></h3>
+<p>Loop detection triggers when the current agent output is ≥90% similar (using fuzzy string matching) to any of the last 5 outputs. This prevents infinite loops where an agent produces essentially the same response repeatedly.</p>
+<p>Common triggers:</p>
+<ul>
+<li>Agent stuck on the same task</li>
+<li>Oscillating between similar approaches</li>
+<li>Consistent API error messages</li>
+<li>Placeholder "still working" responses</li>
+</ul>
+<p>When triggered, you'll see: <code>WARNING - Loop detected: 92.3% similarity to previous output</code></p>
+<h3 id="can-i-disable-loop-detection">Can I disable loop detection?<a class="headerlink" href="#can-i-disable-loop-detection" title="Permanent link">&para;</a></h3>
+<p>Loop detection cannot be disabled directly, but it only triggers on highly similar outputs (≥90% threshold). To avoid false positives:</p>
+<ol>
+<li>Ensure agent outputs include iteration-specific details</li>
+<li>Add progress indicators that change each iteration</li>
+<li>Check if agent is stuck on the same subtask</li>
+<li>Refine your prompt to encourage varied responses</li>
+</ol>
+<p>See <a href="../advanced/loop-detection/">Loop Detection</a> for detailed documentation.</p>
 <h3 id="what-should-i-put-in-promptmd">What should I put in PROMPT.md?<a class="headerlink" href="#what-should-i-put-in-promptmd" title="Permanent link">&para;</a></h3>
-<p>Write clear, specific requirements with measurable success criteria. Include:
-- Task description
-- Requirements list
-- Success criteria
-- Example inputs/outputs (if applicable)
-- File structure (for complex projects)</p>
+<p>Write clear, specific requirements with measurable success criteria. Include:</p>
+<ul>
+<li>Task description</li>
+<li>Requirements list</li>
+<li>Success criteria</li>
+<li>Example inputs/outputs (if applicable)</li>
+<li>File structure (for complex projects)</li>
+</ul>
 <h3 id="how-many-iterations-does-it-typically-take">How many iterations does it typically take?<a class="headerlink" href="#how-many-iterations-does-it-typically-take" title="Permanent link">&para;</a></h3>
-<p>This varies by task complexity:
-- Simple functions: 5-10 iterations
-- Web APIs: 20-30 iterations
-- Complex applications: 50-100 iterations</p>
+<p>This varies by task complexity:</p>
+<ul>
+<li>Simple functions: 5-10 iterations</li>
+<li>Web APIs: 20-30 iterations</li>
+<li>Complex applications: 50-100 iterations</li>
+</ul>
 <h3 id="can-i-resume-if-ralph-stops">Can I resume if Ralph stops?<a class="headerlink" href="#can-i-resume-if-ralph-stops" title="Permanent link">&para;</a></h3>
-<p>Yes! Ralph saves state and can resume from where it left off:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Ralph will automatically resume from last state</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ralph<span class="w"> </span>run
-</span></code></pre></div></p>
+<p>Yes! Ralph saves state and can resume from where it left off:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Ralph will automatically resume from last state</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ralph<span class="w"> </span>run
+</span></code></pre></div>
 <h3 id="how-do-i-monitor-progress">How do I monitor progress?<a class="headerlink" href="#how-do-i-monitor-progress" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Check status</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ralph<span class="w"> </span>status
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Watch in real-time</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>watch<span class="w"> </span>-n<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="s1">&#39;ralph status&#39;</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># View logs</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>tail<span class="w"> </span>-f<span class="w"> </span>.agent/logs/ralph.log
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Check status</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>ralph<span class="w"> </span>status
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Watch in real-time</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>watch<span class="w"> </span>-n<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="s1">&#39;ralph status&#39;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># View logs</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>tail<span class="w"> </span>-f<span class="w"> </span>.agent/logs/ralph.log
 </span></code></pre></div>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-change-the-default-agent">How do I change the default agent?<a class="headerlink" href="#how-do-i-change-the-default-agent" title="Permanent link">&para;</a></h3>
-<p>Edit <code>ralph.json</code>:
-<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude&quot;</span><span class="w">  </span><span class="c1">// or &quot;gemini&quot;, &quot;q&quot;, &quot;auto&quot;</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">}</span>
-</span></code></pre></div></p>
-<p>Or use command line:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>claude
-</span></code></pre></div></p>
+<p>Edit <code>ralph.json</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude&quot;</span><span class="w"> </span><span class="c1">// or &quot;gemini&quot;, &quot;q&quot;, &quot;auto&quot;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Or use command line:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>claude
+</span></code></pre></div>
 <h3 id="can-i-set-custom-iteration-limits">Can I set custom iteration limits?<a class="headerlink" href="#can-i-set-custom-iteration-limits" title="Permanent link">&para;</a></h3>
-<p>Yes, in multiple ways:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Command line</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">50</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Config file (ralph.json)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="o">{</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="s2">&quot;max_iterations&quot;</span>:<span class="w"> </span><span class="m">50</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="o">}</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Environment variable</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RALPH_MAX_ITERATIONS</span><span class="o">=</span><span class="m">50</span>
-</span></code></pre></div></p>
+<p>Yes, in multiple ways:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Command line</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Config file (ralph.json)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="o">{</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="s2">&quot;max_iterations&quot;</span>:<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="o">}</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="c1"># Environment variable</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RALPH_MAX_ITERATIONS</span><span class="o">=</span><span class="m">50</span>
+</span></code></pre></div>
 <h3 id="what-is-checkpoint-interval">What is checkpoint interval?<a class="headerlink" href="#what-is-checkpoint-interval" title="Permanent link">&para;</a></h3>
 <p>Checkpoint interval determines how often Ralph creates Git commits to save progress. Default is every 5 iterations.</p>
 <h3 id="how-do-i-disable-git-operations">How do I disable Git operations?<a class="headerlink" href="#how-do-i-disable-git-operations" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--no-git
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--no-git
 </span></code></pre></div>
-<p>Or in config:
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;git_enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p">}</span>
-</span></code></pre></div></p>
+<p>Or in config:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;git_enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">}</span>
+</span></code></pre></div>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="why-isnt-my-task-completing">Why isn't my task completing?<a class="headerlink" href="#why-isnt-my-task-completing" title="Permanent link">&para;</a></h3>
-<p>Common reasons:
-1. Task description is unclear
-2. Requirements are too complex for single prompt
-3. Agent doesn't understand the format
-4. Missing resources or dependencies</p>
+<p>Common reasons:</p>
+<ol>
+<li>Task description is unclear</li>
+<li>Requirements are too complex for single prompt</li>
+<li>Agent doesn't understand the format</li>
+<li>Missing resources or dependencies</li>
+</ol>
 <h3 id="ralph-keeps-hitting-the-same-error">Ralph keeps hitting the same error<a class="headerlink" href="#ralph-keeps-hitting-the-same-error" title="Permanent link">&para;</a></h3>
-<p>Try:
-1. Simplifying the task
-2. Adding clarification to PROMPT.md
-3. Using a different agent
-4. Manually fixing the specific issue</p>
+<p>Try:</p>
+<ol>
+<li>Simplifying the task</li>
+<li>Adding clarification to PROMPT.md</li>
+<li>Using a different agent</li>
+<li>Manually fixing the specific issue</li>
+</ol>
 <h3 id="how-do-i-reduce-api-costs">How do I reduce API costs?<a class="headerlink" href="#how-do-i-reduce-api-costs" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Use more efficient agents (Q is free)</li>
@@ -3651,71 +3786,83 @@
 <p>No, Ralph requires internet access to communicate with AI agent APIs. However, you can use a local AI model if you create a compatible CLI wrapper.</p>
 <h2 id="advanced-usage">Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h2>
 <h3 id="can-i-extend-ralph-with-custom-agents">Can I extend Ralph with custom agents?<a class="headerlink" href="#can-i-extend-ralph-with-custom-agents" title="Permanent link">&para;</a></h3>
-<p>Yes! Implement the Agent interface:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;myagent&#39;</span><span class="p">,</span> <span class="s1">&#39;myagent-cli&#39;</span><span class="p">)</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt_file</span><span class="p">):</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        <span class="c1"># Your implementation</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        <span class="k">pass</span>
-</span></code></pre></div></p>
+<p>Yes! Implement the Agent interface:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;myagent&#39;</span><span class="p">,</span> <span class="s1">&#39;myagent-cli&#39;</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt_file</span><span class="p">):</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        <span class="c1"># Your implementation</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="k">pass</span>
+</span></code></pre></div>
 <h3 id="can-i-run-multiple-ralph-instances">Can I run multiple Ralph instances?<a class="headerlink" href="#can-i-run-multiple-ralph-instances" title="Permanent link">&para;</a></h3>
-<p>Yes, but in different directories to avoid conflicts:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Terminal 1</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">cd</span><span class="w"> </span>project1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Terminal 2</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="nb">cd</span><span class="w"> </span>project2<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
-</span></code></pre></div></p>
+<p>Yes, but in different directories to avoid conflicts:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Terminal 1</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">cd</span><span class="w"> </span>project1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Terminal 2</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nb">cd</span><span class="w"> </span>project2<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
+</span></code></pre></div>
 <h3 id="how-do-i-integrate-ralph-into-cicd">How do I integrate Ralph into CI/CD?<a class="headerlink" href="#how-do-i-integrate-ralph-into-cicd" title="Permanent link">&para;</a></h3>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># GitHub Actions example</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run Ralph</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="no">ralph run --max-iterations 50 --dry-run</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Check completion</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="no">ralph status</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># GitHub Actions example</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run Ralph</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="no">ralph run --max-iterations 50 --dry-run</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Check completion</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="no">ralph status</span>
 </span></code></pre></div>
 <h3 id="can-ralph-modify-files-outside-the-project">Can Ralph modify files outside the project?<a class="headerlink" href="#can-ralph-modify-files-outside-the-project" title="Permanent link">&para;</a></h3>
 <p>By default, Ralph works within the current directory. For safety, it's designed not to modify system files or files outside the project directory.</p>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <h3 id="what-makes-a-good-prompt">What makes a good prompt?<a class="headerlink" href="#what-makes-a-good-prompt" title="Permanent link">&para;</a></h3>
-<p>Good prompts are:
-- <strong>Specific</strong>: Clear requirements and constraints
-- <strong>Measurable</strong>: Defined success criteria
-- <strong>Structured</strong>: Organized with sections
-- <strong>Complete</strong>: All necessary information included</p>
+<p>Good prompts are:</p>
+<ul>
+<li><strong>Specific</strong>: Clear requirements and constraints</li>
+<li><strong>Measurable</strong>: Defined success criteria</li>
+<li><strong>Structured</strong>: Organized with sections</li>
+<li><strong>Complete</strong>: All necessary information included</li>
+</ul>
 <h3 id="should-i-commit-promptmd-to-git">Should I commit PROMPT.md to Git?<a class="headerlink" href="#should-i-commit-promptmd-to-git" title="Permanent link">&para;</a></h3>
-<p>Yes! Version control your prompts to:
-- Track requirement changes
-- Share with team members
-- Reproduce results
-- Build a prompt library</p>
+<p>Yes! Version control your prompts to:</p>
+<ul>
+<li>Track requirement changes</li>
+<li>Share with team members</li>
+<li>Reproduce results</li>
+<li>Build a prompt library</li>
+</ul>
 <h3 id="how-often-should-i-check-on-ralph">How often should I check on Ralph?<a class="headerlink" href="#how-often-should-i-check-on-ralph" title="Permanent link">&para;</a></h3>
-<p>For typical tasks:
-- First 5 iterations: Watch closely
-- 5-20 iterations: Check every 5 minutes
-- 20+ iterations: Check every 15 minutes</p>
+<p>For typical tasks:</p>
+<ul>
+<li>First 5 iterations: Watch closely</li>
+<li>5-20 iterations: Check every 5 minutes</li>
+<li>20+ iterations: Check every 15 minutes</li>
+</ul>
 <h3 id="when-should-i-intervene-manually">When should I intervene manually?<a class="headerlink" href="#when-should-i-intervene-manually" title="Permanent link">&para;</a></h3>
-<p>Intervene when:
-- Same error repeats 3+ times
-- Progress stalls for 10+ iterations
-- Output diverges from requirements
-- Resource usage is excessive</p>
+<p>Intervene when:</p>
+<ul>
+<li>Same error repeats 3+ times</li>
+<li>Progress stalls for 10+ iterations</li>
+<li>Output diverges from requirements</li>
+<li>Resource usage is excessive</li>
+</ul>
 <h2 id="cost-performance">Cost &amp; Performance<a class="headerlink" href="#cost-performance" title="Permanent link">&para;</a></h2>
 <h3 id="how-much-does-it-cost-to-run-ralph">How much does it cost to run Ralph?<a class="headerlink" href="#how-much-does-it-cost-to-run-ralph" title="Permanent link">&para;</a></h3>
-<p>Approximate costs per task:
-- Simple function: $0.05-0.10
-- Web API: $0.20-0.30
-- Complex application: $0.50-1.00</p>
+<p>Approximate costs per task:</p>
+<ul>
+<li>Simple function: $0.05-0.10</li>
+<li>Web API: $0.20-0.30</li>
+<li>Complex application: $0.50-1.00</li>
+</ul>
 <p>(Varies by agent and API pricing)</p>
 <h3 id="which-agent-is-fastest">Which agent is fastest?<a class="headerlink" href="#which-agent-is-fastest" title="Permanent link">&para;</a></h3>
-<p>Generally:
-1. <strong>Q</strong>: Fastest response time
-2. <strong>Gemini</strong>: Balanced speed and capability
-3. <strong>Claude</strong>: Most capable but slower</p>
+<p>Generally:</p>
+<ol>
+<li><strong>Q</strong>: Fastest response time</li>
+<li><strong>Gemini</strong>: Balanced speed and capability</li>
+<li><strong>Claude</strong>: Most capable but slower</li>
+</ol>
 <h3 id="how-can-i-speed-up-execution">How can I speed up execution?<a class="headerlink" href="#how-can-i-speed-up-execution" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Use simpler prompts</li>
@@ -3725,17 +3872,21 @@
 <li>Disable unnecessary features</li>
 </ol>
 <h3 id="does-ralph-work-with-rate-limits">Does Ralph work with rate limits?<a class="headerlink" href="#does-ralph-work-with-rate-limits" title="Permanent link">&para;</a></h3>
-<p>Yes, Ralph handles rate limits with:
-- Exponential backoff
-- Retry logic
-- Agent switching (if multiple available)</p>
+<p>Yes, Ralph handles rate limits with:</p>
+<ul>
+<li>Exponential backoff</li>
+<li>Retry logic</li>
+<li>Agent switching (if multiple available)</li>
+</ul>
 <h2 id="security-privacy">Security &amp; Privacy<a class="headerlink" href="#security-privacy" title="Permanent link">&para;</a></h2>
 <h3 id="is-my-code-sent-to-ai-providers">Is my code sent to AI providers?<a class="headerlink" href="#is-my-code-sent-to-ai-providers" title="Permanent link">&para;</a></h3>
-<p>Yes, the contents of PROMPT.md and relevant files are sent to the AI agent's API. Never include sensitive data like:
-- API keys
-- Passwords
-- Personal information
-- Proprietary code</p>
+<p>Yes, the contents of PROMPT.md and relevant files are sent to the AI agent's API. Never include sensitive data like:</p>
+<ul>
+<li>API keys</li>
+<li>Passwords</li>
+<li>Personal information</li>
+<li>Proprietary code</li>
+</ul>
 <h3 id="how-do-i-protect-sensitive-information">How do I protect sensitive information?<a class="headerlink" href="#how-do-i-protect-sensitive-information" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Use environment variables for secrets</li>
@@ -3745,10 +3896,12 @@
 <li>Audit generated code</li>
 </ol>
 <h3 id="can-ralph-access-my-system">Can Ralph access my system?<a class="headerlink" href="#can-ralph-access-my-system" title="Permanent link">&para;</a></h3>
-<p>Ralph runs AI agents in subprocesses with:
-- Timeout protection
-- Resource limits
-- Working directory restrictions</p>
+<p>Ralph runs AI agents in subprocesses with:</p>
+<ul>
+<li>Timeout protection</li>
+<li>Resource limits</li>
+<li>Working directory restrictions</li>
+</ul>
 <p>However, agents can execute code, so always review outputs.</p>
 <h3 id="is-it-safe-to-run-ralph-on-production-servers">Is it safe to run Ralph on production servers?<a class="headerlink" href="#is-it-safe-to-run-ralph-on-production-servers" title="Permanent link">&para;</a></h3>
 <p>Not recommended. Ralph is designed for development environments. For production, use Ralph locally and deploy tested code.</p>
@@ -3763,11 +3916,13 @@
 <li>System information</li>
 </ol>
 <h3 id="can-i-contribute-to-ralph">Can I contribute to Ralph?<a class="headerlink" href="#can-i-contribute-to-ralph" title="Permanent link">&para;</a></h3>
-<p>Yes! We welcome contributions:
-- Bug fixes
-- New features
-- Documentation improvements
-- Agent integrations</p>
+<p>Yes! We welcome contributions:</p>
+<ul>
+<li>Bug fixes</li>
+<li>New features</li>
+<li>Documentation improvements</li>
+<li>Agent integrations</li>
+</ul>
 <p>See <a href="../contributing/">CONTRIBUTING.md</a> for guidelines.</p>
 <h3 id="where-can-i-get-help">Where can I get help?<a class="headerlink" href="#where-can-i-get-help" title="Permanent link">&para;</a></h3>
 <ul>

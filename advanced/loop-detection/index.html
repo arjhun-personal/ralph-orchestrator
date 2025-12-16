@@ -12,9 +12,13 @@
         <meta name="author" content="Ralph Orchestrator Contributors">
       
       
-        <link rel="canonical" href="https://mikeyobrien.github.io/ralph-orchestrator/guide/websearch/">
+        <link rel="canonical" href="https://mikeyobrien.github.io/ralph-orchestrator/advanced/loop-detection/">
       
       
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../security/">
       
       
         
@@ -25,7 +29,7 @@
     
     
       
-        <title>WebSearch Integration Guide - Ralph Orchestrator</title>
+        <title>Loop Detection - Ralph Orchestrator</title>
       
     
     
@@ -86,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#websearch-integration-guide" class="md-skip">
+        <a href="#loop-detection" class="md-skip">
           Skip to content
         </a>
       
@@ -125,7 +129,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              WebSearch Integration Guide
+              Loop Detection
             
           </span>
         </div>
@@ -261,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../overview/" class="md-tabs__link">
+        <a href="../../guide/overview/" class="md-tabs__link">
           
   
   
@@ -301,11 +305,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../advanced/architecture/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   
@@ -668,7 +674,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../guide/overview/" class="md-nav__link">
         
   
   
@@ -696,7 +702,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
+      <a href="../../guide/configuration/" class="md-nav__link">
         
   
   
@@ -724,7 +730,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../agents/" class="md-nav__link">
+      <a href="../../guide/agents/" class="md-nav__link">
         
   
   
@@ -752,7 +758,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../prompts/" class="md-nav__link">
+      <a href="../../guide/prompts/" class="md-nav__link">
         
   
   
@@ -780,7 +786,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../checkpointing/" class="md-nav__link">
+      <a href="../../guide/checkpointing/" class="md-nav__link">
         
   
   
@@ -808,7 +814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cost-management/" class="md-nav__link">
+      <a href="../../guide/cost-management/" class="md-nav__link">
         
   
   
@@ -1023,8 +1029,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1044,21 +1052,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -1076,7 +1085,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1094,7 +1103,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -1119,10 +1128,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../advanced/loop-detection/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loop Detection
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1138,6 +1174,192 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How It Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#detection-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#similarity-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Similarity Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-other-safety-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with Other Safety Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interaction with Other Safety Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integration-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-loop-detection-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When Loop Detection Triggers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resetting-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resetting Loop Detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Topics
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1150,7 +1372,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/security/" class="md-nav__link">
+      <a href="../security/" class="md-nav__link">
         
   
   
@@ -1178,7 +1400,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/monitoring/" class="md-nav__link">
+      <a href="../monitoring/" class="md-nav__link">
         
   
   
@@ -1206,7 +1428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/context-management/" class="md-nav__link">
+      <a href="../context-management/" class="md-nav__link">
         
   
   
@@ -1234,7 +1456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/production-deployment/" class="md-nav__link">
+      <a href="../production-deployment/" class="md-nav__link">
         
   
   
@@ -2225,10 +2447,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        How It Works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How It Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#detection-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#similarity-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Similarity Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
       
     </span>
   </a>
@@ -2244,25 +2505,25 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Configuration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#default-configuration" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-other-safety-features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default Configuration
+        Interaction with Other Safety Features
       
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Interaction with Other Safety Features">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#explicit-configuration" class="md-nav__link">
+  <a href="#integration-architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Explicit Configuration
+        Integration Architecture
       
     </span>
   </a>
@@ -2275,71 +2536,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage-examples" class="md-nav__link">
+  <a href="#when-loop-detection-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Usage Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-1-research-current-topics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 1: Research Current Topics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-2-technical-documentation-research" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 2: Technical Documentation Research
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-3-real-time-information" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 3: Real-time Information
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-4-framework-research" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 4: Framework Research
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#combining-with-other-tools" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Combining with Other Tools
+        When Loop Detection Triggers
       
     </span>
   </a>
@@ -2347,10 +2547,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#testing-websearch" class="md-nav__link">
+  <a href="#logging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Testing WebSearch
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resetting-loop-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resetting Loop Detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
       
     </span>
   </a>
@@ -2369,121 +2591,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security-considerations" class="md-nav__link">
+  <a href="#related-topics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security Considerations
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Troubleshooting
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#websearch-not-working" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WebSearch Not Working
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rate-limiting" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Rate Limiting
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#advanced-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Advanced Configuration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Advanced Configuration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#custom-tool-lists-with-websearch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Custom Tool Lists with WebSearch
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conditional-websearch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conditional WebSearch
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-with-ralph-workflows" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Integration with Ralph Workflows
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance-tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#future-enhancements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Future Enhancements
+        Related Topics
       
     </span>
   </a>
@@ -2513,7 +2624,7 @@
 
 
   
-    <a href="https://github.com/mikeyobrien/ralph-orchestrator/edit/main/docs/guide/websearch.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/mikeyobrien/ralph-orchestrator/edit/main/docs/advanced/loop-detection.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -2522,181 +2633,274 @@
     
       
     
-    <a href="https://github.com/mikeyobrien/ralph-orchestrator/raw/main/docs/guide/websearch.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/mikeyobrien/ralph-orchestrator/raw/main/docs/advanced/loop-detection.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<h1 id="websearch-integration-guide">WebSearch Integration Guide<a class="headerlink" href="#websearch-integration-guide" title="Permanent link">&para;</a></h1>
+<h1 id="loop-detection">Loop Detection<a class="headerlink" href="#loop-detection" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Ralph Orchestrator now includes full WebSearch support for the Claude adapter, enabling Claude to search the web for current information, research topics, and access data beyond its knowledge cutoff.</p>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
-<p>WebSearch allows Claude to:
-- Search for current events and recent news
-- Research technical documentation and best practices
-- Find up-to-date information about libraries and frameworks
-- Gather data from multiple sources
-- Access real-time information (weather, stock prices, etc.)</p>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<h3 id="default-configuration">Default Configuration<a class="headerlink" href="#default-configuration" title="Permanent link">&para;</a></h3>
-<p>WebSearch is <strong>enabled by default</strong> when using the Claude adapter. No additional configuration is required.</p>
-<h3 id="explicit-configuration">Explicit Configuration<a class="headerlink" href="#explicit-configuration" title="Permanent link">&para;</a></h3>
-<p>You can explicitly control WebSearch in several ways:</p>
-<h4 id="1-via-cli-automatic">1. Via CLI (Automatic)<a class="headerlink" href="#1-via-cli-automatic" title="Permanent link">&para;</a></h4>
-<p>When using Ralph with Claude, WebSearch is automatically enabled:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ralph<span class="w"> </span>-a<span class="w"> </span>claude<span class="w">  </span><span class="c1"># WebSearch is enabled by default</span>
+<p>Ralph Orchestrator includes automatic loop detection to prevent agents from getting stuck in repetitive cycles. This feature uses fuzzy string matching to compare recent agent outputs and detect when an agent is producing similar responses repeatedly.</p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>The <code>SafetyGuard</code> class maintains a sliding window of the last 5 agent outputs. After each successful iteration, the current output is compared against this history using <a href="https://github.com/rapidfuzz/RapidFuzz">rapidfuzz</a>, a fast fuzzy string matching library.</p>
+<h3 id="detection-algorithm">Detection Algorithm<a class="headerlink" href="#detection-algorithm" title="Permanent link">&para;</a></h3>
+<ol>
+<li>After each successful iteration, the agent's output is captured</li>
+<li>The output is compared against the last 5 stored outputs</li>
+<li>If any comparison exceeds the 90% similarity threshold, a loop is detected</li>
+<li>The current output is added to the history (oldest removed if at capacity)</li>
+<li>When a loop is detected, the orchestrator logs a warning and exits</li>
+</ol>
+<h4 id="sliding-window-visualization">Sliding Window Visualization<a class="headerlink" href="#sliding-window-visualization" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                                         🔄 Sliding Window (deque maxlen=5)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>┌────────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐  evicted   ╭───╮
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│ New Output │ ──&gt; │ Output 5 │ ──&gt; │ Output 4 │ ──&gt; │ Output 3 │ ──&gt; │ Output 2 │ ──&gt; │ Output 1 │ ─────────&gt; │ X │
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>└────────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘            ╰───╯
 </span></code></pre></div>
-<h4 id="2-via-adapter-configuration">2. Via Adapter Configuration<a class="headerlink" href="#2-via-adapter-configuration" title="Permanent link">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">src.ralph_orchestrator.adapters.claude</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClaudeAdapter</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Create adapter with WebSearch enabled (default)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">ClaudeAdapter</span><span class="p">()</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># This is the default</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Or disable WebSearch if needed</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_web_search</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<details>
+<summary>graph-easy source</summary>
+
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>graph { label: &quot;🔄 Sliding Window (deque maxlen=5)&quot;; flow: east; }
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>[ New Output ] -&gt; [ Output 5 ] -&gt; [ Output 4 ] -&gt; [ Output 3 ] -&gt; [ Output 2 ] -&gt; [ Output 1 ]
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>[ Output 1 ] -- evicted --&gt; [ X ] { shape: rounded; }
 </span></code></pre></div>
-<h4 id="3-via-orchestrator">3. Via Orchestrator<a class="headerlink" href="#3-via-orchestrator" title="Permanent link">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">src.ralph_orchestrator.orchestrator</span><span class="w"> </span><span class="kn">import</span> <span class="n">RalphOrchestrator</span>
+
+</details>
+
+<h3 id="similarity-threshold">Similarity Threshold<a class="headerlink" href="#similarity-threshold" title="Permanent link">&para;</a></h3>
+<p>The default threshold is <strong>90% similarity</strong> (0.9 ratio). This was chosen based on industry best practices:</p>
+<ul>
+<li><strong>0.95</strong>: Too strict - only catches nearly identical outputs</li>
+<li><strong>0.90</strong>: Balanced - catches repetitive patterns while allowing variation (recommended)</li>
+<li><strong>0.85</strong>: Loose - higher false positive rate</li>
+</ul>
+<h4 id="decision-flow">Decision Flow<a class="headerlink" href="#decision-flow" title="Permanent link">&para;</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>              🔍 Loop Detection Decision
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">orchestrator</span> <span class="o">=</span> <span class="n">RalphOrchestrator</span><span class="p">(</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">prompt_file</span><span class="o">=</span><span class="s2">&quot;TASK.md&quot;</span><span class="p">,</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">primary_tool</span><span class="o">=</span><span class="s2">&quot;claude&quot;</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Claude adapter automatically has WebSearch enabled</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">orchestrator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>                         ╭────────────────────╮
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>                         │   Current Output   │
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>                         ╰────────────────────╯
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>                           │
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>                           │
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>                           ∨
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>                         ┌────────────────────┐
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>                         │ Compare to History │ &lt;┐
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>                         └────────────────────┘  │
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>                           │                     │
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>                           │                     │
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>                           ∨                     │
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>╔═══════════════╗  yes   ┌────────────────────┐  │
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>║ LOOP DETECTED ║ &lt;───── │   ratio &gt;= 90%?    │  │ yes
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>╚═══════════════╝        └────────────────────┘  │
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>                           │                     │
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>                           │ no                  │
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>                           ∨                     │
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>                         ┌────────────────────┐  │
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>                         │   More outputs?    │ ─┘
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>                         └────────────────────┘
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>                           │
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>                           │ no
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>                           ∨
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>                         ┌────────────────────┐
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>                         │   Add to History   │
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>                         └────────────────────┘
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>                           │
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>                           │
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>                           ∨
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>                         ╭────────────────────╮
+</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>                         │      Continue      │
+</span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>                         ╰────────────────────╯
 </span></code></pre></div>
-<h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
-<h3 id="example-1-research-current-topics">Example 1: Research Current Topics<a class="headerlink" href="#example-1-research-current-topics" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">ClaudeAdapter</span><span class="p">()</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_all_tools</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s2">    Search the web for the latest developments in quantum computing</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s2">    and create a summary of the most significant breakthroughs in 2024.</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<details>
+<summary>graph-easy source</summary>
+
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>graph { label: &quot;🔍 Loop Detection Decision&quot;; flow: south; }
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>[ Current Output ] { shape: rounded; } -&gt; [ Compare to History ]
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>[ Compare to History ] -&gt; [ ratio &gt;= 90%? ]
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>[ ratio &gt;= 90%? ] -- yes --&gt; [ LOOP DETECTED ] { border: double; }
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>[ ratio &gt;= 90%? ] -- no --&gt; [ More outputs? ]
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>[ More outputs? ] -- yes --&gt; [ Compare to History ]
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>[ More outputs? ] -- no --&gt; [ Add to History ]
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>[ Add to History ] -&gt; [ Continue ] { shape: rounded; }
 </span></code></pre></div>
-<h3 id="example-2-technical-documentation-research">Example 2: Technical Documentation Research<a class="headerlink" href="#example-2-technical-documentation-research" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="s2">    Use WebSearch to find the latest best practices for Python async programming.</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="s2">    Compare different approaches and provide recommendations.</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+</details>
+
+<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Example of how loop detection works internally</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rapidfuzz</span><span class="w"> </span><span class="kn">import</span> <span class="n">fuzz</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Agent outputs from iterations 1-3</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="s2">&quot;Let me check the database for user information...&quot;</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">&quot;I&#39;ll query the database to find the user data...&quot;</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">&quot;Checking the database for user information...&quot;</span><span class="p">,</span>  <span class="c1"># Similar to #1</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">]</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1"># Similarity check</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">ratio</span> <span class="o">=</span> <span class="n">fuzz</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="mf">100.0</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># Result: ~0.91 (91% similar) - LOOP DETECTED</span>
 </span></code></pre></div>
-<h3 id="example-3-real-time-information">Example 3: Real-time Information<a class="headerlink" href="#example-3-real-time-information" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="s2">    Search for current weather conditions in major tech hubs:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="s2">    - San Francisco</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="s2">    - Seattle  </span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="s2">    - Austin</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="s2">    - New York</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="s2">    Also find the current stock prices for major tech companies.</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">enable_all_tools</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Currently, loop detection uses fixed parameters:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loop_threshold</code></td>
+<td>0.9</td>
+<td>Similarity threshold (90%)</td>
+</tr>
+<tr>
+<td><code>recent_outputs</code></td>
+<td>5</td>
+<td>Number of outputs to compare against</td>
+</tr>
+</tbody>
+</table>
+<p>Future versions may expose these as configuration options.</p>
+<h2 id="interaction-with-other-safety-features">Interaction with Other Safety Features<a class="headerlink" href="#interaction-with-other-safety-features" title="Permanent link">&para;</a></h2>
+<p>Loop detection works alongside other safety mechanisms:</p>
+<ol>
+<li><strong>Iteration Limit</strong>: Maximum iterations (default: 100)</li>
+<li><strong>Runtime Limit</strong>: Maximum time (default: 4 hours)</li>
+<li><strong>Cost Limit</strong>: Maximum cost (default: $10)</li>
+<li><strong>Consecutive Failure Limit</strong>: Max failures in a row (default: 5)</li>
+<li><strong>Loop Detection</strong>: Similarity-based output comparison</li>
+</ol>
+<p>The orchestrator exits when <strong>any</strong> of these conditions are met.</p>
+<h3 id="integration-architecture">Integration Architecture<a class="headerlink" href="#integration-architecture" title="Permanent link">&para;</a></h3>
+<p>The following diagram shows how loop detection integrates with the main orchestration loop:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>            ⚙️ SafetyGuard in Orchestration Loop
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>                               ╭─────────────────────╮
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  ┌──────────────────────────&gt; │   Start Iteration   │ &lt;┐
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  │                            ╰─────────────────────╯  │
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  │                              │                      │
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  │                              │                      │
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  │                              ∨                      │
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  │                            ┌─────────────────────┐  │
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>  │                            │ SafetyGuard.check() │  │
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  │                            └─────────────────────┘  │
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  │                              │                      │
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  │                              │                      │
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>  │                              ∨                      │
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>  │  ╔════════════════╗  no    ┌─────────────────────┐  │
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>  │  ║  STOP: Limit   ║ &lt;───── │     Limits OK?      │  │
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>  │  ╚════════════════╝        └─────────────────────┘  │
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>  │                              │                      │
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>  │                              │ yes                  │
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>  │                              ∨                      │
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>  │                            ┌─────────────────────┐  │
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>  │                            │  Check Completion   │  │
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>  │                            └─────────────────────┘  │
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>  │                              │                      │
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>  │                              │                      │
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>  │                              ∨                      │
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>  │  ╔════════════════╗  yes   ┌─────────────────────┐  │
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>  │  ║   STOP: Done   ║ &lt;───── │   TASK_COMPLETE?    │  │ no
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>  │  ╚════════════════╝        └─────────────────────┘  │
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>  │                              │                      │
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>  └────┐                         │ no                   │
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>       │                         ∨                      │
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>       │                       ┌─────────────────────┐  │
+</span><span id="__span-5-34"><a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>       │                       │    Execute Agent    │  │
+</span><span id="__span-5-35"><a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>       │                       └─────────────────────┘  │
+</span><span id="__span-5-36"><a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>       │                         │                      │
+</span><span id="__span-5-37"><a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>       │                         │                      │
+</span><span id="__span-5-38"><a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>       │                         ∨                      │
+</span><span id="__span-5-39"><a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>     ┌────────────────┐  no    ┌─────────────────────┐  │
+</span><span id="__span-5-40"><a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>     │ Handle Failure │ &lt;───── │      Success?       │  │
+</span><span id="__span-5-41"><a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>     └────────────────┘        └─────────────────────┘  │
+</span><span id="__span-5-42"><a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>                                 │                      │
+</span><span id="__span-5-43"><a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>                                 │ yes                  │
+</span><span id="__span-5-44"><a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>                                 ∨                      │
+</span><span id="__span-5-45"><a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>                               ┌─────────────────────┐  │
+</span><span id="__span-5-46"><a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>                               │    detect_loop()    │  │
+</span><span id="__span-5-47"><a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a>                               └─────────────────────┘  │
+</span><span id="__span-5-48"><a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>                                 │                      │
+</span><span id="__span-5-49"><a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>                                 │                      │
+</span><span id="__span-5-50"><a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>                                 ∨                      │
+</span><span id="__span-5-51"><a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>                               ┌─────────────────────┐  │
+</span><span id="__span-5-52"><a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>                               │     Loop Found?     │ ─┘
+</span><span id="__span-5-53"><a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>                               └─────────────────────┘
+</span><span id="__span-5-54"><a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a>                                 │
+</span><span id="__span-5-55"><a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a>                                 │ yes
+</span><span id="__span-5-56"><a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a>                                 ∨
+</span><span id="__span-5-57"><a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a>                               ╔═════════════════════╗
+</span><span id="__span-5-58"><a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a>                               ║     STOP: Loop      ║
+</span><span id="__span-5-59"><a id="__codelineno-5-59" name="__codelineno-5-59" href="#__codelineno-5-59"></a>                               ╚═════════════════════╝
 </span></code></pre></div>
-<h3 id="example-4-framework-research">Example 4: Framework Research<a class="headerlink" href="#example-4-framework-research" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="s2">    Research the latest features in React 19 and Next.js 15.</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="s2">    Use WebSearch to find migration guides and breaking changes.</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s2">    Create a comparison table of new features.</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<details>
+<summary>graph-easy source</summary>
+
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>graph { label: &quot;⚙️ SafetyGuard in Orchestration Loop&quot;; flow: south; }
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>[ Start Iteration ] { shape: rounded; } -&gt; [ SafetyGuard.check() ]
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>[ SafetyGuard.check() ] -&gt; [ Limits OK? ]
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>[ Limits OK? ] -- no --&gt; [ STOP: Limit ] { border: double; }
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>[ Limits OK? ] -- yes --&gt; [ Check Completion ]
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>[ Check Completion ] -&gt; [ TASK_COMPLETE? ]
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>[ TASK_COMPLETE? ] -- yes --&gt; [ STOP: Done ] { border: double; }
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>[ TASK_COMPLETE? ] -- no --&gt; [ Execute Agent ]
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>[ Execute Agent ] -&gt; [ Success? ]
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>[ Success? ] -- no --&gt; [ Handle Failure ]
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>[ Handle Failure ] -&gt; [ Start Iteration ]
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>[ Success? ] -- yes --&gt; [ detect_loop() ]
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>[ detect_loop() ] -&gt; [ Loop Found? ]
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>[ Loop Found? ] -- yes --&gt; [ STOP: Loop ] { border: double; }
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>[ Loop Found? ] -- no --&gt; [ Start Iteration ]
 </span></code></pre></div>
-<h2 id="combining-with-other-tools">Combining with Other Tools<a class="headerlink" href="#combining-with-other-tools" title="Permanent link">&para;</a></h2>
-<p>WebSearch works seamlessly with other Claude tools:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="s2">    1. Use WebSearch to find the latest Python web framework benchmarks</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="s2">    2. Create a comparison table in a file called benchmarks.md</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="s2">    3. Search local codebase for current framework usage</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="s2">    4. Provide recommendations based on findings</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">enable_all_tools</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+</details>
+
+<h2 id="when-loop-detection-triggers">When Loop Detection Triggers<a class="headerlink" href="#when-loop-detection-triggers" title="Permanent link">&para;</a></h2>
+<p>Loop detection helps in these scenarios:</p>
+<ul>
+<li><strong>Agent stuck on same task</strong>: Repeatedly attempting the same action</li>
+<li><strong>Oscillation</strong>: Agent switching between two similar approaches</li>
+<li><strong>API errors</strong>: Consistent retry messages</li>
+<li><strong>Placeholder responses</strong>: Agent returning similar "working on it" messages</li>
+</ul>
+<h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
+<p>When loop detection triggers, you'll see:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>WARNING - Loop detected: 92.3% similarity to previous output
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>WARNING - Breaking loop due to repetitive agent outputs
 </span></code></pre></div>
-<h2 id="testing-websearch">Testing WebSearch<a class="headerlink" href="#testing-websearch" title="Permanent link">&para;</a></h2>
-<p>Run the included test script to verify WebSearch functionality:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python<span class="w"> </span>test_websearch.py
+<h2 id="resetting-loop-detection">Resetting Loop Detection<a class="headerlink" href="#resetting-loop-detection" title="Permanent link">&para;</a></h2>
+<p>The loop detection history is automatically cleared when:</p>
+<ul>
+<li>A new orchestration session starts</li>
+<li><code>SafetyGuard.reset()</code> is called</li>
+<li>The orchestrator completes (success or failure)</li>
+</ul>
+<h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
+<p>Loop detection requires the <code>rapidfuzz</code> package:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;rapidfuzz&gt;=3.0.0,&lt;4.0.0&quot;</span>
 </span></code></pre></div>
-<p>This will test:
-- Basic WebSearch functionality
-- WebSearch with specific tool lists
-- Async WebSearch operations</p>
+<p>If rapidfuzz is not installed, loop detection is gracefully skipped with a debug log message.</p>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <ol>
-<li><strong>Be Specific</strong>: Provide clear search queries for better results</li>
-<li><strong>Combine Sources</strong>: Use WebSearch with local file analysis for comprehensive research</li>
-<li><strong>Verify Information</strong>: Cross-reference important information from multiple searches</li>
-<li><strong>Time-Sensitive Data</strong>: Use WebSearch for current events, prices, and recent developments</li>
-<li><strong>Documentation</strong>: Search for official documentation and recent updates</li>
+<li><strong>Monitor for loops</strong>: Watch for loop detection warnings in logs</li>
+<li><strong>Improve prompts</strong>: If loops occur frequently, refine your task description</li>
+<li><strong>Check task completeness</strong>: Ensure tasks have clear completion criteria</li>
+<li><strong>Use completion markers</strong>: Add <code>- [x] TASK_COMPLETE</code> when done</li>
 </ol>
-<h2 id="security-considerations">Security Considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
-<p>When WebSearch is enabled, Claude can:
-- Access any publicly available web content
-- Make HTTP/HTTPS requests to external sites
-- Process and analyze web page content</p>
-<p>Consider your security requirements when enabling WebSearch in production environments.</p>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="websearch-not-working">WebSearch Not Working<a class="headerlink" href="#websearch-not-working" title="Permanent link">&para;</a></h3>
-<ol>
-<li>
-<p>Verify Claude SDK is installed:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pip<span class="w"> </span>install<span class="w"> </span>claude-code-sdk
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Check if WebSearch is enabled:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">ClaudeAdapter</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enable_all_tools</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Test with a simple query:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;What is the current date?&quot;</span><span class="p">,</span> <span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></code></pre></div></p>
-</li>
-</ol>
-<h3 id="rate-limiting">Rate Limiting<a class="headerlink" href="#rate-limiting" title="Permanent link">&para;</a></h3>
-<p>WebSearch may be subject to rate limits. If you encounter issues:
-- Add delays between searches
-- Batch related queries together
-- Use caching when appropriate</p>
-<h2 id="advanced-configuration">Advanced Configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h2>
-<h3 id="custom-tool-lists-with-websearch">Custom Tool Lists with WebSearch<a class="headerlink" href="#custom-tool-lists-with-websearch" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Enable only specific tools including WebSearch</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">allowed_tools</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;WebSearch&#39;</span><span class="p">,</span> <span class="s1">&#39;Read&#39;</span><span class="p">,</span> <span class="s1">&#39;Write&#39;</span><span class="p">,</span> <span class="s1">&#39;Edit&#39;</span><span class="p">],</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="conditional-websearch">Conditional WebSearch<a class="headerlink" href="#conditional-websearch" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Enable WebSearch only for specific tasks</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">if</span> <span class="n">task_requires_research</span><span class="p">:</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_web_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">else</span><span class="p">:</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">adapter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">enable_web_search</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></code></pre></div>
-<h2 id="integration-with-ralph-workflows">Integration with Ralph Workflows<a class="headerlink" href="#integration-with-ralph-workflows" title="Permanent link">&para;</a></h2>
-<p>WebSearch enhances Ralph's capabilities in various workflows:</p>
-<ol>
-<li><strong>Documentation Generation</strong>: Research and create up-to-date documentation</li>
-<li><strong>Dependency Updates</strong>: Find latest versions and migration guides</li>
-<li><strong>Bug Investigation</strong>: Search for known issues and solutions</li>
-<li><strong>Best Practices</strong>: Research current industry standards</li>
-<li><strong>API Integration</strong>: Find API documentation and examples</li>
-</ol>
-<h2 id="performance-tips">Performance Tips<a class="headerlink" href="#performance-tips" title="Permanent link">&para;</a></h2>
+<h2 id="related-topics">Related Topics<a class="headerlink" href="#related-topics" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Cache search results when appropriate</li>
-<li>Batch related searches together</li>
-<li>Use specific search queries for faster results</li>
-<li>Combine with local tools for comprehensive analysis</li>
+<li><a href="../../guide/overview/#safety-features">Safety Mechanisms</a></li>
+<li><a href="../../troubleshooting/">Troubleshooting</a></li>
+<li><a href="../../glossary/#l">Glossary: Loop Detection</a></li>
 </ul>
-<h2 id="future-enhancements">Future Enhancements<a class="headerlink" href="#future-enhancements" title="Permanent link">&para;</a></h2>
-<p>Planned improvements for WebSearch integration:
-- Search result caching
-- Custom search providers
-- Advanced filtering options
-- Search history tracking
-- Offline fallback options</p>
 
 
 

@@ -1044,6 +1044,8 @@
       
         
       
+        
+      
     
     
     
@@ -1106,6 +1108,34 @@
     
   
     System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/loop-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loop Detection
   
 
     
@@ -2810,6 +2840,8 @@
 <dd>The maximum amount of text/tokens an AI agent can process in a single request. Varies by agent (Claude: 200K, Gemini: 32K, Q: 8K).</dd>
 <dt><strong>Convergence</strong></dt>
 <dd>The process of iterations gradually approaching task completion through successive improvements.</dd>
+<dt><strong>Completion Marker</strong></dt>
+<dd>A special checkbox pattern (<code>- [x] TASK_COMPLETE</code>) in the prompt file that signals task completion. When the orchestrator detects this marker, it immediately exits the loop.</dd>
 </dl>
 <h2 id="d">D<a class="headerlink" href="#d" title="Permanent link">&para;</a></h2>
 <dl>
@@ -2843,6 +2875,8 @@
 <dl>
 <dt><strong>Loop</strong></dt>
 <dd>The core Ralph pattern - continuously running an AI agent until task completion or limits are reached.</dd>
+<dt><strong>Loop Detection</strong></dt>
+<dd>Safety feature that detects when an agent is producing repetitive outputs. Uses fuzzy string matching (rapidfuzz) with a 90% similarity threshold to compare recent outputs and prevent infinite loops.</dd>
 </dl>
 <h2 id="m">M<a class="headerlink" href="#m" title="Permanent link">&para;</a></h2>
 <dl>

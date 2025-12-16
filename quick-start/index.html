@@ -683,6 +683,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#signaling-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signaling Completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#basic-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1304,6 +1315,8 @@
       
         
       
+        
+      
     
     
     
@@ -1366,6 +1379,34 @@
     
   
     System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/loop-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loop Detection
   
 
     
@@ -2527,6 +2568,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#signaling-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signaling Completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#basic-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2748,14 +2800,15 @@
 <div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gh"># Task: Create a Todo List CLI</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Build a Python command-line todo list application with:
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">-</span><span class="w"> </span>Add tasks
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">-</span><span class="w"> </span>List tasks
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">-</span><span class="w"> </span>Mark tasks as complete
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">-</span><span class="w"> </span>Save tasks to a JSON file
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>Include proper error handling and a help command.
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>The orchestrator will continue iterations until all requirements are met or limits reached.
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">-</span><span class="w"> </span>Add tasks
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">-</span><span class="w"> </span>List tasks
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">-</span><span class="w"> </span>Mark tasks as complete
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">-</span><span class="w"> </span>Save tasks to a JSON file
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>Include proper error handling and a help command.
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>The orchestrator will continue iterations until all requirements are met or limits reached.
 </span></code></pre></div>
 <h2 id="step-4-run-ralph">Step 4: Run Ralph<a class="headerlink" href="#step-4-run-ralph" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Basic execution (auto-detects available agent)</span>
@@ -2768,18 +2821,20 @@
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>acp<span class="w"> </span>--acp-agent<span class="w"> </span>gemini<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md
 </span></code></pre></div>
 <h2 id="step-5-monitor-progress">Step 5: Monitor Progress<a class="headerlink" href="#step-5-monitor-progress" title="Permanent link">&para;</a></h2>
-<p>Ralph will now:
-1. Read your prompt file
-2. Execute the AI agent
-3. Check for completion
-4. Iterate until done or limits reached</p>
-<p>You'll see output like:
+<p>Ralph will now:</p>
+<ol>
+<li>Read your prompt file</li>
+<li>Execute the AI agent</li>
+<li>Check for completion</li>
+<li>Iterate until done or limits reached</li>
+</ol>
+<p>You'll see output like:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>2025-09-08 10:30:45 - INFO - Starting Ralph Orchestrator v1.0.0
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>2025-09-08 10:30:45 - INFO - Using agent: claude
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>2025-09-08 10:30:45 - INFO - Starting iteration 1/100
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>2025-09-08 10:30:52 - INFO - Iteration 1 complete
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>2025-09-08 10:30:52 - INFO - Task not complete, continuing...
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h2 id="what-happens-next">What Happens Next?<a class="headerlink" href="#what-happens-next" title="Permanent link">&para;</a></h2>
 <p>Ralph will continue iterating until one of these conditions is met:</p>
 <ul>
@@ -2788,38 +2843,53 @@
 <li>⏰ Maximum runtime exceeded (default: 4 hours)</li>
 <li>💰 Token or cost limits reached</li>
 <li>❌ Unrecoverable error occurs</li>
+<li>✅ Completion marker detected in prompt file</li>
+<li>🔄 Loop detection triggers (repetitive outputs)</li>
 </ul>
+<h2 id="signaling-completion">Signaling Completion<a class="headerlink" href="#signaling-completion" title="Permanent link">&para;</a></h2>
+<p>Add a completion marker to your PROMPT.md when the task is done:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gu">## Status</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">- [x]</span> Created todo.py with CLI interface
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">- [x]</span> Implemented add, list, complete commands
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">- [x]</span> Added JSON persistence
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">- [x]</span> Wrote unit tests
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">- [x]</span> TASK_COMPLETE
+</span></code></pre></div>
+<p>Ralph will detect the <code>- [x] TASK_COMPLETE</code> marker and stop orchestration immediately. This allows the AI agent to signal "I'm done" rather than relying solely on iteration limits.</p>
 <h2 id="basic-configuration">Basic Configuration<a class="headerlink" href="#basic-configuration" title="Permanent link">&para;</a></h2>
 <p>Control Ralph's behavior with command-line options:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Limit iterations</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">50</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Set cost limit</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">10</span>.0
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Enable verbose logging</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--verbose
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Dry run (test without executing)</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Limit iterations</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Set cost limit</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Enable verbose logging</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--verbose
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># Dry run (test without executing)</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <h2 id="example-tasks">Example Tasks<a class="headerlink" href="#example-tasks" title="Permanent link">&para;</a></h2>
 <h3 id="simple-function">Simple Function<a class="headerlink" href="#simple-function" title="Permanent link">&para;</a></h3>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Write a Python function that validates email addresses using regex.
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Include comprehensive unit tests.
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Write a Python function that validates email addresses using regex.
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Include comprehensive unit tests.
 </span></code></pre></div>
 <h3 id="web-scraper">Web Scraper<a class="headerlink" href="#web-scraper" title="Permanent link">&para;</a></h3>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Create a web scraper that:
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">1.</span> Fetches the HackerNews homepage
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">2.</span> Extracts the top 10 stories
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">3.</span> Saves them to a JSON file
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>Use requests and BeautifulSoup.
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Create a web scraper that:
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">1.</span> Fetches the HackerNews homepage
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">2.</span> Extracts the top 10 stories
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">3.</span> Saves them to a JSON file
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>   Use requests and BeautifulSoup.
 </span></code></pre></div>
 <h3 id="cli-tool">CLI Tool<a class="headerlink" href="#cli-tool" title="Permanent link">&para;</a></h3>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Build a markdown to HTML converter CLI tool:
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">-</span><span class="w"> </span>Accept input/output file arguments
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">-</span><span class="w"> </span>Support basic markdown syntax
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">-</span><span class="w"> </span>Add --watch mode for auto-conversion
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Build a markdown to HTML converter CLI tool:
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">-</span><span class="w"> </span>Accept input/output file arguments
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">-</span><span class="w"> </span>Support basic markdown syntax
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">-</span><span class="w"> </span>Add --watch mode for auto-conversion
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <p>Now that you've run your first Ralph task:</p>
@@ -2832,19 +2902,21 @@
 </ul>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="agent-not-found">Agent Not Found<a class="headerlink" href="#agent-not-found" title="Permanent link">&para;</a></h3>
-<p>If Ralph can't find an AI agent:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ERROR:<span class="w"> </span>No<span class="w"> </span>AI<span class="w"> </span>agents<span class="w"> </span>detected.<span class="w"> </span>Please<span class="w"> </span>install<span class="w"> </span>claude,<span class="w"> </span>q,<span class="w"> </span>gemini,<span class="w"> </span>or<span class="w"> </span>an<span class="w"> </span>ACP-compliant<span class="w"> </span>agent.
-</span></code></pre></div></p>
+<p>If Ralph can't find an AI agent:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ERROR:<span class="w"> </span>No<span class="w"> </span>AI<span class="w"> </span>agents<span class="w"> </span>detected.<span class="w"> </span>Please<span class="w"> </span>install<span class="w"> </span>claude,<span class="w"> </span>q,<span class="w"> </span>gemini,<span class="w"> </span>or<span class="w"> </span>an<span class="w"> </span>ACP-compliant<span class="w"> </span>agent.
+</span></code></pre></div>
 <p><strong>Solution</strong>: Install one of the supported agents (see Step 1)</p>
 <h3 id="permission-denied">Permission Denied<a class="headerlink" href="#permission-denied" title="Permanent link">&para;</a></h3>
-<p>If you get permission errors:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>ralph_orchestrator.py
-</span></code></pre></div></p>
+<p>If you get permission errors:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>ralph_orchestrator.py
+</span></code></pre></div>
 <h3 id="task-not-completing">Task Not Completing<a class="headerlink" href="#task-not-completing" title="Permanent link">&para;</a></h3>
-<p>If your task runs indefinitely:
-- Check that your prompt includes clear completion criteria
-- Ensure the agent can modify files and work towards completion
-- Review iteration logs in <code>.agent/metrics/</code></p>
+<p>If your task runs indefinitely:</p>
+<ul>
+<li>Check that your prompt includes clear completion criteria</li>
+<li>Ensure the agent can modify files and work towards completion</li>
+<li>Review iteration logs in <code>.agent/metrics/</code></li>
+</ul>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Check the <a href="../faq/">FAQ</a></li>

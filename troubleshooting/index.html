@@ -1044,6 +1044,8 @@
       
         
       
+        
+      
     
     
     
@@ -1106,6 +1108,34 @@
     
   
     System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/loop-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loop Detection
   
 
     
@@ -2883,70 +2913,76 @@
 <h3 id="installation-issues">Installation Issues<a class="headerlink" href="#installation-issues" title="Permanent link">&para;</a></h3>
 <h4 id="agent-not-found">Agent Not Found<a class="headerlink" href="#agent-not-found" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>ralph: command 'claude' not found</code></p>
-<p><strong>Solutions</strong>:
-1. Verify agent installation:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>which<span class="w"> </span>claude
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>Verify agent installation:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>which<span class="w"> </span>claude
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>which<span class="w"> </span>gemini
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>which<span class="w"> </span>q
-</span></code></pre></div></p>
+</span></code></pre></div>
 <ol>
-<li>
-<p>Install missing agent:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Claude</span>
+<li>Install missing agent:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Claude</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@anthropic-ai/claude-code
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Gemini</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@google/gemini-cli
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Add to PATH:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:/usr/local/bin
-</span></code></pre></div></p>
-</li>
+</span></code></pre></div>
+<ol>
+<li>Add to PATH:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:/usr/local/bin
+</span></code></pre></div>
 <h4 id="permission-denied">Permission Denied<a class="headerlink" href="#permission-denied" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Permission denied: './ralph'</code></p>
-<p><strong>Solution</strong>:
+<p><strong>Solution</strong>:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>ralph<span class="w"> </span>ralph_orchestrator.py
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="execution-issues">Execution Issues<a class="headerlink" href="#execution-issues" title="Permanent link">&para;</a></h3>
 <h4 id="task-running-too-long">Task Running Too Long<a class="headerlink" href="#task-running-too-long" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: Ralph runs maximum iterations without achieving goals</p>
-<p><strong>Possible Causes</strong>:
-1. Unclear or overly complex task description
-2. Agent not making progress towards objectives
-3. Task scope too large for iteration limits</p>
-<p><strong>Solutions</strong>:
-1. Check iteration progress and logs:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ralph<span class="w"> </span>status
-</span></code></pre></div></p>
+<p><strong>Possible Causes</strong>:</p>
 <ol>
-<li>
-<p>Break down complex tasks:
-   <div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gh"># Instead of:</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Build a complete web application
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="gh"># Try:</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Create a Flask app with one endpoint that returns &quot;Hello World&quot;
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Increase iteration limits or try different agent:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">200</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>gemini
-</span></code></pre></div></p>
-</li>
+<li>Unclear or overly complex task description</li>
+<li>Agent not making progress towards objectives</li>
+<li>Task scope too large for iteration limits</li>
 </ol>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>Check iteration progress and logs:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ralph<span class="w"> </span>status
+</span></code></pre></div>
+<ol>
+<li>Break down complex tasks:</li>
+</ol>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gh"># Instead of:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Build a complete web application
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="gh"># Try:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Create a Flask app with one endpoint that returns &quot;Hello World&quot;
+</span></code></pre></div>
+<ol>
+<li>Increase iteration limits or try different agent:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">200</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>gemini
+</span></code></pre></div>
 <h4 id="agent-timeout">Agent Timeout<a class="headerlink" href="#agent-timeout" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Agent execution timed out</code></p>
-<p><strong>Solutions</strong>:
-1. Increase timeout:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># In ralph.json</span>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>Increase timeout:</li>
+</ol>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># In ralph.json</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="p">{</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  <span class="s2">&quot;timeout_per_iteration&quot;</span><span class="p">:</span> <span class="mi">600</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">}</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 <ol>
 <li>Reduce prompt complexity:</li>
 <li>Break large tasks into smaller ones</li>
@@ -2954,115 +2990,209 @@
 <p>Remove unnecessary context</p>
 </li>
 <li>
-<p>Check system resources:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>htop
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>free<span class="w"> </span>-h
-</span></code></pre></div></p>
+<p>Check system resources:</p>
 </li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>htop
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>free<span class="w"> </span>-h
+</span></code></pre></div>
 <h4 id="repeated-errors">Repeated Errors<a class="headerlink" href="#repeated-errors" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: Same error occurs in multiple iterations</p>
-<p><strong>Solutions</strong>:
-1. Check error pattern:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cat<span class="w"> </span>.agent/metrics/state_*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.errors&#39;</span>
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Clear workspace and retry:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ralph<span class="w"> </span>clean
+<li>Check error pattern:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cat<span class="w"> </span>.agent/metrics/state_*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.errors&#39;</span>
+</span></code></pre></div>
+<ol>
+<li>Clear workspace and retry:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ralph<span class="w"> </span>clean
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ralph<span class="w"> </span>run
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Manual intervention:</p>
-</li>
+</span></code></pre></div>
+<ol>
+<li>Manual intervention:</li>
 <li>Fix the specific issue</li>
 <li>Add clarification to PROMPT.md</li>
 <li>Resume execution</li>
 </ol>
+<h4 id="loop-detection-issues">Loop Detection Issues<a class="headerlink" href="#loop-detection-issues" title="Permanent link">&para;</a></h4>
+<p><strong>Problem</strong>: <code>Loop detected: XX% similarity to previous output</code></p>
+<p>Ralph's loop detection triggers when agent output is ≥90% similar to any of the last 5 outputs.</p>
+<p><strong>Possible Causes</strong>:</p>
+<ol>
+<li>Agent is stuck on the same subtask</li>
+<li>Agent producing similar "working on it" messages</li>
+<li>API errors causing identical retry messages</li>
+<li>Task requires same action repeatedly (false positive)</li>
+</ol>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li><strong>Check if it's a legitimate loop</strong>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Review recent outputs</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ls<span class="w"> </span>-lt<span class="w"> </span>.agent/prompts/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>diff<span class="w"> </span>.agent/prompts/prompt_N.md<span class="w"> </span>.agent/prompts/prompt_N-1.md
+</span></code></pre></div>
+<ol>
+<li><strong>Improve prompt to encourage variety</strong>:</li>
+</ol>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gh"># Add explicit progress tracking</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="gu">## Current Status</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>Document what step you&#39;re on and what has changed since last iteration.
+</span></code></pre></div>
+<ol>
+<li><strong>Break down the task</strong>:</li>
+<li>If agent keeps doing the same thing, the task may need restructuring</li>
+<li>
+<p>Split into smaller, more distinct subtasks</p>
+</li>
+<li>
+<p><strong>Check for underlying issues</strong>:</p>
+</li>
+<li>API errors causing retries</li>
+<li>Permission issues blocking progress</li>
+<li>Missing dependencies</li>
+</ol>
+<h4 id="completion-marker-not-detected">Completion Marker Not Detected<a class="headerlink" href="#completion-marker-not-detected" title="Permanent link">&para;</a></h4>
+<p><strong>Problem</strong>: Ralph continues running despite <code>TASK_COMPLETE</code> marker</p>
+<p><strong>Possible Causes</strong>:</p>
+<ol>
+<li>Incorrect marker format</li>
+<li>Invisible characters or encoding issues</li>
+<li>Marker buried in code block</li>
+</ol>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li><strong>Use exact format</strong>:</li>
+</ol>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gh"># Correct formats:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">- [x]</span> TASK_COMPLETE
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      [x] TASK_COMPLETE
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="gh"># Incorrect (won&#39;t trigger):</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="k">- [ ]</span> TASK_COMPLETE # Not checked
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>      TASK_COMPLETE # No checkbox
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="k">- [x]</span> TASK_COMPLETE # Capital X
+</span></code></pre></div>
+<ol>
+<li><strong>Check for hidden characters</strong>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>cat<span class="w"> </span>-A<span class="w"> </span>PROMPT.md<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>TASK_COMPLETE
+</span></code></pre></div>
+<ol>
+<li><strong>Ensure marker is on its own line</strong>:</li>
+</ol>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="gh"># Good - on its own line</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="k">- [x]</span> TASK_COMPLETE
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="gh"># Bad - inside code block</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="sb">```markdown</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="k">- [x]</span> TASK_COMPLETE # Inside code block - won&#39;t work
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="sb">```</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>
+</span></code></pre></div>
+<ol>
+<li><strong>Verify encoding</strong>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>file<span class="w"> </span>PROMPT.md
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1"># Should show: UTF-8 Unicode text</span>
+</span></code></pre></div>
 <h3 id="git-issues">Git Issues<a class="headerlink" href="#git-issues" title="Permanent link">&para;</a></h3>
 <h4 id="checkpoint-failed">Checkpoint Failed<a class="headerlink" href="#checkpoint-failed" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Failed to create checkpoint</code></p>
-<p><strong>Solutions</strong>:
-1. Initialize Git repository:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>git<span class="w"> </span>init
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Initial commit&quot;</span>
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Check Git status:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>git<span class="w"> </span>status
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Fix Git configuration:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>git<span class="w"> </span>config<span class="w"> </span>user.email<span class="w"> </span><span class="s2">&quot;you@example.com&quot;</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>git<span class="w"> </span>config<span class="w"> </span>user.name<span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
-</span></code></pre></div></p>
-</li>
+<li>Initialize Git repository:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>git<span class="w"> </span>init
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Initial commit&quot;</span>
+</span></code></pre></div>
+<ol>
+<li>Check Git status:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>git<span class="w"> </span>status
+</span></code></pre></div>
+<ol>
+<li>Fix Git configuration:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>git<span class="w"> </span>config<span class="w"> </span>user.email<span class="w"> </span><span class="s2">&quot;you@example.com&quot;</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>git<span class="w"> </span>config<span class="w"> </span>user.name<span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
+</span></code></pre></div>
 <h4 id="uncommitted-changes-warning">Uncommitted Changes Warning<a class="headerlink" href="#uncommitted-changes-warning" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Uncommitted changes detected</code></p>
-<p><strong>Solutions</strong>:
-1. Commit changes:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>git<span class="w"> </span>add<span class="w"> </span>.
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Save work&quot;</span>
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Stash changes:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>git<span class="w"> </span>stash
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>ralph<span class="w"> </span>run
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>git<span class="w"> </span>stash<span class="w"> </span>pop
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Disable Git operations:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--no-git
-</span></code></pre></div></p>
-</li>
+<li>Commit changes:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>git<span class="w"> </span>add<span class="w"> </span>.
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Save work&quot;</span>
+</span></code></pre></div>
+<ol>
+<li>Stash changes:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>git<span class="w"> </span>stash
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>ralph<span class="w"> </span>run
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>git<span class="w"> </span>stash<span class="w"> </span>pop
+</span></code></pre></div>
+<ol>
+<li>Disable Git operations:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--no-git
+</span></code></pre></div>
 <h3 id="context-issues">Context Issues<a class="headerlink" href="#context-issues" title="Permanent link">&para;</a></h3>
 <h4 id="context-window-exceeded">Context Window Exceeded<a class="headerlink" href="#context-window-exceeded" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Context window limit exceeded</code></p>
-<p><strong>Symptoms</strong>:
-- Agent forgets earlier instructions
-- Incomplete responses
-- Errors about missing information</p>
-<p><strong>Solutions</strong>:
-1. Reduce file sizes:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Split large files</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>split<span class="w"> </span>-l<span class="w"> </span><span class="m">500</span><span class="w"> </span>large_file.py<span class="w"> </span>part_
-</span></code></pre></div></p>
+<p><strong>Symptoms</strong>:</p>
+<ul>
+<li>Agent forgets earlier instructions</li>
+<li>Incomplete responses</li>
+<li>Errors about missing information</li>
+</ul>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Use more concise prompt:
-   <div class="language-markdown highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="gh"># Remove unnecessary details</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="gh"># Focus on current task</span>
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Switch to higher-context agent:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Claude has 200K context</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>claude
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Clear iteration history:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>rm<span class="w"> </span>.agent/prompts/prompt_*.md
-</span></code></pre></div></p>
-</li>
+<li>Reduce file sizes:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Split large files</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>split<span class="w"> </span>-l<span class="w"> </span><span class="m">500</span><span class="w"> </span>large_file.py<span class="w"> </span>part_
+</span></code></pre></div>
+<ol>
+<li>Use more concise prompt:</li>
+</ol>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="gh"># Remove unnecessary details</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="gh"># Focus on current task</span>
+</span></code></pre></div>
+<ol>
+<li>Switch to higher-context agent:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Claude has 200K context</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>claude
+</span></code></pre></div>
+<ol>
+<li>Clear iteration history:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>rm<span class="w"> </span>.agent/prompts/prompt_*.md
+</span></code></pre></div>
 <h3 id="performance-issues">Performance Issues<a class="headerlink" href="#performance-issues" title="Permanent link">&para;</a></h3>
 <h4 id="slow-execution">Slow Execution<a class="headerlink" href="#slow-execution" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: Iterations taking too long</p>
-<p><strong>Solutions</strong>:
-1. Check system resources:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>top
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>df<span class="w"> </span>-h
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>iostat
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>Check system resources:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>top
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>df<span class="w"> </span>-h
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>iostat
+</span></code></pre></div>
 <ol>
 <li>Reduce parallel operations:</li>
 <li>Close other applications</li>
@@ -3070,73 +3200,73 @@
 <p>Limit background processes</p>
 </li>
 <li>
-<p>Use faster agent:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Q is typically faster</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>q
-</span></code></pre></div></p>
+<p>Use faster agent:</p>
 </li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Q is typically faster</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>q
+</span></code></pre></div>
 <h4 id="high-memory-usage">High Memory Usage<a class="headerlink" href="#high-memory-usage" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: Ralph consuming excessive memory</p>
-<p><strong>Solutions</strong>:
-1. Set resource limits:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># In ralph.json</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="p">{</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>  <span class="s2">&quot;resource_limits&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="s2">&quot;memory_mb&quot;</span><span class="p">:</span> <span class="mi">2048</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>  <span class="p">}</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="p">}</span>
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Clean old state files:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>find<span class="w"> </span>.agent<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;*.json&quot;</span><span class="w"> </span>-mtime<span class="w"> </span>+7<span class="w"> </span>-delete
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Restart Ralph:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>pkill<span class="w"> </span>-f<span class="w"> </span>ralph_orchestrator
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>ralph<span class="w"> </span>run
-</span></code></pre></div></p>
-</li>
+<li>Set resource limits:</li>
 </ol>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># In ralph.json</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="p">{</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>  <span class="s2">&quot;resource_limits&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>    <span class="s2">&quot;memory_mb&quot;</span><span class="p">:</span> <span class="mi">2048</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>  <span class="p">}</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li>Clean old state files:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>find<span class="w"> </span>.agent<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;*.json&quot;</span><span class="w"> </span>-mtime<span class="w"> </span>+7<span class="w"> </span>-delete
+</span></code></pre></div>
+<ol>
+<li>Restart Ralph:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>pkill<span class="w"> </span>-f<span class="w"> </span>ralph_orchestrator
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>ralph<span class="w"> </span>run
+</span></code></pre></div>
 <h3 id="state-and-metrics-issues">State and Metrics Issues<a class="headerlink" href="#state-and-metrics-issues" title="Permanent link">&para;</a></h3>
 <h4 id="corrupted-state-file">Corrupted State File<a class="headerlink" href="#corrupted-state-file" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: <code>Invalid state file</code></p>
-<p><strong>Solutions</strong>:
-1. Remove corrupted file:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>rm<span class="w"> </span>.agent/metrics/state_latest.json
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Restore from backup:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>cp<span class="w"> </span>.agent/metrics/state_*.json<span class="w"> </span>.agent/metrics/state_latest.json
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Reset state:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>ralph<span class="w"> </span>clean
-</span></code></pre></div></p>
-</li>
+<li>Remove corrupted file:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>rm<span class="w"> </span>.agent/metrics/state_latest.json
+</span></code></pre></div>
+<ol>
+<li>Restore from backup:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>cp<span class="w"> </span>.agent/metrics/state_*.json<span class="w"> </span>.agent/metrics/state_latest.json
+</span></code></pre></div>
+<ol>
+<li>Reset state:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>ralph<span class="w"> </span>clean
+</span></code></pre></div>
 <h4 id="missing-metrics">Missing Metrics<a class="headerlink" href="#missing-metrics" title="Permanent link">&para;</a></h4>
 <p><strong>Problem</strong>: No metrics being collected</p>
-<p><strong>Solutions</strong>:
-1. Check metrics directory:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>ls<span class="w"> </span>-la<span class="w"> </span>.agent/metrics/
-</span></code></pre></div></p>
+<p><strong>Solutions</strong>:</p>
 <ol>
-<li>
-<p>Create directory if missing:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>.agent/metrics
-</span></code></pre></div></p>
-</li>
-<li>
-<p>Check permissions:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>.agent/metrics
-</span></code></pre></div></p>
-</li>
+<li>Check metrics directory:</li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>ls<span class="w"> </span>-la<span class="w"> </span>.agent/metrics/
+</span></code></pre></div>
+<ol>
+<li>Create directory if missing:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>.agent/metrics
+</span></code></pre></div>
+<ol>
+<li>Check permissions:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>.agent/metrics
+</span></code></pre></div>
 <h2 id="error-messages">Error Messages<a class="headerlink" href="#error-messages" title="Permanent link">&para;</a></h2>
 <h3 id="common-error-codes">Common Error Codes<a class="headerlink" href="#common-error-codes" title="Permanent link">&para;</a></h3>
 <table>
@@ -3172,110 +3302,108 @@
 </table>
 <h3 id="agent-specific-errors">Agent-Specific Errors<a class="headerlink" href="#agent-specific-errors" title="Permanent link">&para;</a></h3>
 <h4 id="claude-errors">Claude Errors<a class="headerlink" href="#claude-errors" title="Permanent link">&para;</a></h4>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>&quot;Rate limit exceeded&quot;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>&quot;Rate limit exceeded&quot;
 </span></code></pre></div>
-<strong>Solution</strong>: Add delay between iterations or upgrade API plan</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>&quot;Invalid API key&quot;
+<p><strong>Solution</strong>: Add delay between iterations or upgrade API plan</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>&quot;Invalid API key&quot;
 </span></code></pre></div>
-<strong>Solution</strong>: Check Claude CLI configuration</p>
+<p><strong>Solution</strong>: Check Claude CLI configuration</p>
 <h4 id="gemini-errors">Gemini Errors<a class="headerlink" href="#gemini-errors" title="Permanent link">&para;</a></h4>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>&quot;Quota exceeded&quot;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>&quot;Quota exceeded&quot;
 </span></code></pre></div>
-<strong>Solution</strong>: Wait for quota reset or upgrade plan</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>&quot;Model not available&quot;
+<p><strong>Solution</strong>: Wait for quota reset or upgrade plan</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>&quot;Model not available&quot;
 </span></code></pre></div>
-<strong>Solution</strong>: Check Gemini CLI version and update</p>
+<p><strong>Solution</strong>: Check Gemini CLI version and update</p>
 <h4 id="q-chat-errors">Q Chat Errors<a class="headerlink" href="#q-chat-errors" title="Permanent link">&para;</a></h4>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>&quot;Connection refused&quot;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>&quot;Connection refused&quot;
 </span></code></pre></div>
-<strong>Solution</strong>: Ensure Q service is running</p>
+<p><strong>Solution</strong>: Ensure Q service is running</p>
 <h2 id="debug-mode">Debug Mode<a class="headerlink" href="#debug-mode" title="Permanent link">&para;</a></h2>
 <h3 id="enable-verbose-logging">Enable Verbose Logging<a class="headerlink" href="#enable-verbose-logging" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c1"># Maximum verbosity</span>
-</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--verbose
-</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>
-</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="c1"># With debug environment</span>
-</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a><span class="nv">DEBUG</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>ralph<span class="w"> </span>run
-</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>
-</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="c1"># Save logs</span>
-</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>ralph<span class="w"> </span>run<span class="w"> </span>--verbose<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>debug.log
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="c1"># Maximum verbosity</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--verbose
+</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a>
+</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="c1"># With debug environment</span>
+</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="nv">DEBUG</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>ralph<span class="w"> </span>run
+</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a>
+</span><span id="__span-44-7"><a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a><span class="c1"># Save logs</span>
+</span><span id="__span-44-8"><a id="__codelineno-44-8" name="__codelineno-44-8" href="#__codelineno-44-8"></a>ralph<span class="w"> </span>run<span class="w"> </span>--verbose<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>debug.log
 </span></code></pre></div>
 <h3 id="inspect-execution">Inspect Execution<a class="headerlink" href="#inspect-execution" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="c1"># Add debug points in PROMPT.md</span>
-</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DEBUG: Reached checkpoint 1&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="c1"># Add debug points in PROMPT.md</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DEBUG: Reached checkpoint 1&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="trace-execution">Trace Execution<a class="headerlink" href="#trace-execution" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="c1"># Trace system calls</span>
-</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>strace<span class="w"> </span>-o<span class="w"> </span>trace.log<span class="w"> </span>ralph<span class="w"> </span>run
-</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>
-</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="c1"># Profile Python execution</span>
-</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>python<span class="w"> </span>-m<span class="w"> </span>cProfile<span class="w"> </span>ralph_orchestrator.py
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="c1"># Trace system calls</span>
+</span><span id="__span-46-2"><a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>strace<span class="w"> </span>-o<span class="w"> </span>trace.log<span class="w"> </span>ralph<span class="w"> </span>run
+</span><span id="__span-46-3"><a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>
+</span><span id="__span-46-4"><a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="c1"># Profile Python execution</span>
+</span><span id="__span-46-5"><a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a>python<span class="w"> </span>-m<span class="w"> </span>cProfile<span class="w"> </span>ralph_orchestrator.py
 </span></code></pre></div>
 <h2 id="recovery-procedures">Recovery Procedures<a class="headerlink" href="#recovery-procedures" title="Permanent link">&para;</a></h2>
 <h3 id="from-failed-state">From Failed State<a class="headerlink" href="#from-failed-state" title="Permanent link">&para;</a></h3>
 <ol>
-<li>
-<p><strong>Save current state</strong>:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>cp<span class="w"> </span>-r<span class="w"> </span>.agent<span class="w"> </span>.agent.backup
-</span></code></pre></div></p>
-</li>
-<li>
-<p><strong>Analyze failure</strong>:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>.agent/logs/ralph.log
-</span></code></pre></div></p>
-</li>
-<li>
-<p><strong>Fix issue</strong>:</p>
-</li>
+<li><strong>Save current state</strong>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>cp<span class="w"> </span>-r<span class="w"> </span>.agent<span class="w"> </span>.agent.backup
+</span></code></pre></div>
+<ol>
+<li><strong>Analyze failure</strong>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>.agent/logs/ralph.log
+</span></code></pre></div>
+<ol>
+<li><strong>Fix issue</strong>:</li>
 <li>Update PROMPT.md</li>
 <li>Fix code errors</li>
 <li>
 <p>Clear problematic files</p>
 </li>
 <li>
-<p><strong>Resume or restart</strong>:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="c1"># Resume from checkpoint</span>
-</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>ralph<span class="w"> </span>run
-</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>
-</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="c1"># Or start fresh</span>
-</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>ralph<span class="w"> </span>clean<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
-</span></code></pre></div></p>
+<p><strong>Resume or restart</strong>:</p>
 </li>
 </ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="c1"># Resume from checkpoint</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>ralph<span class="w"> </span>run
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a><span class="c1"># Or start fresh</span>
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>ralph<span class="w"> </span>clean<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ralph<span class="w"> </span>run
+</span></code></pre></div>
 <h3 id="from-git-checkpoint">From Git Checkpoint<a class="headerlink" href="#from-git-checkpoint" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="c1"># List checkpoints</span>
-</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>checkpoint
-</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>
-</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="c1"># Reset to checkpoint</span>
-</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>git<span class="w"> </span>reset<span class="w"> </span>--hard<span class="w"> </span>&lt;commit-hash&gt;
-</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
-</span><span id="__span-43-7"><a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="c1"># Resume execution</span>
-</span><span id="__span-43-8"><a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a>ralph<span class="w"> </span>run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="c1"># List checkpoints</span>
+</span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>checkpoint
+</span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a>
+</span><span id="__span-50-4"><a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a><span class="c1"># Reset to checkpoint</span>
+</span><span id="__span-50-5"><a id="__codelineno-50-5" name="__codelineno-50-5" href="#__codelineno-50-5"></a>git<span class="w"> </span>reset<span class="w"> </span>--hard<span class="w"> </span>&lt;commit-hash&gt;
+</span><span id="__span-50-6"><a id="__codelineno-50-6" name="__codelineno-50-6" href="#__codelineno-50-6"></a>
+</span><span id="__span-50-7"><a id="__codelineno-50-7" name="__codelineno-50-7" href="#__codelineno-50-7"></a><span class="c1"># Resume execution</span>
+</span><span id="__span-50-8"><a id="__codelineno-50-8" name="__codelineno-50-8" href="#__codelineno-50-8"></a>ralph<span class="w"> </span>run
 </span></code></pre></div>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
 <h3 id="self-diagnosis">Self-Diagnosis<a class="headerlink" href="#self-diagnosis" title="Permanent link">&para;</a></h3>
-<p>Run the diagnostic script:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>diagnose.sh<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
-</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="s">#!/bin/bash</span>
-</span><span id="__span-44-3"><a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="s">echo &quot;Ralph Orchestrator Diagnostic&quot;</span>
-</span><span id="__span-44-4"><a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="s">echo &quot;============================&quot;</span>
-</span><span id="__span-44-5"><a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="s">echo &quot;Agents available:&quot;</span>
-</span><span id="__span-44-6"><a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="s">which claude &amp;&amp; echo &quot;  ✓ Claude&quot; || echo &quot;  ✗ Claude&quot;</span>
-</span><span id="__span-44-7"><a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a><span class="s">which gemini &amp;&amp; echo &quot;  ✓ Gemini&quot; || echo &quot;  ✗ Gemini&quot;</span>
-</span><span id="__span-44-8"><a id="__codelineno-44-8" name="__codelineno-44-8" href="#__codelineno-44-8"></a><span class="s">which q &amp;&amp; echo &quot;  ✓ Q&quot; || echo &quot;  ✗ Q&quot;</span>
-</span><span id="__span-44-9"><a id="__codelineno-44-9" name="__codelineno-44-9" href="#__codelineno-44-9"></a><span class="s">echo &quot;&quot;</span>
-</span><span id="__span-44-10"><a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a><span class="s">echo &quot;Git status:&quot;</span>
-</span><span id="__span-44-11"><a id="__codelineno-44-11" name="__codelineno-44-11" href="#__codelineno-44-11"></a><span class="s">git status --short</span>
-</span><span id="__span-44-12"><a id="__codelineno-44-12" name="__codelineno-44-12" href="#__codelineno-44-12"></a><span class="s">echo &quot;&quot;</span>
-</span><span id="__span-44-13"><a id="__codelineno-44-13" name="__codelineno-44-13" href="#__codelineno-44-13"></a><span class="s">echo &quot;Ralph status:&quot;</span>
-</span><span id="__span-44-14"><a id="__codelineno-44-14" name="__codelineno-44-14" href="#__codelineno-44-14"></a><span class="s">./ralph status</span>
-</span><span id="__span-44-15"><a id="__codelineno-44-15" name="__codelineno-44-15" href="#__codelineno-44-15"></a><span class="s">echo &quot;&quot;</span>
-</span><span id="__span-44-16"><a id="__codelineno-44-16" name="__codelineno-44-16" href="#__codelineno-44-16"></a><span class="s">echo &quot;Recent errors:&quot;</span>
-</span><span id="__span-44-17"><a id="__codelineno-44-17" name="__codelineno-44-17" href="#__codelineno-44-17"></a><span class="s">grep ERROR .agent/logs/*.log 2&gt;/dev/null | tail -5</span>
-</span><span id="__span-44-18"><a id="__codelineno-44-18" name="__codelineno-44-18" href="#__codelineno-44-18"></a><span class="s">EOF</span>
-</span><span id="__span-44-19"><a id="__codelineno-44-19" name="__codelineno-44-19" href="#__codelineno-44-19"></a>chmod<span class="w"> </span>+x<span class="w"> </span>diagnose.sh
-</span><span id="__span-44-20"><a id="__codelineno-44-20" name="__codelineno-44-20" href="#__codelineno-44-20"></a>./diagnose.sh
-</span></code></pre></div></p>
+<p>Run the diagnostic script:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>diagnose.sh<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="s">#!/bin/bash</span>
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="s">echo &quot;Ralph Orchestrator Diagnostic&quot;</span>
+</span><span id="__span-51-4"><a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a><span class="s">echo &quot;============================&quot;</span>
+</span><span id="__span-51-5"><a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a><span class="s">echo &quot;Agents available:&quot;</span>
+</span><span id="__span-51-6"><a id="__codelineno-51-6" name="__codelineno-51-6" href="#__codelineno-51-6"></a><span class="s">which claude &amp;&amp; echo &quot;  ✓ Claude&quot; || echo &quot;  ✗ Claude&quot;</span>
+</span><span id="__span-51-7"><a id="__codelineno-51-7" name="__codelineno-51-7" href="#__codelineno-51-7"></a><span class="s">which gemini &amp;&amp; echo &quot;  ✓ Gemini&quot; || echo &quot;  ✗ Gemini&quot;</span>
+</span><span id="__span-51-8"><a id="__codelineno-51-8" name="__codelineno-51-8" href="#__codelineno-51-8"></a><span class="s">which q &amp;&amp; echo &quot;  ✓ Q&quot; || echo &quot;  ✗ Q&quot;</span>
+</span><span id="__span-51-9"><a id="__codelineno-51-9" name="__codelineno-51-9" href="#__codelineno-51-9"></a><span class="s">echo &quot;&quot;</span>
+</span><span id="__span-51-10"><a id="__codelineno-51-10" name="__codelineno-51-10" href="#__codelineno-51-10"></a><span class="s">echo &quot;Git status:&quot;</span>
+</span><span id="__span-51-11"><a id="__codelineno-51-11" name="__codelineno-51-11" href="#__codelineno-51-11"></a><span class="s">git status --short</span>
+</span><span id="__span-51-12"><a id="__codelineno-51-12" name="__codelineno-51-12" href="#__codelineno-51-12"></a><span class="s">echo &quot;&quot;</span>
+</span><span id="__span-51-13"><a id="__codelineno-51-13" name="__codelineno-51-13" href="#__codelineno-51-13"></a><span class="s">echo &quot;Ralph status:&quot;</span>
+</span><span id="__span-51-14"><a id="__codelineno-51-14" name="__codelineno-51-14" href="#__codelineno-51-14"></a><span class="s">./ralph status</span>
+</span><span id="__span-51-15"><a id="__codelineno-51-15" name="__codelineno-51-15" href="#__codelineno-51-15"></a><span class="s">echo &quot;&quot;</span>
+</span><span id="__span-51-16"><a id="__codelineno-51-16" name="__codelineno-51-16" href="#__codelineno-51-16"></a><span class="s">echo &quot;Recent errors:&quot;</span>
+</span><span id="__span-51-17"><a id="__codelineno-51-17" name="__codelineno-51-17" href="#__codelineno-51-17"></a><span class="s">grep ERROR .agent/logs/*.log 2&gt;/dev/null | tail -5</span>
+</span><span id="__span-51-18"><a id="__codelineno-51-18" name="__codelineno-51-18" href="#__codelineno-51-18"></a><span class="s">EOF</span>
+</span><span id="__span-51-19"><a id="__codelineno-51-19" name="__codelineno-51-19" href="#__codelineno-51-19"></a>chmod<span class="w"> </span>+x<span class="w"> </span>diagnose.sh
+</span><span id="__span-51-20"><a id="__codelineno-51-20" name="__codelineno-51-20" href="#__codelineno-51-20"></a>./diagnose.sh
+</span></code></pre></div>
 <h3 id="community-support">Community Support<a class="headerlink" href="#community-support" title="Permanent link">&para;</a></h3>
 <ol>
 <li><strong>GitHub Issues</strong>: <a href="https://github.com/mikeyobrien/ralph-orchestrator/issues">Report bugs</a></li>
@@ -3283,13 +3411,15 @@
 <li><strong>Discord</strong>: Join the community chat</li>
 </ol>
 <h3 id="reporting-bugs">Reporting Bugs<a class="headerlink" href="#reporting-bugs" title="Permanent link">&para;</a></h3>
-<p>Include in bug reports:
-1. Ralph version: <code>ralph --version</code>
-2. Agent versions
-3. Error messages
-4. PROMPT.md content
-5. Diagnostic output
-6. Steps to reproduce</p>
+<p>Include in bug reports:</p>
+<ol>
+<li>Ralph version: <code>ralph --version</code></li>
+<li>Agent versions</li>
+<li>Error messages</li>
+<li>PROMPT.md content</li>
+<li>Diagnostic output</li>
+<li>Steps to reproduce</li>
+</ol>
 <h2 id="prevention-tips">Prevention Tips<a class="headerlink" href="#prevention-tips" title="Permanent link">&para;</a></h2>
 <h3 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h3>
 <ol>
@@ -3301,13 +3431,15 @@
 <li><strong>Clear requirements</strong>: Write specific, testable criteria</li>
 </ol>
 <h3 id="pre-flight-checklist">Pre-flight Checklist<a class="headerlink" href="#pre-flight-checklist" title="Permanent link">&para;</a></h3>
-<p>Before running Ralph:
-- [ ] PROMPT.md is clear and specific
-- [ ] Git repository is clean
-- [ ] Agents are installed and working
-- [ ] Sufficient disk space available
-- [ ] No sensitive data in prompt
-- [ ] Backup important files</p>
+<p>Before running Ralph:</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> PROMPT.md is clear and specific</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Git repository is clean</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Agents are installed and working</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Sufficient disk space available</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> No sensitive data in prompt</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Backup important files</li>
+</ul>
 
 
 
