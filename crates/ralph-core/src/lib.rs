@@ -30,4 +30,4 @@ pub use instructions::InstructionBuilder;
 pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
 pub use session_recorder::{Record, SessionRecorder};
 pub use task_definition::{TaskDefinition, TaskDefinitionError, TaskSetup, TaskSuite, Verification};
-pub use workspace::{CleanupPolicy, TaskWorkspace, WorkspaceError, WorkspaceInfo, WorkspaceManager};
+pub use workspace::{CleanupPolicy, TaskWorkspace, VerificationResult, WorkspaceError, WorkspaceInfo, WorkspaceManager};

@@ -28,7 +28,7 @@
 //! # Ok::<(), ralph_core::workspace::WorkspaceError>(())
 //! ```
 
-use crate::task_definition::TaskDefinition;
+use crate::task_definition::{TaskDefinition, Verification};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -293,6 +293,103 @@ impl Drop for TaskWorkspace {
     }
 }
 
+/// Result of running a verification command.
+#[derive(Debug, Clone)]
+pub struct VerificationResult {
+    /// Whether verification passed (exit code matched expected).
+    pub passed: bool,
+
+    /// Actual exit code from the command.
+    pub exit_code: i32,
+
+    /// Expected exit code for success.
+    pub expected_exit_code: i32,
+
+    /// Stdout output from the command.
+    pub stdout: String,
+
+    /// Stderr output from the command.
+    pub stderr: String,
+}
+
+impl VerificationResult {
+    /// Returns a human-readable summary of the result.
+    pub fn summary(&self) -> String {
+        if self.passed {
+            format!("PASSED (exit code {})", self.exit_code)
+        } else {
+            format!(
+                "FAILED (exit code {}, expected {})",
+                self.exit_code, self.expected_exit_code
+            )
+        }
+    }
+}
+
+impl TaskWorkspace {
+    /// Runs a verification command in the workspace directory.
+    ///
+    /// The command is executed via `bash -c` in the workspace's root directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification` - The verification configuration with command and expected exit code
+    ///
+    /// # Returns
+    ///
+    /// A `VerificationResult` indicating whether the command passed and capturing output.
+    ///
+    /// # Errors
+    ///
+    /// Returns `WorkspaceError::Verification` if the command fails to execute
+    /// (not the same as the command returning a non-zero exit code).
+    pub fn run_verification(&self, verification: &Verification) -> Result<VerificationResult, WorkspaceError> {
+        if verification.command.is_empty() {
+            // No verification command - consider it passed
+            return Ok(VerificationResult {
+                passed: true,
+                exit_code: 0,
+                expected_exit_code: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            });
+        }
+
+        tracing::debug!(
+            "Running verification in {}: {}",
+            self.path.display(),
+            verification.command
+        );
+
+        let output = Command::new("bash")
+            .args(["-c", &verification.command])
+            .current_dir(&self.path)
+            .output()
+            .map_err(|e| WorkspaceError::Verification(format!("Failed to execute: {}", e)))?;
+
+        let exit_code = output.status.code().unwrap_or(-1);
+        let passed = exit_code == verification.success_exit_code;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+        tracing::debug!(
+            "Verification result: {} (exit code {}, expected {})",
+            if passed { "PASSED" } else { "FAILED" },
+            exit_code,
+            verification.success_exit_code
+        );
+
+        Ok(VerificationResult {
+            passed,
+            exit_code,
+            expected_exit_code: verification.success_exit_code,
+            stdout,
+            stderr,
+        })
+    }
+}
+
 /// Manages workspace cleanup according to a policy.
 #[derive(Debug)]
 pub struct WorkspaceManager {
@@ -466,6 +563,10 @@ pub enum WorkspaceError {
     /// Setup script failed.
     #[error("Setup script failed: {0}")]
     SetupScript(String),
+
+    /// Verification command failed to execute.
+    #[error("Verification failed: {0}")]
+    Verification(String),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -781,5 +882,113 @@ mod tests {
             fs::read_to_string(dst.join("subdir/file2.txt")).unwrap(),
             "content2"
         );
+    }
+
+    #[test]
+    fn test_run_verification_success() {
+        let temp_dir = TempDir::new().unwrap();
+        let task = make_test_task("verify-success");
+        let workspace = TaskWorkspace::create(&task, temp_dir.path()).unwrap();
+
+        // Create a file that verification will check
+        fs::write(workspace.path().join("hello.txt"), "Hello, World!").unwrap();
+
+        let verification = Verification {
+            command: "cat hello.txt | grep -q 'Hello, World!'".to_string(),
+            success_exit_code: 0,
+        };
+
+        let result = workspace.run_verification(&verification).unwrap();
+        assert!(result.passed);
+        assert_eq!(result.exit_code, 0);
+        assert_eq!(result.expected_exit_code, 0);
+    }
+
+    #[test]
+    fn test_run_verification_failure() {
+        let temp_dir = TempDir::new().unwrap();
+        let task = make_test_task("verify-failure");
+        let workspace = TaskWorkspace::create(&task, temp_dir.path()).unwrap();
+
+        // File doesn't exist, grep will fail
+        let verification = Verification {
+            command: "cat nonexistent.txt".to_string(),
+            success_exit_code: 0,
+        };
+
+        let result = workspace.run_verification(&verification).unwrap();
+        assert!(!result.passed);
+        assert_ne!(result.exit_code, 0);
+    }
+
+    #[test]
+    fn test_run_verification_custom_exit_code() {
+        let temp_dir = TempDir::new().unwrap();
+        let task = make_test_task("verify-custom-exit");
+        let workspace = TaskWorkspace::create(&task, temp_dir.path()).unwrap();
+
+        // Command exits with code 42
+        let verification = Verification {
+            command: "exit 42".to_string(),
+            success_exit_code: 42,
+        };
+
+        let result = workspace.run_verification(&verification).unwrap();
+        assert!(result.passed);
+        assert_eq!(result.exit_code, 42);
+        assert_eq!(result.expected_exit_code, 42);
+    }
+
+    #[test]
+    fn test_run_verification_empty_command() {
+        let temp_dir = TempDir::new().unwrap();
+        let task = make_test_task("verify-empty");
+        let workspace = TaskWorkspace::create(&task, temp_dir.path()).unwrap();
+
+        let verification = Verification {
+            command: String::new(),
+            success_exit_code: 0,
+        };
+
+        let result = workspace.run_verification(&verification).unwrap();
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn test_run_verification_captures_output() {
+        let temp_dir = TempDir::new().unwrap();
+        let task = make_test_task("verify-capture");
+        let workspace = TaskWorkspace::create(&task, temp_dir.path()).unwrap();
+
+        let verification = Verification {
+            command: "echo 'stdout message' && echo 'stderr message' >&2".to_string(),
+            success_exit_code: 0,
+        };
+
+        let result = workspace.run_verification(&verification).unwrap();
+        assert!(result.passed);
+        assert!(result.stdout.contains("stdout message"));
+        assert!(result.stderr.contains("stderr message"));
+    }
+
+    #[test]
+    fn test_verification_result_summary() {
+        let passed_result = VerificationResult {
+            passed: true,
+            exit_code: 0,
+            expected_exit_code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+        };
+        assert_eq!(passed_result.summary(), "PASSED (exit code 0)");
+
+        let failed_result = VerificationResult {
+            passed: false,
+            exit_code: 1,
+            expected_exit_code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+        };
+        assert_eq!(failed_result.summary(), "FAILED (exit code 1, expected 0)");
     }
 }

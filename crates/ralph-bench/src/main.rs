@@ -250,7 +250,10 @@ async fn cmd_run(
             record.clone()
         };
 
-        // For now, we just log that we would run the task
+        // Track timing
+        let task_start = std::time::Instant::now();
+
+        // For now, we log that we would run the task
         // Full integration with EventLoop requires ralph-adapters integration
         info!(
             "Task '{}' would run in workspace: {}",
@@ -261,14 +264,50 @@ async fn cmd_run(
             info!("Would record to: {:?} (ux={})", path, record_ux);
         }
 
-        // Record task result (placeholder for actual execution)
+        // TODO: Actual EventLoop integration will go here
+        // For now, termination_reason is "NotRun" since we're not executing the loop
+        let iterations = 0u32;
+        let termination_reason = "NotRun".to_string();
+
+        // Run verification command (this works even without full EventLoop integration)
+        let verification_result = workspace
+            .run_verification(&task.verification)
+            .with_context(|| format!("Failed to run verification for task '{}'", task.name))?;
+
+        if verification_result.passed {
+            info!("Task '{}' verification: {}", task.name, verification_result.summary());
+        } else {
+            tracing::warn!(
+                "Task '{}' verification: {}\nstderr: {}",
+                task.name,
+                verification_result.summary(),
+                verification_result.stderr.trim()
+            );
+        }
+
+        let duration_secs = task_start.elapsed().as_secs_f64();
+
+        // Apply cleanup policy based on verification result
+        let mut workspace = workspace;
+        let cleaned_up = manager
+            .apply_cleanup(&mut workspace, verification_result.passed)
+            .with_context(|| format!("Failed to cleanup workspace for task '{}'", task.name))?;
+
+        if !cleaned_up {
+            info!(
+                "Workspace retained for debugging: {}",
+                workspace.path().display()
+            );
+        }
+
+        // Record task result
         results.push(TaskResult {
             name: task.name.clone(),
-            iterations: 0,
+            iterations,
             expected_iterations: task.expected_iterations,
-            duration_secs: 0.0,
-            termination_reason: "NotRun".to_string(),
-            verification_passed: false,
+            duration_secs,
+            termination_reason,
+            verification_passed: verification_result.passed,
             workspace_path: workspace.path().to_string_lossy().to_string(),
         });
     }
