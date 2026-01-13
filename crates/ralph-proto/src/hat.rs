@@ -71,12 +71,48 @@ impl Hat {
     }
 
     /// Creates the default hat for single-hat mode.
+    #[deprecated(note = "Use default_planner() and default_builder() instead")]
     pub fn default_single() -> Self {
         Self {
             id: HatId::new("default"),
             name: "Default".to_string(),
             subscriptions: vec![Topic::new("*")],
             publishes: vec![Topic::new("task.done")],
+            instructions: String::new(),
+        }
+    }
+
+    /// Creates the default planner hat.
+    ///
+    /// Per spec: Planner triggers on `task.start`, `build.done`, `build.blocked`
+    /// and publishes `build.task`.
+    pub fn default_planner() -> Self {
+        Self {
+            id: HatId::new("planner"),
+            name: "Planner".to_string(),
+            subscriptions: vec![
+                Topic::new("task.start"),
+                Topic::new("build.done"),
+                Topic::new("build.blocked"),
+            ],
+            publishes: vec![Topic::new("build.task")],
+            instructions: String::new(),
+        }
+    }
+
+    /// Creates the default builder hat.
+    ///
+    /// Per spec: Builder triggers on `build.task` and publishes
+    /// `build.done` or `build.blocked`.
+    pub fn default_builder() -> Self {
+        Self {
+            id: HatId::new("builder"),
+            name: "Builder".to_string(),
+            subscriptions: vec![Topic::new("build.task")],
+            publishes: vec![
+                Topic::new("build.done"),
+                Topic::new("build.blocked"),
+            ],
             instructions: String::new(),
         }
     }
@@ -115,9 +151,29 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_default_single_hat() {
         let hat = Hat::default_single();
         assert!(hat.is_subscribed(&Topic::new("anything")));
         assert!(hat.is_subscribed(&Topic::new("impl.done")));
+    }
+
+    #[test]
+    fn test_default_planner_hat() {
+        let hat = Hat::default_planner();
+        assert_eq!(hat.id.as_str(), "planner");
+        assert!(hat.is_subscribed(&Topic::new("task.start")));
+        assert!(hat.is_subscribed(&Topic::new("build.done")));
+        assert!(hat.is_subscribed(&Topic::new("build.blocked")));
+        assert!(!hat.is_subscribed(&Topic::new("build.task")));
+    }
+
+    #[test]
+    fn test_default_builder_hat() {
+        let hat = Hat::default_builder();
+        assert_eq!(hat.id.as_str(), "builder");
+        assert!(hat.is_subscribed(&Topic::new("build.task")));
+        assert!(!hat.is_subscribed(&Topic::new("task.start")));
+        assert!(!hat.is_subscribed(&Topic::new("build.done")));
     }
 }

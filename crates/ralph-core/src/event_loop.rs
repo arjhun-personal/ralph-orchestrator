@@ -267,14 +267,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_single_mode_initialization() {
+    fn test_initialization_triggers_planner() {
         let config = RalphConfig::default();
         let mut event_loop = EventLoop::new(config);
 
         event_loop.initialize("Test prompt");
 
-        // Default hat should have pending event
-        assert!(event_loop.next_hat().is_some());
+        // Per spec: task.start triggers planner hat
+        let next = event_loop.next_hat();
+        assert!(next.is_some());
+        assert_eq!(next.unwrap().as_str(), "planner");
     }
 
     #[test]
@@ -299,7 +301,8 @@ event_loop:
         let mut event_loop = EventLoop::new(config);
         event_loop.initialize("Test");
 
-        let hat_id = HatId::new("default");
+        // Use planner hat since it's the one that outputs completion promise per spec
+        let hat_id = HatId::new("planner");
         let reason = event_loop.process_output(&hat_id, "Done! LOOP_COMPLETE", true);
 
         assert_eq!(reason, Some(TerminationReason::CompletionPromise));

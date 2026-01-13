@@ -17,14 +17,18 @@ impl HatRegistry {
     }
 
     /// Creates a registry from configuration.
+    ///
+    /// Per spec: "Given default config (no custom hats), When the loop initializes,
+    /// Then planner and builder hats are registered with their triggers."
     pub fn from_config(config: &RalphConfig) -> Self {
         let mut registry = Self::new();
 
-        if config.is_single_mode() {
-            // Single-hat mode: create default hat
-            registry.register(Hat::default_single());
+        if config.is_single_mode() || config.hats.is_empty() {
+            // Default mode: register planner and builder hats per spec
+            registry.register(Hat::default_planner());
+            registry.register(Hat::default_builder());
         } else {
-            // Multi-hat mode: create hats from config
+            // Multi-hat mode with custom hats: create hats from config
             for (id, hat_config) in &config.hats {
                 let hat = Self::hat_from_config(id, hat_config);
                 registry.register(hat);
@@ -97,13 +101,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_single_mode_creates_default_hat() {
+    fn test_default_config_creates_planner_and_builder() {
         let config = RalphConfig::default();
         let registry = HatRegistry::from_config(&config);
 
-        assert_eq!(registry.len(), 1);
-        let default_hat = registry.get(&HatId::new("default")).unwrap();
-        assert!(default_hat.is_subscribed(&Topic::new("anything")));
+        // Per spec: default config registers planner and builder hats
+        assert_eq!(registry.len(), 2);
+
+        let planner = registry.get(&HatId::new("planner")).unwrap();
+        assert!(planner.is_subscribed(&Topic::new("task.start")));
+        assert!(planner.is_subscribed(&Topic::new("build.done")));
+        assert!(planner.is_subscribed(&Topic::new("build.blocked")));
+
+        let builder = registry.get(&HatId::new("builder")).unwrap();
+        assert!(builder.is_subscribed(&Topic::new("build.task")));
     }
 
     #[test]
