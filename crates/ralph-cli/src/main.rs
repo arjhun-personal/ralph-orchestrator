@@ -6,11 +6,12 @@
 //! - CLI argument parsing using `clap`
 //! - Application initialization and configuration
 //! - Entry point to the headless orchestration loop
+//! - Event history viewing via `ralph events`
 
 use anyhow::{Context, Result};
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use ralph_adapters::{detect_backend, CliBackend, CliExecutor};
-use ralph_core::{EventLoop, RalphConfig, TerminationReason};
+use ralph_core::{EventHistory, EventLoop, RalphConfig, TerminationReason};
 use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use std::process::Command;
@@ -39,24 +40,65 @@ impl ColorMode {
     }
 }
 
+/// Output format for events command.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
+pub enum OutputFormat {
+    /// Human-readable table format
+    #[default]
+    Table,
+    /// JSON format for programmatic access
+    Json,
+}
+
 /// ANSI color codes for terminal output.
 mod colors {
     pub const RESET: &str = "\x1b[0m";
     pub const BOLD: &str = "\x1b[1m";
+    pub const DIM: &str = "\x1b[2m";
     pub const GREEN: &str = "\x1b[32m";
     pub const YELLOW: &str = "\x1b[33m";
     pub const RED: &str = "\x1b[31m";
     pub const CYAN: &str = "\x1b[36m";
+    pub const BLUE: &str = "\x1b[34m";
+    pub const MAGENTA: &str = "\x1b[35m";
 }
 
 /// Ralph Orchestrator - Multi-agent orchestration framework
 #[derive(Parser, Debug)]
 #[command(name = "ralph", version, about)]
-struct Args {
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Global options (available for all subcommands)
+    // ─────────────────────────────────────────────────────────────────────────
+
     /// Path to configuration file
-    #[arg(short, long, default_value = "ralph.yml")]
+    #[arg(short, long, default_value = "ralph.yml", global = true)]
     config: PathBuf,
 
+    /// Verbose output
+    #[arg(short, long, global = true)]
+    verbose: bool,
+
+    /// Color output mode (auto, always, never)
+    #[arg(long, value_enum, default_value_t = ColorMode::Auto, global = true)]
+    color: ColorMode,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Run the orchestration loop (default if no subcommand given)
+    Run(RunArgs),
+
+    /// View event history for debugging
+    Events(EventsArgs),
+}
+
+/// Arguments for the run subcommand.
+#[derive(Parser, Debug)]
+struct RunArgs {
     /// Override the prompt file
     #[arg(short, long)]
     prompt: Option<PathBuf>,
@@ -72,34 +114,76 @@ struct Args {
     /// Dry run - show what would be executed without running
     #[arg(long)]
     dry_run: bool,
+}
 
-    /// Verbose output
-    #[arg(short, long)]
-    verbose: bool,
+/// Arguments for the events subcommand.
+#[derive(Parser, Debug)]
+struct EventsArgs {
+    /// Show only the last N events
+    #[arg(long)]
+    last: Option<usize>,
 
-    /// Color output mode (auto, always, never)
-    #[arg(long, value_enum, default_value_t = ColorMode::Auto)]
-    color: ColorMode,
+    /// Filter by topic (e.g., "build.blocked")
+    #[arg(long)]
+    topic: Option<String>,
+
+    /// Filter by iteration number
+    #[arg(long)]
+    iteration: Option<u32>,
+
+    /// Output format
+    #[arg(long, value_enum, default_value_t = OutputFormat::Table)]
+    format: OutputFormat,
+
+    /// Path to events file (default: .agent/events.jsonl)
+    #[arg(long)]
+    file: Option<PathBuf>,
+
+    /// Clear the event history
+    #[arg(long)]
+    clear: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
     // Initialize logging
-    let filter = if args.verbose { "debug" } else { "info" };
+    let filter = if cli.verbose { "debug" } else { "info" };
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .init();
 
+    match cli.command {
+        Some(Commands::Run(args)) => run_command(cli.config, cli.verbose, cli.color, args).await,
+        Some(Commands::Events(args)) => events_command(cli.color, args),
+        None => {
+            // Default to run with no overrides (backwards compatibility)
+            let args = RunArgs {
+                prompt: None,
+                max_iterations: None,
+                completion_promise: None,
+                dry_run: false,
+            };
+            run_command(cli.config, cli.verbose, cli.color, args).await
+        }
+    }
+}
+
+async fn run_command(
+    config_path: PathBuf,
+    verbose: bool,
+    color_mode: ColorMode,
+    args: RunArgs,
+) -> Result<()> {
     info!("Ralph Orchestrator v{}", env!("CARGO_PKG_VERSION"));
 
     // Load configuration
-    let mut config = if args.config.exists() {
-        RalphConfig::from_file(&args.config)
-            .with_context(|| format!("Failed to load config from {:?}", args.config))?
+    let mut config = if config_path.exists() {
+        RalphConfig::from_file(&config_path)
+            .with_context(|| format!("Failed to load config from {:?}", config_path))?
     } else {
-        warn!("Config file {:?} not found, using defaults", args.config);
+        warn!("Config file {:?} not found, using defaults", config_path);
         RalphConfig::default()
     };
 
@@ -116,7 +200,7 @@ async fn main() -> Result<()> {
     if let Some(promise) = args.completion_promise {
         config.event_loop.completion_promise = promise;
     }
-    if args.verbose {
+    if verbose {
         config.verbose = true;
     }
 
@@ -162,7 +246,170 @@ async fn main() -> Result<()> {
     }
 
     // Run the orchestration loop
-    run_loop(config, args.color).await
+    run_loop(config, color_mode).await
+}
+
+fn events_command(color_mode: ColorMode, args: EventsArgs) -> Result<()> {
+    let use_colors = color_mode.should_use_colors();
+
+    let history = match args.file {
+        Some(path) => EventHistory::new(path),
+        None => EventHistory::default_path(),
+    };
+
+    // Handle clear command
+    if args.clear {
+        history.clear()?;
+        if use_colors {
+            println!("{}✓{} Event history cleared", colors::GREEN, colors::RESET);
+        } else {
+            println!("Event history cleared");
+        }
+        return Ok(());
+    }
+
+    if !history.exists() {
+        if use_colors {
+            println!(
+                "{}No event history found.{} Run `ralph` to generate events.",
+                colors::DIM,
+                colors::RESET
+            );
+        } else {
+            println!("No event history found. Run `ralph` to generate events.");
+        }
+        return Ok(());
+    }
+
+    // Read and filter events
+    let mut records = if let Some(n) = args.last {
+        history.read_last(n)?
+    } else if let Some(ref topic) = args.topic {
+        history.filter_by_topic(topic)?
+    } else if let Some(iteration) = args.iteration {
+        history.filter_by_iteration(iteration)?
+    } else {
+        history.read_all()?
+    };
+
+    // Apply secondary filters (topic + last, etc.)
+    if args.last.is_some() {
+        if let Some(ref topic) = args.topic {
+            records.retain(|r| r.topic == *topic);
+        }
+        if let Some(iteration) = args.iteration {
+            records.retain(|r| r.iteration == iteration);
+        }
+    }
+
+    if records.is_empty() {
+        if use_colors {
+            println!("{}No matching events found.{}", colors::DIM, colors::RESET);
+        } else {
+            println!("No matching events found.");
+        }
+        return Ok(());
+    }
+
+    match args.format {
+        OutputFormat::Json => {
+            let json = serde_json::to_string_pretty(&records)?;
+            println!("{json}");
+        }
+        OutputFormat::Table => {
+            print_events_table(&records, use_colors);
+        }
+    }
+
+    Ok(())
+}
+
+fn print_events_table(records: &[ralph_core::EventRecord], use_colors: bool) {
+    use colors::*;
+
+    // Header
+    if use_colors {
+        println!(
+            "{BOLD}{DIM}  # │ Iteration │ Hat           │ Topic              │ Triggered      │ Payload{RESET}"
+        );
+        println!(
+            "{DIM}────┼───────────┼───────────────┼────────────────────┼────────────────┼─────────────────{RESET}"
+        );
+    } else {
+        println!(
+            "  # | Iteration | Hat           | Topic              | Triggered      | Payload"
+        );
+        println!(
+            "----|-----------|---------------|--------------------|-----------------|-----------------"
+        );
+    }
+
+    for (i, record) in records.iter().enumerate() {
+        let topic_color = get_topic_color(&record.topic);
+        let triggered = record.triggered.as_deref().unwrap_or("-");
+        let payload_preview = if record.payload.len() > 40 {
+            format!("{}...", &record.payload[..40].replace('\n', " "))
+        } else {
+            record.payload.replace('\n', " ")
+        };
+
+        if use_colors {
+            println!(
+                "{DIM}{:>3}{RESET} │ {:>9} │ {:<13} │ {topic_color}{:<18}{RESET} │ {:<14} │ {DIM}{}{RESET}",
+                i + 1,
+                record.iteration,
+                truncate(&record.hat, 13),
+                truncate(&record.topic, 18),
+                truncate(triggered, 14),
+                payload_preview
+            );
+        } else {
+            println!(
+                "{:>3} | {:>9} | {:<13} | {:<18} | {:<14} | {}",
+                i + 1,
+                record.iteration,
+                truncate(&record.hat, 13),
+                truncate(&record.topic, 18),
+                truncate(triggered, 14),
+                payload_preview
+            );
+        }
+    }
+
+    // Footer
+    if use_colors {
+        println!(
+            "\n{DIM}Total: {} events{RESET}",
+            records.len()
+        );
+    } else {
+        println!("\nTotal: {} events", records.len());
+    }
+}
+
+fn get_topic_color(topic: &str) -> &'static str {
+    use colors::*;
+    if topic.starts_with("task.") {
+        CYAN
+    } else if topic.starts_with("build.done") {
+        GREEN
+    } else if topic.starts_with("build.blocked") {
+        RED
+    } else if topic.starts_with("build.") {
+        YELLOW
+    } else if topic.starts_with("review.") {
+        MAGENTA
+    } else {
+        BLUE
+    }
+}
+
+fn truncate(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}…", &s[..max_len - 1])
+    }
 }
 
 async fn run_loop(config: RalphConfig, color_mode: ColorMode) -> Result<()> {

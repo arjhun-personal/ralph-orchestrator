@@ -12,6 +12,7 @@
 
 mod cli_capture;
 mod config;
+mod event_logger;
 mod event_loop;
 mod event_parser;
 mod hat_registry;
@@ -23,6 +24,7 @@ pub mod workspace;
 
 pub use cli_capture::{CliCapture, CliCapturePair};
 pub use config::{CliConfig, EventLoopConfig, HatConfig, RalphConfig};
+pub use event_logger::{EventHistory, EventLogger, EventRecord};
 pub use event_loop::{EventLoop, LoopState, TerminationReason};
 pub use event_parser::EventParser;
 pub use hat_registry::HatRegistry;
