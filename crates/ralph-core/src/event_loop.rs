@@ -160,7 +160,10 @@ impl EventLoop {
     }
 
     /// Builds the prompt for a hat's execution.
-    /// Builds prompt for a custom hat (extended multi-agent teams).
+    ///
+    /// Per spec: Default hats (planner/builder) use specialized rich prompts
+    /// from `InstructionBuilder`. Custom hats use `build_custom_hat()` with
+    /// their configured instructions.
     pub fn build_prompt(&mut self, hat_id: &HatId) -> Option<String> {
         let hat = self.registry.get(hat_id)?;
 
@@ -170,7 +173,18 @@ impl EventLoop {
             .map(|e| format!("Event: {} - {}", e.topic, e.payload))
             .collect::<Vec<_>>()
             .join("\n");
-        Some(self.instruction_builder.build_custom_hat(hat, &events_context))
+
+        // Default planner and builder hats use specialized prompts per spec
+        // Custom hats (or defaults with custom instructions) use build_custom_hat
+        match hat_id.as_str() {
+            "planner" if hat.instructions.is_empty() => {
+                Some(self.instruction_builder.build_coordinator(&events_context))
+            }
+            "builder" if hat.instructions.is_empty() => {
+                Some(self.instruction_builder.build_ralph(&events_context))
+            }
+            _ => Some(self.instruction_builder.build_custom_hat(hat, &events_context)),
+        }
     }
 
     /// Builds the Coordinator prompt (planning mode).
@@ -325,5 +339,84 @@ event_loop:
 
         event_loop.state.iteration = 10;
         assert!(event_loop.should_checkpoint());
+    }
+
+    #[test]
+    fn test_build_prompt_uses_specialized_prompts_for_default_hats() {
+        // Per spec: Default planner and builder hats use specialized rich prompts
+        let config = RalphConfig::default();
+        let mut event_loop = EventLoop::new(config);
+        event_loop.initialize("Test task");
+
+        // Planner hat should get specialized planner prompt
+        let planner_id = HatId::new("planner");
+        let planner_prompt = event_loop.build_prompt(&planner_id).unwrap();
+
+        // Verify it's the Coordinator/Planner prompt (has PLANNER MODE header)
+        assert!(
+            planner_prompt.contains("PLANNER MODE"),
+            "Planner should use specialized planner prompt"
+        );
+        assert!(
+            planner_prompt.contains("planning, not building"),
+            "Planner prompt should have planning instructions"
+        );
+
+        // Now trigger builder hat by publishing build.task event
+        let hat_id = HatId::new("builder");
+        // We need to trigger the builder to have pending events
+        event_loop.bus.publish(Event::new("build.task", "Build something"));
+
+        let builder_prompt = event_loop.build_prompt(&hat_id).unwrap();
+
+        // Verify it's the Builder/Ralph prompt (has BUILDER MODE header)
+        assert!(
+            builder_prompt.contains("BUILDER MODE"),
+            "Builder should use specialized builder prompt"
+        );
+        assert!(
+            builder_prompt.contains("building, not planning"),
+            "Builder prompt should have building instructions"
+        );
+    }
+
+    #[test]
+    fn test_build_prompt_uses_custom_hat_for_non_defaults() {
+        // Per spec: Custom hats use build_custom_hat with their instructions
+        let yaml = r#"
+mode: "multi"
+hats:
+  reviewer:
+    name: "Code Reviewer"
+    triggers: ["review.request"]
+    instructions: "Review code quality."
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let mut event_loop = EventLoop::new(config);
+
+        // Publish event to trigger reviewer
+        event_loop.bus.publish(Event::new("review.request", "Review PR #123"));
+
+        let reviewer_id = HatId::new("reviewer");
+        let prompt = event_loop.build_prompt(&reviewer_id).unwrap();
+
+        // Should be custom hat prompt (contains custom instructions)
+        assert!(
+            prompt.contains("Code Reviewer"),
+            "Custom hat should use its name"
+        );
+        assert!(
+            prompt.contains("Review code quality"),
+            "Custom hat should include its instructions"
+        );
+        // Should NOT be planner or builder prompt
+        assert!(
+            !prompt.contains("PLANNER MODE"),
+            "Custom hat should not use planner prompt"
+        );
+        assert!(
+            !prompt.contains("BUILDER MODE"),
+            "Custom hat should not use builder prompt"
+        );
     }
 }
