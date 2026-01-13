@@ -818,4 +818,77 @@ hats:
         assert!(prompt.contains("CORE BEHAVIORS"), "Should include core behaviors");
         assert!(prompt.contains("Check system health"), "Should include event context");
     }
+
+    #[test]
+    fn test_task_cancellation_with_tilde_marker() {
+        // Test that tasks marked with [~] are recognized as cancelled
+        let config = RalphConfig::default();
+        let mut event_loop = EventLoop::new(config);
+        event_loop.initialize("Test task");
+
+        let planner_id = HatId::new("planner");
+        
+        // Simulate planner output with cancelled task
+        let output = r#"
+## Tasks
+- [x] Task 1 completed
+- [~] Task 2 cancelled (too complex for current scope)
+- [ ] Task 3 pending
+"#;
+        
+        // Process output - should not terminate since there are still pending tasks
+        let reason = event_loop.process_output(&planner_id, output, true);
+        assert_eq!(reason, None, "Should not terminate with pending tasks");
+    }
+
+    #[test]
+    fn test_partial_completion_with_cancelled_tasks() {
+        // Test that cancelled tasks don't block completion when all other tasks are done
+        let config = RalphConfig::default();
+        let mut event_loop = EventLoop::new(config);
+        event_loop.initialize("Test task");
+
+        let planner_id = HatId::new("planner");
+        
+        // Simulate completion with some cancelled tasks
+        let output = r#"
+## Tasks
+- [x] Core feature implemented
+- [x] Tests added
+- [~] Documentation update (cancelled: out of scope)
+- [~] Performance optimization (cancelled: not needed)
+
+LOOP_COMPLETE
+"#;
+        
+        // Should complete successfully despite cancelled tasks
+        let reason = event_loop.process_output(&planner_id, output, true);
+        assert_eq!(reason, Some(TerminationReason::CompletionPromise), "Should complete with partial completion");
+    }
+
+    #[test]
+    fn test_planner_auto_cancellation_after_three_blocks() {
+        // Test that planner should auto-cancel tasks after 3 build.blocked events for same task
+        let config = RalphConfig::default();
+        let mut event_loop = EventLoop::new(config);
+        event_loop.initialize("Test task");
+
+        let builder_id = HatId::new("builder");
+        
+        // First blocked event - should not terminate
+        let reason = event_loop.process_output(&builder_id, r#"<event topic="build.blocked">Task X failed: missing dependency</event>"#, true);
+        assert_eq!(reason, None);
+        assert_eq!(event_loop.state.consecutive_blocked, 1);
+
+        // Second blocked event - should not terminate  
+        let reason = event_loop.process_output(&builder_id, r#"<event topic="build.blocked">Task X still failing: dependency issue persists</event>"#, true);
+        assert_eq!(reason, None);
+        assert_eq!(event_loop.state.consecutive_blocked, 2);
+
+        // Third blocked event - should trigger loop thrashing termination
+        // This simulates the condition where planner should auto-cancel the task
+        let reason = event_loop.process_output(&builder_id, r#"<event topic="build.blocked">Task X repeatedly failing: same dependency issue</event>"#, true);
+        assert_eq!(reason, Some(TerminationReason::LoopThrashing), "Should terminate after 3 consecutive blocks");
+        assert_eq!(event_loop.state.consecutive_blocked, 3);
+    }
 }

@@ -105,7 +105,7 @@ cli:
 1. Test the command manually first: `echo "hello" | your-tool` or `your-tool --prompt "hello"`
 2. Ensure the tool exits cleanly after producing output (no interactive prompts)
 3. If the tool has approval prompts, find the flag to disable them
-4. For tools that require TTY, enable `pty_mode: true` in config
+4. For tools that require TTY, use interactive mode (`ralph run -i`)
 
 ## Configuration
 
@@ -334,15 +334,17 @@ All adapters produce text output that Ralph processes for:
 **When** Claude runs for more than 60 seconds
 **Then** Ralph sends SIGTERM and marks the iteration as timed out
 
-### PTY Compatibility
+### Interactive Mode Compatibility
 
-**Given** `backend: "claude"` and `pty_mode` not explicitly set
+**Given** `backend: "claude"` in autonomous mode
 **When** Ralph executes an iteration
-**Then** PTY mode is auto-enabled for Claude (required due to TTY dependency)
+**Then** Ralph spawns Claude in a PTY (required due to Claude's TTY dependency)
 
-**Given** `pty_mode: true` and `backend: "custom"`
-**When** the custom backend doesn't support PTY
-**Then** output may be degraded but execution still works
+**Given** interactive mode (`-i`) and `backend: "custom"`
+**When** the custom backend doesn't render TUI output
+**Then** execution still works (PTY is transparent to simple CLI tools)
+
+See [interactive-mode.spec.md](interactive-mode.spec.md) for details on execution modes.
 
 ## Non-Goals
 

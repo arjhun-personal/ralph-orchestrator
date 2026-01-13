@@ -47,10 +47,11 @@ impl InstructionBuilder {
             .join("\n");
 
         format!(
-            r"## CORE BEHAVIORS (Always Active)
-
+            r"## CORE BEHAVIORS
 **Scratchpad:** `{scratchpad}` is shared state. Read it. Update it.
 **Specs:** `{specs_dir}` is the source of truth. Implementations must match.
+
+**IMPORTANT**: Less is more, do the smallest, atomic task possible. Leave work for future workers.
 
 ### Guardrails
 {guardrails}
@@ -84,15 +85,15 @@ You're planning, not building.
    - `[x]` done
    - `[~]` cancelled (with reason)
 
-3. **Dispatch work.** Publish `<event topic="build.task">` ONE AT A TIME. Clear acceptance criteria.
+3. **Dispatch work.** Publish `<event topic="build.task">` ONE AT A TIME for the highest priority task. Clear acceptance criteria.
 
 4. **Validate.** When build reports done, verify it satisfies the spec.
 
 ## DON'T
 
-- ❌ Write implementation code
-- ❌ Run tests or make commits
-- ❌ Pick tasks to implement yourself
+- Write implementation code
+- Run tests or make commits
+- Pick tasks to implement yourself
 
 ## DONE
 
@@ -136,9 +137,9 @@ You're building, not planning. One task, then exit.
 
 ## DON'T
 
-- ❌ Create the scratchpad (planner does that)
-- ❌ Decide what tasks to add (planner does that)
-- ❌ Output the completion promise (planner does that)
+- Create the scratchpad (planner does that)
+- Decide what tasks to add (planner does that)
+- Output the completion promise (planner does that)
 
 ## STUCK?
 
