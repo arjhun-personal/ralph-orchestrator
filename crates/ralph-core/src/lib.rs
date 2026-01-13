@@ -16,6 +16,7 @@ mod event_loop;
 mod event_parser;
 mod hat_registry;
 mod instructions;
+mod session_player;
 mod session_recorder;
 pub mod task_definition;
 
@@ -25,5 +26,6 @@ pub use event_loop::{EventLoop, LoopState, TerminationReason};
 pub use event_parser::EventParser;
 pub use hat_registry::HatRegistry;
 pub use instructions::InstructionBuilder;
+pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
 pub use session_recorder::{Record, SessionRecorder};
 pub use task_definition::{TaskDefinition, TaskDefinitionError, TaskSetup, TaskSuite, Verification};
