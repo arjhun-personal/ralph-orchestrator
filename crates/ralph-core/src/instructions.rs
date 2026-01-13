@@ -104,7 +104,7 @@ Can't finish? Publish `<event topic="build.blocked">` with:
 
     /// Builds custom hat instructions for extended multi-agent configurations.
     ///
-    /// Use this for teams beyond the default Coordinator + Ralph Ralph.
+    /// Use this for teams beyond the default Coordinator + Ralph.
     pub fn build_custom_hat(&self, hat: &Hat, events_context: &str) -> String {
         let role_instructions = if hat.instructions.is_empty() {
             "Follow the incoming event instructions.".to_string()
