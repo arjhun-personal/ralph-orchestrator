@@ -80,6 +80,16 @@ impl HatRegistry {
             .filter(|hat| hat.is_subscribed(topic))
             .collect()
     }
+
+    /// Finds the first hat that would be triggered by a topic.
+    /// Returns the hat ID if found, used for event logging.
+    pub fn find_by_trigger(&self, topic: &str) -> Option<&HatId> {
+        let topic = Topic::new(topic);
+        self.hats
+            .values()
+            .find(|hat| hat.is_subscribed(&topic))
+            .map(|hat| &hat.id)
+    }
 }
 
 #[cfg(test)]

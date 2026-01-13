@@ -11,7 +11,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use ralph_adapters::{detect_backend, CliBackend, CliExecutor};
-use ralph_core::{EventHistory, EventLoop, RalphConfig, TerminationReason};
+use ralph_core::{EventHistory, EventLogger, EventLoop, EventParser, EventRecord, RalphConfig, TerminationReason};
+use ralph_proto::{Event, HatId};
 use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use std::process::Command;
@@ -423,6 +424,16 @@ async fn run_loop(config: RalphConfig, color_mode: ColorMode) -> Result<()> {
     let mut event_loop = EventLoop::new(config.clone());
     event_loop.initialize(&prompt_content);
 
+    // Initialize event logger for debugging
+    let mut event_logger = EventLogger::default_path();
+
+    // Log initial task.start event
+    let start_event = Event::new("task.start", &prompt_content);
+    let start_record = EventRecord::new(0, "loop", &start_event, Some(&HatId::new("planner")));
+    if let Err(e) = event_logger.log(&start_record) {
+        warn!("Failed to log start event: {}", e);
+    }
+
     // Create CLI executor
     let backend = CliBackend::from_config(&config.cli);
     let executor = CliExecutor::new(backend);
@@ -469,6 +480,9 @@ async fn run_loop(config: RalphConfig, color_mode: ColorMode) -> Result<()> {
         // Execute the prompt
         let result = executor.execute(&prompt, stdout()).await?;
 
+        // Log events from output before processing
+        log_events_from_output(&mut event_logger, iteration, &hat_id, &result.output, event_loop.registry());
+
         // Process output
         if let Some(reason) = event_loop.process_output(&hat_id, &result.output, result.success) {
             print_termination(&reason, event_loop.state(), use_colors);
@@ -484,6 +498,29 @@ async fn run_loop(config: RalphConfig, color_mode: ColorMode) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Logs events parsed from output to the event history file.
+fn log_events_from_output(
+    logger: &mut EventLogger,
+    iteration: u32,
+    hat_id: &HatId,
+    output: &str,
+    registry: &ralph_core::HatRegistry,
+) {
+    let parser = EventParser::new();
+    let events = parser.parse(output);
+
+    for event in events {
+        // Determine which hat will be triggered by this event
+        let triggered = registry.find_by_trigger(event.topic.as_str());
+
+        let record = EventRecord::new(iteration, hat_id.to_string(), &event, triggered);
+
+        if let Err(e) = logger.log(&record) {
+            warn!("Failed to log event {}: {}", event.topic, e);
+        }
+    }
 }
 
 fn print_termination(reason: &TerminationReason, state: &ralph_core::LoopState, use_colors: bool) {
