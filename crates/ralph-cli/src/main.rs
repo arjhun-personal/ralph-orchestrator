@@ -230,7 +230,9 @@ async fn run_loop(config: RalphConfig, color_mode: ColorMode) -> Result<()> {
 
         // Handle checkpointing (only if git_checkpoint is enabled)
         if config.git_checkpoint && event_loop.should_checkpoint() {
-            create_checkpoint(event_loop.state().iteration)?;
+            if create_checkpoint(event_loop.state().iteration)? {
+                event_loop.record_checkpoint();
+            }
         }
     }
 
@@ -258,14 +260,20 @@ fn print_termination(reason: &TerminationReason, state: &ralph_core::LoopState, 
             "{BOLD}│{RESET} {color}{BOLD}{icon}{RESET} Loop terminated: {color}{label}{RESET}"
         );
         println!("{BOLD}├{separator}┤{RESET}");
-        println!("{BOLD}│{RESET}   Iterations: {CYAN}{}{RESET}", state.iteration);
+        println!("{BOLD}│{RESET}   Iterations:  {CYAN}{}{RESET}", state.iteration);
         println!(
-            "{BOLD}│{RESET}   Elapsed:    {CYAN}{:.1}s{RESET}",
+            "{BOLD}│{RESET}   Elapsed:     {CYAN}{:.1}s{RESET}",
             state.elapsed().as_secs_f64()
         );
+        if state.checkpoint_count > 0 {
+            println!(
+                "{BOLD}│{RESET}   Checkpoints: {CYAN}{}{RESET}",
+                state.checkpoint_count
+            );
+        }
         if state.cumulative_cost > 0.0 {
             println!(
-                "{BOLD}│{RESET}   Cost:       {CYAN}${:.2}{RESET}",
+                "{BOLD}│{RESET}   Cost:        {CYAN}${:.2}{RESET}",
                 state.cumulative_cost
             );
         }
@@ -274,16 +282,20 @@ fn print_termination(reason: &TerminationReason, state: &ralph_core::LoopState, 
         println!("\n+{}+", "-".repeat(58));
         println!("| {icon} Loop terminated: {label}");
         println!("+{}+", "-".repeat(58));
-        println!("|   Iterations: {}", state.iteration);
-        println!("|   Elapsed:    {:.1}s", state.elapsed().as_secs_f64());
+        println!("|   Iterations:  {}", state.iteration);
+        println!("|   Elapsed:     {:.1}s", state.elapsed().as_secs_f64());
+        if state.checkpoint_count > 0 {
+            println!("|   Checkpoints: {}", state.checkpoint_count);
+        }
         if state.cumulative_cost > 0.0 {
-            println!("|   Cost:       ${:.2}", state.cumulative_cost);
+            println!("|   Cost:        ${:.2}", state.cumulative_cost);
         }
         println!("+{}+", "-".repeat(58));
     }
 }
 
-fn create_checkpoint(iteration: u32) -> Result<()> {
+/// Creates a git checkpoint and returns true if the commit succeeded.
+fn create_checkpoint(iteration: u32) -> Result<bool> {
     info!("Creating checkpoint at iteration {}", iteration);
 
     let status = Command::new("git")
@@ -293,7 +305,7 @@ fn create_checkpoint(iteration: u32) -> Result<()> {
 
     if !status.success() {
         warn!("git add failed");
-        return Ok(());
+        return Ok(false);
     }
 
     let message = format!("ralph: checkpoint at iteration {iteration}");
@@ -304,7 +316,8 @@ fn create_checkpoint(iteration: u32) -> Result<()> {
 
     if !status.success() {
         warn!("git commit failed (may be nothing to commit)");
+        return Ok(false);
     }
 
-    Ok(())
+    Ok(true)
 }

@@ -39,6 +39,8 @@ pub struct LoopState {
     pub started_at: Instant,
     /// The last hat that executed.
     pub last_hat: Option<HatId>,
+    /// Number of git checkpoints created.
+    pub checkpoint_count: u32,
 }
 
 impl Default for LoopState {
@@ -49,6 +51,7 @@ impl Default for LoopState {
             cumulative_cost: 0.0,
             started_at: Instant::now(),
             last_hat: None,
+            checkpoint_count: 0,
         }
     }
 }
@@ -221,6 +224,11 @@ impl EventLoop {
     /// Adds cost to the cumulative total.
     pub fn add_cost(&mut self, cost: f64) {
         self.state.cumulative_cost += cost;
+    }
+
+    /// Records that a checkpoint was created.
+    pub fn record_checkpoint(&mut self) {
+        self.state.checkpoint_count += 1;
     }
 }
 
