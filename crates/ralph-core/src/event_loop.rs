@@ -473,7 +473,17 @@ impl EventLoop {
                 target = ?event.target,
                 "Publishing event from output"
             );
-            self.bus.publish(event);
+            let topic = event.topic.clone();
+            let recipients = self.bus.publish(event);
+
+            // Per spec: "Unknown topic → Log warning, event dropped"
+            if recipients.is_empty() {
+                warn!(
+                    topic = %topic,
+                    source = %hat_id.as_str(),
+                    "Event has no subscribers - will be dropped. Check hat triggers configuration."
+                );
+            }
         }
 
         // Check termination conditions

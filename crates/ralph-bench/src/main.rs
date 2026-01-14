@@ -448,6 +448,16 @@ async fn run_task_loop(
             termination_reason = reason;
             break;
         }
+
+        // Precheck validation: Warn if no pending events after processing output
+        if !event_loop.has_pending_events() {
+            let expected = event_loop.get_hat_publishes(&hat_id);
+            warn!(
+                hat = %hat_id.as_str(),
+                expected_topics = ?expected,
+                "No pending events after iteration. Agent may have failed to publish a valid event."
+            );
+        }
     }
 
     // Restore original directory

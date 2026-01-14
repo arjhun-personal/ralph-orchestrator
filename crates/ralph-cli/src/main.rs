@@ -1047,6 +1047,20 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
             return Ok(reason);
         }
 
+        // Precheck validation: Warn if no pending events after processing output
+        // Per EventLoop doc: "Use has_pending_events after process_output to detect
+        // if the LLM failed to publish an event."
+        if !event_loop.has_pending_events() {
+            let expected = event_loop.get_hat_publishes(&hat_id);
+            warn!(
+                hat = %hat_id.as_str(),
+                expected_topics = ?expected,
+                "No pending events after iteration. Agent may have failed to publish a valid event. \
+                 Expected one of: {:?}. Loop will terminate on next iteration.",
+                expected
+            );
+        }
+
         // Handle checkpointing (only if git_checkpoint is enabled)
         if config.git_checkpoint && event_loop.should_checkpoint() {
             if create_checkpoint(event_loop.state().iteration)? {
