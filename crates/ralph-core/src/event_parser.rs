@@ -136,11 +136,50 @@ impl EventParser {
     /// Checks if output contains the completion promise.
     ///
     /// Per spec: The promise must appear in the agent's final output,
-    /// not inside an `<event>` tag payload. This function strips all
-    /// event tags before checking for the promise.
+    /// not inside an `<event>` tag payload. This function:
+    /// 1. Returns false if the promise appears inside ANY event tag
+    ///    (prevents accidental completion when agents discuss the promise)
+    /// 2. Otherwise, checks for the promise in the stripped output
     pub fn contains_promise(output: &str, promise: &str) -> bool {
+        // Safety check: if promise appears inside any event tag, never complete
+        if Self::promise_in_event_tags(output, promise) {
+            return false;
+        }
         let stripped = Self::strip_event_tags(output);
         stripped.contains(promise)
+    }
+
+    /// Checks if the promise appears inside any event tag payload.
+    pub fn promise_in_event_tags(output: &str, promise: &str) -> bool {
+        let mut remaining = output;
+
+        while let Some(start_idx) = remaining.find("<event ") {
+            let after_start = &remaining[start_idx..];
+
+            // Find the end of the opening tag
+            let Some(tag_end) = after_start.find('>') else {
+                remaining = &remaining[start_idx + 7..];
+                continue;
+            };
+
+            // Find the closing tag
+            let content_start = &after_start[tag_end + 1..];
+            let Some(close_idx) = content_start.find("</event>") else {
+                remaining = &remaining[start_idx + tag_end + 1..];
+                continue;
+            };
+
+            let payload = &content_start[..close_idx];
+            if payload.contains(promise) {
+                return true;
+            }
+
+            // Move past this event
+            let total_consumed = start_idx + tag_end + 1 + close_idx + 8;
+            remaining = &remaining[total_consumed..];
+        }
+
+        false
     }
 
     /// Strips all `<event ...>...</event>` blocks from output.
@@ -282,10 +321,31 @@ All done! LOOP_COMPLETE"#;
 Still working..."#;
         assert!(!EventParser::contains_promise(output, "LOOP_COMPLETE"));
 
-        // Promise in both event and surrounding text - should detect the outer one
+        // Promise in both event and surrounding text - should NOT complete
+        // because promise appears inside an event tag (safety mechanism)
         let output = r#"All tasks done. LOOP_COMPLETE
 <event topic="summary">Completed LOOP_COMPLETE task</event>"#;
-        assert!(EventParser::contains_promise(output, "LOOP_COMPLETE"));
+        assert!(!EventParser::contains_promise(output, "LOOP_COMPLETE"));
+    }
+
+    #[test]
+    fn test_promise_in_event_tags() {
+        // Promise inside event payload
+        let output = r#"<event topic="build.task">Fix LOOP_COMPLETE bug</event>"#;
+        assert!(EventParser::promise_in_event_tags(output, "LOOP_COMPLETE"));
+
+        // Promise not in any event
+        let output = r#"<event topic="build.done">Task complete</event>"#;
+        assert!(!EventParser::promise_in_event_tags(output, "LOOP_COMPLETE"));
+
+        // No events at all
+        let output = "Just regular text with LOOP_COMPLETE";
+        assert!(!EventParser::promise_in_event_tags(output, "LOOP_COMPLETE"));
+
+        // Multiple events, promise in second
+        let output = r#"<event topic="a">first</event>
+<event topic="b">contains LOOP_COMPLETE</event>"#;
+        assert!(EventParser::promise_in_event_tags(output, "LOOP_COMPLETE"));
     }
 
     #[test]

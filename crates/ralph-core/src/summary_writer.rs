@@ -227,6 +227,7 @@ mod tests {
             task_block_counts: std::collections::HashMap::new(),
             abandoned_tasks: Vec::new(),
             abandoned_task_redispatches: 0,
+            completion_confirmations: 0,
         }
     }
 

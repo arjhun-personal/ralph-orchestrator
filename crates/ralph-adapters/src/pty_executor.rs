@@ -697,14 +697,12 @@ mod tests {
 
     #[test]
     fn test_completion_promise_extraction() {
-        let mut term = vt100::Parser::new(24, 80, 10_000);
-
         // Simulate Claude output with heavy ANSI formatting
-        term.process(b"\x1b[1;36m  Thinking...\x1b[0m\r\n");
-        term.process(b"\x1b[2K\x1b[1;32m  Done!\x1b[0m\r\n");
-        term.process(b"\x1b[33mLOOP_COMPLETE\x1b[0m\r\n");
+        let input = b"\x1b[1;36m  Thinking...\x1b[0m\r\n\
+                      \x1b[2K\x1b[1;32m  Done!\x1b[0m\r\n\
+                      \x1b[33mLOOP_COMPLETE\x1b[0m\r\n";
 
-        let stripped = term.screen().contents();
+        let stripped = strip_ansi(input);
 
         // Event parser sees clean text
         assert!(stripped.contains("LOOP_COMPLETE"));
@@ -713,14 +711,12 @@ mod tests {
 
     #[test]
     fn test_event_tag_extraction() {
-        let mut term = vt100::Parser::new(24, 80, 10_000);
-
         // Event tags may be wrapped in ANSI codes
-        term.process(b"\x1b[90m<event topic=\"build.done\">\x1b[0m\r\n");
-        term.process(b"Task completed successfully\r\n");
-        term.process(b"\x1b[90m</event>\x1b[0m\r\n");
+        let input = b"\x1b[90m<event topic=\"build.done\">\x1b[0m\r\n\
+                      Task completed successfully\r\n\
+                      \x1b[90m</event>\x1b[0m\r\n";
 
-        let stripped = term.screen().contents();
+        let stripped = strip_ansi(input);
 
         assert!(stripped.contains("<event topic=\"build.done\">"));
         assert!(stripped.contains("</event>"));
@@ -728,25 +724,26 @@ mod tests {
 
     #[test]
     fn test_large_output_preserves_early_events() {
-        // Regression test: ensure event tags aren't lost when output exceeds terminal height
-        let mut term = vt100::Parser::new(24, 80, 10_000);
+        // Regression test: ensure event tags aren't lost when output is large
+        let mut input = Vec::new();
 
         // Event tag at the beginning
-        term.process(b"<event topic=\"build.task\">Implement feature X</event>\r\n");
+        input.extend_from_slice(b"<event topic=\"build.task\">Implement feature X</event>\r\n");
 
-        // Simulate 50 lines of verbose output (exceeds 24-line terminal)
-        for i in 0..50 {
-            term.process(format!("Line {}: Processing step {}...\r\n", i, i).as_bytes());
+        // Simulate 500 lines of verbose output (would overflow any terminal)
+        for i in 0..500 {
+            input.extend_from_slice(format!("Line {}: Processing step {}...\r\n", i, i).as_bytes());
         }
 
-        let stripped = term.screen().contents();
+        let stripped = strip_ansi(&input);
 
-        // Event tag should still be present in scrollback
+        // Event tag should still be present - no scrollback loss with strip-ansi-escapes
         assert!(
             stripped.contains("<event topic=\"build.task\">"),
-            "Event tag was lost due to scrollback overflow"
+            "Event tag was lost - strip_ansi is not preserving all content"
         );
         assert!(stripped.contains("Implement feature X"));
+        assert!(stripped.contains("Line 499")); // Last line should be present too
     }
 
     #[test]
