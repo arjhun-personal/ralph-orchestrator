@@ -311,6 +311,11 @@ impl RalphConfig {
             });
         }
 
+        // Check custom backend has a command
+        if self.cli.backend == "custom" && (self.cli.command.is_none() || self.cli.command.as_ref().map_or(true, |c| c.is_empty())) {
+            return Err(ConfigError::CustomBackendRequiresCommand);
+        }
+
         // Check for deferred features
         if self.archive_prompts {
             warnings.push(ConfigWarning::DeferredFeature {
@@ -877,6 +882,9 @@ pub enum ConfigError {
         field1: String,
         field2: String,
     },
+
+    #[error("Custom backend requires a command - set 'cli.command' in config")]
+    CustomBackendRequiresCommand,
 }
 
 /// Errors that occur during preflight validation.
@@ -1292,6 +1300,59 @@ event_loop:
         assert!(result.is_ok(), "Should allow inline prompt with default prompt_file");
         assert_eq!(config.event_loop.prompt, Some("inline text".to_string()));
         assert_eq!(config.event_loop.prompt_file, "PROMPT.md");
+    }
+
+    #[test]
+    fn test_custom_backend_requires_command() {
+        // Custom backend without command should error
+        let yaml = r#"
+cli:
+  backend: "custom"
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let result = config.validate();
+        
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(&err, ConfigError::CustomBackendRequiresCommand),
+            "Expected CustomBackendRequiresCommand error, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_custom_backend_with_empty_command_errors() {
+        // Custom backend with empty command should error
+        let yaml = r#"
+cli:
+  backend: "custom"
+  command: ""
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let result = config.validate();
+        
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(&err, ConfigError::CustomBackendRequiresCommand),
+            "Expected CustomBackendRequiresCommand error, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_custom_backend_with_command_succeeds() {
+        // Custom backend with valid command should pass validation
+        let yaml = r#"
+cli:
+  backend: "custom"
+  command: "my-agent"
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let result = config.validate();
+        
+        assert!(result.is_ok(), "Should allow custom backend with command: {:?}", result.unwrap_err());
     }
 
     #[test]
