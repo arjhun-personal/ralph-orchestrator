@@ -1,6 +1,6 @@
 ---
-status: approved
-gap_analysis: null
+status: implemented
+gap_analysis: 2026-01-13
 related:
   - event-loop.spec.md
 ---
