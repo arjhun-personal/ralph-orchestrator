@@ -109,7 +109,7 @@ impl CliBackend {
             command,
             args: config.args.clone(),
             prompt_mode,
-            prompt_flag: config.prompt_flag.clone(),
+            prompt_flag: config.prompt_flag.clone().or_else(|| Some("-p".to_string())),
         }
     }
 
