@@ -9,7 +9,6 @@
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| 🔴 P0 | Task-level block tracking missing | Loop terminates instead of replanning | ✅ Confirmed |
 | 🟡 P1 | Planner behaviors instruction-only | No verification of compliance | ✅ Confirmed |
 | 🟡 P1 | Builder behaviors instruction-only | No verification of compliance | ✅ Confirmed |
 | 🟡 P1 | Broken preset: gap-analysis.yml | Multi-document YAML parse error | ✅ Confirmed |
@@ -18,82 +17,6 @@
 | 🟢 P2 | Scratchpad persistence not verified | State could be lost | ✅ Confirmed |
 | 🟢 P2 | Hat display order is random | Minor UX confusion | ✅ Confirmed |
 | 🟡 P1 | Broken ralph.yml in repo root | Default config causes parse error | ✅ Confirmed |
-
----
-
-## 🔴 P0: Task-Level Block Tracking Missing
-
-**Behavior:** PL-005
-
-**Status:** ✅ **CONFIRMED** via code review (2026-01-13)
-
-**Problem:**
-Spec says planner should cancel task `[~]` after 3 consecutive `build.blocked` on the **same task**. Implementation tracks blocks per **hat**, not per task, and terminates the entire loop.
-
-**Impact:**
-- Planner cannot make intelligent decisions about stuck tasks
-- Loop terminates with `LoopThrashing` instead of replanning around blocked task
-- No way to identify which specific task is problematic
-
-**Code Evidence:**
-```rust
-// crates/ralph-core/src/event_loop.rs:85-98
-pub struct LoopState {
-    // ...
-    /// Consecutive blocked events from the same hat.
-    pub consecutive_blocked: u32,
-    /// Hat that emitted the last blocked event.
-    pub last_blocked_hat: Option<HatId>,
-}
-
-// crates/ralph-core/src/event_loop.rs:326-343
-// Track build.blocked events for thrashing detection
-let has_blocked_event = events.iter().any(|e| e.topic == "build.blocked".into());
-
-if has_blocked_event {
-    // ❌ WRONG: Checks if same HAT blocked, not same TASK
-    if self.state.last_blocked_hat.as_ref() == Some(hat_id) {
-        self.state.consecutive_blocked += 1;
-    } else {
-        self.state.consecutive_blocked = 1;
-        self.state.last_blocked_hat = Some(hat_id.clone());
-    }
-    // ...
-}
-```
-
-The `EventParser` (event_parser.rs) does NOT extract task identifiers from `build.blocked` payloads. It only parses topic, target, and payload as a string.
-
-**Current:**
-```rust
-// LoopState tracks:
-consecutive_blocked: u32,        // Per-hat counter
-last_blocked_hat: Option<HatId>, // Which hat blocked
-
-// After 3 blocks from same hat → LoopThrashing termination
-```
-
-**Expected:**
-```rust
-// LoopState should track:
-blocked_task_counts: HashMap<String, u32>,  // Per-task counter
-last_blocked_task: Option<String>,          // Which task blocked
-
-// After 3 blocks on same task → inject into planner prompt
-// Planner decides: cancel [~], replan, or escalate
-```
-
-**Fix:**
-1. Add `blocked_task_counts: HashMap<String, u32>` to `LoopState`
-2. Parse task identifier from `build.blocked` event payload
-3. Inject per-task block counts into planner prompt context
-4. Update planner instructions to explain cancellation option
-5. Keep loop-level thrashing detection as final safeguard
-
-**Files:**
-- `crates/ralph-core/src/event_loop.rs` (LoopState)
-- `crates/ralph-core/src/event_parser.rs` (extract task ID from blocked event)
-- `crates/ralph-core/src/instructions.rs` (inject block counts, update planner instructions)
 
 ---
 
