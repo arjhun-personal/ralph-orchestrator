@@ -23,6 +23,7 @@ mod session_player;
 mod session_recorder;
 mod summary_writer;
 pub mod task_definition;
+pub mod testing;
 pub mod workspace;
 
 pub use cli_capture::{CliCapture, CliCapturePair};
