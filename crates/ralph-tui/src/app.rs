@@ -1,8 +1,8 @@
 //! Main application loop for the TUI.
 
-use crate::input::{InputRouter, RouteResult};
+use crate::input::{Command, InputRouter, RouteResult};
 use crate::state::TuiState;
-use crate::widgets::{footer, header, terminal::TerminalWidget};
+use crate::widgets::{footer, header, help, terminal::TerminalWidget};
 use anyhow::Result;
 use crossterm::{
     event::{self, Event, KeyEventKind},
@@ -77,18 +77,34 @@ impl App {
                         f.render_widget(header::render(&state), chunks[0]);
                         f.render_widget(tui_term::widget::PseudoTerminal::new(widget.parser().screen()), chunks[1]);
                         f.render_widget(footer::render(&state), chunks[2]);
+
+                        if state.show_help {
+                            help::render(f, f.area());
+                        }
                     })?;
 
                     // Poll for keyboard events
                     if event::poll(Duration::from_millis(0))? {
                         if let Event::Key(key) = event::read()? {
                             if key.kind == KeyEventKind::Press {
+                                // Dismiss help on any key
+                                if self.state.lock().unwrap().show_help {
+                                    self.state.lock().unwrap().show_help = false;
+                                    continue;
+                                }
+
                                 match self.input_router.route_key(key) {
                                     RouteResult::Forward(_) => {
                                         // TODO: Forward to PTY in next step
                                     }
-                                    RouteResult::Command(_) => {
-                                        // TODO: Handle commands in next step
+                                    RouteResult::Command(cmd) => {
+                                        match cmd {
+                                            Command::Quit => break,
+                                            Command::Help => {
+                                                self.state.lock().unwrap().show_help = true;
+                                            }
+                                            Command::Unknown => {}
+                                        }
                                     }
                                     RouteResult::Consumed => {
                                         // Prefix consumed, wait for command

@@ -9,11 +9,19 @@ pub enum InputMode {
     AwaitingCommand,
 }
 
+/// Prefix commands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Command {
+    Quit,
+    Help,
+    Unknown,
+}
+
 /// Result of routing a key event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RouteResult {
     Forward(KeyEvent),
-    Command(char),
+    Command(Command),
     Consumed,
 }
 
@@ -43,7 +51,11 @@ impl InputRouter {
             InputMode::AwaitingCommand => {
                 self.mode = InputMode::Normal;
                 if let Some(c) = extract_char(key) {
-                    RouteResult::Command(c)
+                    RouteResult::Command(match c {
+                        'q' => Command::Quit,
+                        '?' => Command::Help,
+                        _ => Command::Unknown,
+                    })
                 } else {
                     RouteResult::Consumed
                 }
@@ -94,7 +106,7 @@ mod tests {
         router.route_key(prefix);
 
         let cmd = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
-        assert_eq!(router.route_key(cmd), RouteResult::Command('q'));
+        assert_eq!(router.route_key(cmd), RouteResult::Command(Command::Quit));
     }
 
     #[test]
@@ -108,5 +120,38 @@ mod tests {
 
         let next = KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE);
         assert_eq!(router.route_key(next), RouteResult::Forward(next));
+    }
+
+    #[test]
+    fn quit_command_returns_q() {
+        let mut router = InputRouter::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        router.route_key(prefix);
+
+        let cmd = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
+        assert_eq!(router.route_key(cmd), RouteResult::Command(Command::Quit));
+    }
+
+    #[test]
+    fn help_command_returns_question_mark() {
+        let mut router = InputRouter::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        router.route_key(prefix);
+
+        let cmd = KeyEvent::new(KeyCode::Char('?'), KeyModifiers::SHIFT);
+        assert_eq!(router.route_key(cmd), RouteResult::Command(Command::Help));
+    }
+
+    #[test]
+    fn unknown_command_returns_unknown() {
+        let mut router = InputRouter::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        router.route_key(prefix);
+
+        let cmd = KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE);
+        assert_eq!(
+            router.route_key(cmd),
+            RouteResult::Command(Command::Unknown)
+        );
     }
 }

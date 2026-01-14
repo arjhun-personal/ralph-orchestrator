@@ -80,3 +80,7 @@ Claude: I see the errors, let me fix them...
 
 ## Q8: Is streaming output always-on or opt-in?
 
+**Answer:** Always-on with opt-out:
+- Streaming output is the default behavior for `ralph run` with Claude backend
+- `--quiet` flag (or similar) to suppress streaming for CI/scripting use cases
+

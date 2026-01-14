@@ -17,6 +17,8 @@ pub struct TuiState {
     pub last_event: Option<String>,
     /// Timestamp of last event.
     pub last_event_at: Option<Instant>,
+    /// Whether to show help overlay.
+    pub show_help: bool,
 }
 
 impl TuiState {
@@ -29,6 +31,7 @@ impl TuiState {
             iteration_started: None,
             last_event: None,
             last_event_at: None,
+            show_help: false,
         }
     }
 
