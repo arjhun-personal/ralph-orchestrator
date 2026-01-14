@@ -1,8 +1,8 @@
 ---
-status: draft
+status: approved
 gap_analysis: null
 related:
-  - event-system.spec.md
+  - event-loop.spec.md
 ---
 
 # Terminal UI Spec
@@ -44,7 +44,7 @@ The UI integrates via the existing `EventBus.set_observer()` callback mechanism.
                                        ┌─────────────────┐
                                        │   TuiObserver   │
                                        │  (implements    │
-                                       │   Fn(Event))    │
+                                       │   Fn(&Event))   │
                                        └────────┬────────┘
                                                 │
                                           updates state
@@ -68,27 +68,35 @@ The UI integrates via the existing `EventBus.set_observer()` callback mechanism.
 The UI maintains observable state derived from loop events:
 
 **TuiState** holds:
-- `current_hat`: Which hat Ralph is wearing (`HatId` + display name)
-- `current_hat_started`: When this hat's iteration began
-- `iteration`: Current iteration number (1-indexed)
+- `pending_hat`: Which hat will process the next event (`HatId` + display name)
+- `iteration`: Current iteration number (displayed as 1-indexed)
 - `loop_started`: Timestamp when the loop began
-- `loop_elapsed`: Total elapsed time since loop start
-- `iteration_elapsed`: Elapsed time for current iteration
+- `iteration_started`: Timestamp when this iteration began
 - `last_event`: Most recent event topic for activity indicator
-- `termination`: Optional termination reason when loop ends
+- `last_event_at`: Timestamp of last event (for activity indicator)
+
+**Note on iteration display:** The `LoopState.iteration` counter represents completed iterations (starts at 0, incremented after each iteration completes). The TUI displays `iteration + 1` during execution to show the current iteration number (1-indexed).
+
+**Note on pending vs current:** The observer callback fires *before* events are routed to subscribers. The TUI cannot know which hat is currently executing—it can only infer which hat will handle the next event based on topic-to-subscription mappings. This "pending hat" is actually more useful for monitoring: it tells you what's coming next.
 
 ### Event-to-State Mapping
 
 | Event Topic | State Update |
 |-------------|--------------|
-| `task.start` | Reset all state, set `loop_started` |
-| `task.resume` | Set `loop_started`, preserve iteration from payload |
-| `build.task` | Set `current_hat` to builder |
-| `build.done` | Set `current_hat` to planner |
-| `build.blocked` | Set `current_hat` to planner |
-| Any event | Update `last_event`, recalculate elapsed times |
+| `task.start` | Reset all state, set `loop_started`, set `pending_hat` to planner |
+| `task.resume` | Set `loop_started`, set `pending_hat` to planner |
+| `build.task` | Set `pending_hat` to builder, reset `iteration_started` |
+| `build.done` | Set `pending_hat` to planner, increment `iteration` |
+| `build.blocked` | Set `pending_hat` to planner |
+| `loop.terminate` | Set activity indicator to "done" state |
+| Any event | Update `last_event`, update `last_event_at` |
 
-Hat transitions are inferred from event topics and the `source` field on events.
+The TUI infers `pending_hat` from event topics using known subscription mappings:
+- Events matching `task.*` → planner subscribes
+- Events matching `build.task` → builder subscribes
+- Events matching `build.done`, `build.blocked` → planner subscribes
+
+For custom hats, the TUI must be initialized with the `HatRegistry` to look up subscriptions.
 
 ## UI Layout
 
@@ -97,12 +105,12 @@ Hat transitions are inferred from event topics and the `source` field on events.
 │  🎩 RALPH ORCHESTRATOR                          [LIVE]  │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│     Current Hat: 📋 Planner                             │
+│     Next Hat:      📋 Planner                           │
 │                                                         │
-│     Iteration:   3                                      │
+│     Iteration:     3                                    │
 │                                                         │
-│     Loop Time:   00:05:23                               │
-│     This Run:    00:01:47                               │
+│     Loop Time:     00:05:23                             │
+│     This Iteration: 00:01:47                            │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
 │  Last: build.done                              ◉ active │
@@ -111,8 +119,8 @@ Hat transitions are inferred from event topics and the `source` field on events.
 
 ### Layout Regions
 
-1. **Header**: Title bar with live/paused indicator
-2. **Status Panel**: Current hat, iteration, timing
+1. **Header**: Title bar with live/done indicator
+2. **Status Panel**: Next hat, iteration, timing
 3. **Footer**: Last event topic, activity indicator
 
 ### Hat Display
@@ -128,14 +136,14 @@ Each hat displays with an emoji and name:
 ### Timing Display
 
 - **Loop Time**: `HH:MM:SS` since `task.start` or `task.resume`
-- **This Run**: `HH:MM:SS` since current hat began processing
+- **This Iteration**: `HH:MM:SS` since current iteration began (resets when hat changes)
 
 Times update every 100ms via a separate tick mechanism (not blocking on events).
 
 ### Activity Indicator
 
-- `◉ active` (green, blinking): Event received in last 2 seconds
-- `◯ idle` (dim): No recent events
+- `◉ active` (green): Event received in last 2 seconds
+- `◯ idle` (dim): No events in last 2 seconds
 - `■ done` (blue): Loop terminated
 
 ## Integration
@@ -145,20 +153,9 @@ Times update every 100ms via a separate tick mechanism (not blocking on events).
 ```bash
 # Run with TUI enabled
 ralph run --tui
-
-# TUI-only mode (attach to existing run via event log)
-ralph tui
 ```
 
-### Configuration
-
-```yaml
-# ralph.yml
-tui:
-  enabled: true
-  refresh_rate_ms: 100
-  show_cost: false  # Optional: display cumulative cost
-```
+No configuration required. The TUI uses sensible defaults (100ms refresh rate). Configuration options may be added in future versions if needed.
 
 ### Implementation Location
 
@@ -178,16 +175,17 @@ Uses workspace dependencies already available:
 
 ## Acceptance Criteria
 
-1. **Hat visibility**: UI displays current hat name and emoji within 100ms of hat change
-2. **Iteration counter**: Shows correct iteration number, updates on each iteration
+1. **Hat visibility**: UI displays pending hat name and emoji within 100ms of relevant event
+2. **Iteration counter**: Shows correct iteration number (1-indexed), updates on `build.done`
 3. **Loop timer**: Shows total elapsed time since loop start, updates every 100ms
 4. **Iteration timer**: Shows elapsed time for current iteration, resets on hat change
-5. **Activity indicator**: Pulses green when events flow, dims after 2s idle
-6. **Clean exit**: UI restores terminal state on loop termination or Ctrl+C
+5. **Activity indicator**: Shows green when events received in last 2s, dims otherwise
+6. **Clean exit**: UI restores terminal state (raw mode, alternate screen) on termination or Ctrl+C
 7. **No interference**: UI observation doesn't affect loop execution or event routing
 
 ## Future Considerations
 
+- Standalone `ralph tui` command (attach to existing run via `.agent/events.jsonl`)
 - Event log panel showing recent events
 - Cost tracking display (using existing `LoopState.cumulative_cost`)
 - Multiple hat tracking for concurrent execution
