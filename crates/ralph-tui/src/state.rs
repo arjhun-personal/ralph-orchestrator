@@ -16,6 +16,8 @@ pub struct TuiState {
     pub pending_hat: Option<(HatId, String)>,
     /// Current iteration number (0-indexed, display as +1).
     pub iteration: u32,
+    /// Previous iteration number (for detecting changes).
+    pub prev_iteration: u32,
     /// When loop began.
     pub loop_started: Option<Instant>,
     /// When current iteration began.
@@ -34,6 +36,10 @@ pub struct TuiState {
     pub search_query: String,
     /// Search direction (true = forward, false = backward).
     pub search_forward: bool,
+    /// Maximum iterations from config.
+    pub max_iterations: Option<u32>,
+    /// Idle timeout countdown.
+    pub idle_timeout_remaining: Option<Duration>,
 }
 
 impl TuiState {
@@ -42,6 +48,7 @@ impl TuiState {
         Self {
             pending_hat: None,
             iteration: 0,
+            prev_iteration: 0,
             loop_started: None,
             iteration_started: None,
             last_event: None,
@@ -51,6 +58,8 @@ impl TuiState {
             in_scroll_mode: false,
             search_query: String::new(),
             search_forward: true,
+            max_iterations: None,
+            idle_timeout_remaining: None,
         }
     }
 
@@ -80,6 +89,7 @@ impl TuiState {
             }
             "build.done" => {
                 self.pending_hat = Some((HatId::new("planner"), "📋 Planner".to_string()));
+                self.prev_iteration = self.iteration;
                 self.iteration += 1;
             }
             "build.blocked" => {
@@ -116,10 +126,60 @@ impl TuiState {
             .map(|t| t.elapsed() < Duration::from_secs(2))
             .unwrap_or(false)
     }
+
+    /// True if iteration changed since last check.
+    pub fn iteration_changed(&self) -> bool {
+        self.iteration != self.prev_iteration
+    }
 }
 
 impl Default for TuiState {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn iteration_changed_detects_boundary() {
+        let mut state = TuiState::new();
+        assert!(!state.iteration_changed(), "no change at start");
+
+        // Simulate build.done event (increments iteration)
+        let event = Event::new("build.done", "");
+        state.update(&event);
+
+        assert_eq!(state.iteration, 1);
+        assert_eq!(state.prev_iteration, 0);
+        assert!(state.iteration_changed(), "should detect iteration change");
+    }
+
+    #[test]
+    fn iteration_changed_resets_after_check() {
+        let mut state = TuiState::new();
+        let event = Event::new("build.done", "");
+        state.update(&event);
+
+        assert!(state.iteration_changed());
+
+        // Simulate clearing the flag (app.rs does this by updating prev_iteration)
+        state.prev_iteration = state.iteration;
+        assert!(!state.iteration_changed(), "flag should reset");
+    }
+
+    #[test]
+    fn multiple_iterations_tracked() {
+        let mut state = TuiState::new();
+
+        for i in 1..=3 {
+            let event = Event::new("build.done", "");
+            state.update(&event);
+            assert_eq!(state.iteration, i);
+            assert!(state.iteration_changed());
+            state.prev_iteration = state.iteration; // simulate app clearing flag
+        }
     }
 }

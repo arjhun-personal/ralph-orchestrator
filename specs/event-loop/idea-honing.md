@@ -408,6 +408,166 @@ hats:
 
 ---
 
+## Q11: How will we perform E2E integration testing?
+
+**Answer: Scripted scenarios with mock CLI**
+
+Mock real `claude -p` invocations with scripted, deterministic responses.
+
+**Test harness architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     TEST HARNESS                                 │
+│                                                                  │
+│  1. Set up temp directory with initial state                     │
+│  2. Configure orchestrator with mock CLI backend                 │
+│  3. Run orchestrator                                             │
+│  4. Assert on final state (files, events, exit code)             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     MOCK CLI                                     │
+│                                                                  │
+│  Behaves like `claude -p "prompt"`:                              │
+│  - Accepts prompt via -p flag                                    │
+│  - Writes to disk (scratchpad, events.jsonl)                     │
+│  - Returns scripted output                                       │
+│  - Scripted per-iteration responses                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Scenario format:**
+
+```yaml
+# test-scenarios/orphaned-event-fallback.yml
+name: "Orphaned event falls through to Ralph"
+config:
+  hats:
+    builder:
+      triggers: ["build.task"]
+      publishes: ["build.done"]
+
+iterations:
+  # Iteration 1: Ralph delegates to builder
+  - hat: ralph
+    writes:
+      events:
+        - { topic: "build.task", payload: "Implement auth" }
+
+  # Iteration 2: Builder completes, publishes unknown event
+  - hat: builder
+    writes:
+      events:
+        - { topic: "unknown.event", payload: "Something weird" }
+
+  # Iteration 3: Unknown event falls through to Ralph
+  - hat: ralph  # ← Verify Ralph catches it
+    writes:
+      scratchpad: |
+        ## Tasks
+        - [x] Implement auth
+      events: []
+
+expect:
+  completion: true
+  iterations: 3
+```
+
+**Scenarios to cover:**
+
+| Scenario | What It Validates |
+|----------|-------------------|
+| Solo mode completion | Ralph works alone, no hats |
+| Multi-hat delegation | Ralph → hat → Ralph closes |
+| Orphaned event fallback | Unknown event falls to Ralph |
+| JSONL event parsing | Events read from `.agent/events.jsonl` |
+| Default publishes | Hat forgets event, `default_publishes` fires |
+| Scratchpad ownership | Ralph creates/maintains scratchpad |
+| Hat-to-hat direct | Builder → Reviewer bypasses Ralph |
+| Completion only from Ralph | Hat outputs `LOOP_COMPLETE`, ignored |
+
+**Mock CLI implementation:**
+
+```rust
+// Mock backend that reads scripted responses
+pub struct MockCliBackend {
+    scenario: Scenario,
+    iteration: usize,
+}
+
+impl CliBackend for MockCliBackend {
+    fn invoke(&mut self, prompt: &str) -> Result<String> {
+        let response = self.scenario.iterations[self.iteration].clone();
+        self.iteration += 1;
+
+        // Write scripted files to disk
+        if let Some(scratchpad) = &response.writes.scratchpad {
+            fs::write(".agent/scratchpad.md", scratchpad)?;
+        }
+        if !response.writes.events.is_empty() {
+            // Append to events.jsonl
+        }
+
+        Ok(response.output)
+    }
+}
+```
+
+---
+
+## Q12: How can hats be tied to specific agent configurations?
+
+**Context:**
+
+Currently all hats share one global backend (`cli.backend`). This limits flexibility because different agents have different strengths:
+
+| Agent | Strengths |
+|-------|-----------|
+| Claude | Coding, reasoning, long context |
+| Kiro | AWS MCP tools, internal wiki access |
+| Gemini | Different perspective, fast |
+| Codex | OpenAI ecosystem |
+
+**Proposed: Per-Hat Backend**
+
+```yaml
+cli:
+  backend: "claude"  # Default for Ralph + hats that don't specify
+
+hats:
+  builder:
+    triggers: ["build.task"]
+    backend: "claude"       # Explicit
+
+  researcher:
+    triggers: ["research.task"]
+    backend: "kiro"         # Has MCP tools for internal systems
+
+  reviewer:
+    triggers: ["review.request"]
+    backend: "gemini"       # Different perspective
+```
+
+**Design decisions needed:**
+
+| Question | Options |
+|----------|---------|
+| **Ralph's backend** | A: Config default, B: Always Claude, C: Separate config |
+| **Inheritance** | Hat without `backend` inherits from `cli.backend` |
+| **Custom inline** | Allow full backend config per hat, or just named backends? |
+
+See `research/per-hat-backends.md` for full analysis.
+
+**Questions for you:**
+
+1. Does per-hat backend make sense for the initial design, or defer until later?
+2. Should we support inline custom backend config per hat, or just named backends (KISS)?
+3. Any specific use cases you have in mind for heterogeneous agent teams?
+
+---
+
 ## Research Complete ✅
 
 See `research/current-implementation.md` for detailed findings.

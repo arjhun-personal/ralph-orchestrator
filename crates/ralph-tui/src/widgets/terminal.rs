@@ -35,4 +35,10 @@ impl TerminalWidget {
     pub fn resize(&mut self, rows: u16, cols: u16) {
         self.parser = Parser::new(rows, cols, 0);
     }
+
+    /// Clears the terminal screen and scrollback.
+    pub fn clear(&mut self) {
+        let (rows, cols) = self.parser.screen().size();
+        self.parser = Parser::new(rows, cols, 0);
+    }
 }

@@ -75,6 +75,18 @@ impl App {
         loop {
             tokio::select! {
                 _ = tick.tick() => {
+                    // Check for iteration change and clear terminal
+                    {
+                        let mut state = self.state.lock().unwrap();
+                        if state.iteration_changed() {
+                            state.prev_iteration = state.iteration;
+                            drop(state);
+                            let mut widget = self.terminal_widget.lock().unwrap();
+                            widget.clear();
+                            self.scroll_manager.reset();
+                        }
+                    }
+
                     let state = self.state.lock().unwrap();
                     let widget = self.terminal_widget.lock().unwrap();
                     terminal.draw(|f| {
