@@ -120,6 +120,10 @@ pub struct RalphConfig {
     /// Suppress all warnings (for CI environments).
     #[serde(default, rename = "_suppress_warnings")]
     pub suppress_warnings: bool,
+
+    /// TUI configuration.
+    #[serde(default)]
+    pub tui: TuiConfig,
 }
 
 fn default_true() -> bool {
@@ -154,6 +158,8 @@ impl Default for RalphConfig {
             adapters: AdaptersConfig::default(),
             // Warning control
             suppress_warnings: false,
+            // TUI
+            tui: TuiConfig::default(),
         }
     }
 }
@@ -803,6 +809,65 @@ impl Default for CliConfig {
     }
 }
 
+/// TUI configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TuiConfig {
+    /// Prefix key combination (e.g., "ctrl-a", "ctrl-b").
+    #[serde(default = "default_prefix_key")]
+    pub prefix_key: String,
+}
+
+fn default_prefix_key() -> String {
+    "ctrl-a".to_string()
+}
+
+impl Default for TuiConfig {
+    fn default() -> Self {
+        Self {
+            prefix_key: default_prefix_key(),
+        }
+    }
+}
+
+impl TuiConfig {
+    /// Parses the prefix_key string into KeyCode and KeyModifiers.
+    /// Returns an error if the format is invalid.
+    pub fn parse_prefix(&self) -> Result<(crossterm::event::KeyCode, crossterm::event::KeyModifiers), String> {
+        use crossterm::event::{KeyCode, KeyModifiers};
+        
+        let parts: Vec<&str> = self.prefix_key.split('-').collect();
+        if parts.len() != 2 {
+            return Err(format!(
+                "Invalid prefix_key format: '{}'. Expected format: 'ctrl-<key>' (e.g., 'ctrl-a', 'ctrl-b')",
+                self.prefix_key
+            ));
+        }
+
+        let modifier = match parts[0].to_lowercase().as_str() {
+            "ctrl" => KeyModifiers::CONTROL,
+            _ => {
+                return Err(format!(
+                    "Invalid modifier: '{}'. Only 'ctrl' is supported (e.g., 'ctrl-a')",
+                    parts[0]
+                ));
+            }
+        };
+
+        let key_str = parts[1];
+        if key_str.len() != 1 {
+            return Err(format!(
+                "Invalid key: '{}'. Expected a single character (e.g., 'a', 'b')",
+                key_str
+            ));
+        }
+
+        let key_char = key_str.chars().next().unwrap();
+        let key_code = KeyCode::Char(key_char);
+
+        Ok((key_code, modifier))
+    }
+}
+
 /// Metadata for an event topic.
 ///
 /// Defines what an event means, enabling auto-derived instructions for hats.
@@ -1365,5 +1430,55 @@ event_loop:
         let config = RalphConfig::default();
         assert_eq!(config.event_loop.prompt_file, "PROMPT.md");
         assert_eq!(config.event_loop.prompt, None);
+    }
+
+    #[test]
+    fn test_tui_config_default() {
+        let config = RalphConfig::default();
+        assert_eq!(config.tui.prefix_key, "ctrl-a");
+    }
+
+    #[test]
+    fn test_tui_config_parse_ctrl_b() {
+        let yaml = r#"
+tui:
+  prefix_key: "ctrl-b"
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let (key_code, key_modifiers) = config.tui.parse_prefix().unwrap();
+        
+        use crossterm::event::{KeyCode, KeyModifiers};
+        assert_eq!(key_code, KeyCode::Char('b'));
+        assert_eq!(key_modifiers, KeyModifiers::CONTROL);
+    }
+
+    #[test]
+    fn test_tui_config_parse_invalid_format() {
+        let tui_config = TuiConfig {
+            prefix_key: "invalid".to_string(),
+        };
+        let result = tui_config.parse_prefix();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid prefix_key format"));
+    }
+
+    #[test]
+    fn test_tui_config_parse_invalid_modifier() {
+        let tui_config = TuiConfig {
+            prefix_key: "alt-a".to_string(),
+        };
+        let result = tui_config.parse_prefix();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid modifier"));
+    }
+
+    #[test]
+    fn test_tui_config_parse_invalid_key() {
+        let tui_config = TuiConfig {
+            prefix_key: "ctrl-abc".to_string(),
+        };
+        let result = tui_config.parse_prefix();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid key"));
     }
 }

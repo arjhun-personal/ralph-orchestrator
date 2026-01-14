@@ -40,12 +40,25 @@ pub enum RouteResult {
 /// Routes input between normal mode and command mode.
 pub struct InputRouter {
     mode: InputMode,
+    prefix_key: KeyCode,
+    prefix_modifiers: KeyModifiers,
 }
 
 impl InputRouter {
     pub fn new() -> Self {
         Self {
             mode: InputMode::Normal,
+            prefix_key: KeyCode::Char('a'),
+            prefix_modifiers: KeyModifiers::CONTROL,
+        }
+    }
+
+    /// Creates a new InputRouter with a custom prefix key.
+    pub fn with_prefix(prefix_key: KeyCode, prefix_modifiers: KeyModifiers) -> Self {
+        Self {
+            mode: InputMode::Normal,
+            prefix_key,
+            prefix_modifiers,
         }
     }
 
@@ -53,7 +66,7 @@ impl InputRouter {
     pub fn route_key(&mut self, key: KeyEvent) -> RouteResult {
         match self.mode {
             InputMode::Normal => {
-                if is_prefix(key) {
+                if self.is_prefix(key) {
                     self.mode = InputMode::AwaitingCommand;
                     RouteResult::Consumed
                 } else {
@@ -122,16 +135,15 @@ impl InputRouter {
         self.mode = InputMode::Scroll;
     }
 
+    fn is_prefix(&self, key: KeyEvent) -> bool {
+        key.code == self.prefix_key && key.modifiers.contains(self.prefix_modifiers)
+    }
 }
 
 impl Default for InputRouter {
     fn default() -> Self {
         Self::new()
     }
-}
-
-fn is_prefix(key: KeyEvent) -> bool {
-    matches!(key.code, KeyCode::Char('a')) && key.modifiers.contains(KeyModifiers::CONTROL)
 }
 
 fn extract_char(key: KeyEvent) -> Option<char> {
@@ -358,5 +370,27 @@ mod tests {
 
         let key = KeyEvent::new(KeyCode::Char('N'), KeyModifiers::SHIFT);
         assert_eq!(router.route_key(key), RouteResult::ScrollKey(key));
+    }
+
+    #[test]
+    fn custom_prefix_ctrl_b_works() {
+        let mut router = InputRouter::with_prefix(KeyCode::Char('b'), KeyModifiers::CONTROL);
+        
+        // Ctrl+B should trigger command mode
+        let prefix = KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL);
+        assert_eq!(router.route_key(prefix), RouteResult::Consumed);
+        
+        // Next key should be interpreted as command
+        let cmd = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
+        assert_eq!(router.route_key(cmd), RouteResult::Command(Command::Quit));
+    }
+
+    #[test]
+    fn custom_prefix_ctrl_b_ignores_ctrl_a() {
+        let mut router = InputRouter::with_prefix(KeyCode::Char('b'), KeyModifiers::CONTROL);
+        
+        // Ctrl+A should be forwarded, not consumed
+        let key = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        assert_eq!(router.route_key(key), RouteResult::Forward(key));
     }
 }

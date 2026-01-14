@@ -399,6 +399,23 @@ hats:
 | Single completion promise | Always `LOOP_COMPLETE` |
 | Standardized event naming | `<domain>.<action>` convention |
 
+### Per-Hat Backend Configuration
+
+| Change | Details |
+|--------|---------|
+| Named backends | `backend: "claude"` — simple, uses standard config |
+| Kiro agents | `backend: { type: "kiro", agent: "builder" }` — MCP tools, custom model |
+| Custom backends | `backend: { command: "...", args: [...] }` — any CLI tool |
+| Inheritance | Hat without `backend` inherits from `cli.backend` |
+
+### E2E Testing
+
+| Change | Details |
+|--------|---------|
+| Scripted scenarios | YAML files defining iteration-by-iteration behavior |
+| Mock CLI | Simulates `claude -p` invocations with deterministic responses |
+| Assertions | Verify completion, iteration count, file state, event routing |
+
 ### KISS Constraints
 
 - One iteration = one agent invocation
@@ -560,11 +577,67 @@ hats:
 
 See `research/per-hat-backends.md` for full analysis.
 
-**Questions for you:**
+**Answer: Full backend flexibility from day one**
 
-1. Does per-hat backend make sense for the initial design, or defer until later?
-2. Should we support inline custom backend config per hat, or just named backends (KISS)?
-3. Any specific use cases you have in mind for heterogeneous agent teams?
+Support three backend modes per hat:
+
+```yaml
+hats:
+  # 1. Named backend (simple)
+  builder:
+    triggers: ["build.task"]
+    backend: "claude"
+
+  # 2. Kiro with custom agent (powerful)
+  infra:
+    triggers: ["infra.task"]
+    backend:
+      type: "kiro"
+      agent: "infra-admin"  # Has AWS MCP tools
+
+  # 3. Custom inline (full flexibility)
+  compliance:
+    triggers: ["compliance.check"]
+    backend:
+      command: "internal-compliance-agent"
+      args: ["--strict"]
+      prompt_mode: "stdin"
+```
+
+**Config schema:**
+
+```rust
+pub enum HatBackend {
+    /// Named backend (claude, kiro, gemini, codex, amp)
+    Named(String),
+
+    /// Kiro with custom agent
+    KiroAgent {
+        agent: String,
+        args: Option<Vec<String>>,
+    },
+
+    /// Fully custom backend
+    Custom {
+        command: String,
+        args: Vec<String>,
+        prompt_mode: PromptMode,
+        prompt_flag: Option<String>,
+    },
+}
+```
+
+**What this enables:**
+
+| Capability | How |
+|------------|-----|
+| Per-hat MCP servers | Kiro agents have their own `mcpServers` |
+| Per-hat models | Different models per hat (Sonnet for coding, Haiku for research) |
+| Per-hat tool permissions | Restrict write access for researcher |
+| Mixed backends | Claude for coding, Gemini for review, Kiro for AWS |
+| Internal tools | Custom backends for proprietary agents |
+
+See `research/per-hat-backends.md` for full analysis including Kiro agent configuration reference.
 
 ---
 

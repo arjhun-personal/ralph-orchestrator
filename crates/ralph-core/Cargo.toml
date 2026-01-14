@@ -20,6 +20,7 @@ thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 chrono.workspace = true
+crossterm.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -15,6 +15,7 @@ pub mod widgets;
 
 use anyhow::Result;
 use app::App;
+use crossterm::event::{KeyCode, KeyModifiers};
 use ralph_adapters::pty_handle::PtyHandle;
 use ralph_proto::Event;
 use state::TuiState;
@@ -26,6 +27,8 @@ pub use widgets::terminal::TerminalWidget;
 pub struct Tui {
     state: Arc<Mutex<TuiState>>,
     pty_handle: Option<PtyHandle>,
+    prefix_key: KeyCode,
+    prefix_modifiers: KeyModifiers,
 }
 
 impl Tui {
@@ -34,7 +37,16 @@ impl Tui {
         Self {
             state: Arc::new(Mutex::new(TuiState::new())),
             pty_handle: None,
+            prefix_key: KeyCode::Char('a'),
+            prefix_modifiers: KeyModifiers::CONTROL,
         }
+    }
+
+    /// Sets custom prefix key.
+    pub fn with_prefix(mut self, prefix_key: KeyCode, prefix_modifiers: KeyModifiers) -> Self {
+        self.prefix_key = prefix_key;
+        self.prefix_modifiers = prefix_modifiers;
+        self
     }
 
     /// Sets the PTY handle for terminal output.
@@ -58,7 +70,12 @@ impl Tui {
         let pty_handle = self
             .pty_handle
             .expect("PTY handle not set - call with_pty() first");
-        let app = App::new(Arc::clone(&self.state), pty_handle);
+        let app = App::with_prefix(
+            Arc::clone(&self.state),
+            pty_handle,
+            self.prefix_key,
+            self.prefix_modifiers,
+        );
         app.run().await
     }
 }

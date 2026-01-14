@@ -891,7 +891,19 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
 
     // Set up TUI if enabled
     let tui_handle = if enable_tui {
-        let tui = Tui::new();
+        let mut tui = Tui::new();
+        
+        // Parse and apply TUI prefix key configuration
+        match config.tui.parse_prefix() {
+            Ok((key_code, key_modifiers)) => {
+                tui = tui.with_prefix(key_code, key_modifiers);
+            }
+            Err(e) => {
+                error!("Invalid TUI prefix_key configuration: {}", e);
+                return Err(anyhow::anyhow!("Invalid TUI prefix_key: {}", e));
+            }
+        }
+        
         let observer = tui.observer();
         event_loop.set_observer(observer);
         Some(tokio::spawn(async move { tui.run().await }))

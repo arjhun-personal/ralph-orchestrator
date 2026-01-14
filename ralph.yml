@@ -39,6 +39,13 @@ output_preview_length: 500    # Max chars for output preview in telemetry (trunc
 max_prompt_size: 10485760     # Max prompt file size (10MB)
 allow_unsafe_paths: false     # Allow potentially unsafe prompt paths
 
+# TUI (Terminal User Interface) settings
+# tui:
+#   prefix_key: "ctrl-a"        # Prefix key for TUI commands (default: ctrl-a)
+#                               # Examples: "ctrl-a", "ctrl-b", "ctrl-x"
+#                               # Use Ctrl+<key> followed by command key:
+#                               #   q = quit, ? = help, p = pause, n = skip, a = abort, [ = scroll
+
 # Adapter-specific configurations
 adapters:
   claude:

@@ -1207,6 +1207,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "crossterm 0.28.1",
  "ralph-proto",
  "serde",
  "serde_json",

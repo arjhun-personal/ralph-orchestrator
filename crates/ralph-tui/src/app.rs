@@ -34,6 +34,21 @@ pub struct App {
 impl App {
     /// Creates a new App with shared state and PTY handle.
     pub fn new(state: Arc<Mutex<TuiState>>, pty_handle: PtyHandle) -> Self {
+        Self::with_prefix(
+            state,
+            pty_handle,
+            KeyCode::Char('a'),
+            crossterm::event::KeyModifiers::CONTROL,
+        )
+    }
+
+    /// Creates a new App with custom prefix key.
+    pub fn with_prefix(
+        state: Arc<Mutex<TuiState>>,
+        pty_handle: PtyHandle,
+        prefix_key: KeyCode,
+        prefix_modifiers: crossterm::event::KeyModifiers,
+    ) -> Self {
         let terminal_widget = Arc::new(Mutex::new(TerminalWidget::new()));
 
         let PtyHandle {
@@ -55,7 +70,7 @@ impl App {
         Self {
             state,
             terminal_widget,
-            input_router: InputRouter::new(),
+            input_router: InputRouter::with_prefix(prefix_key, prefix_modifiers),
             scroll_manager: ScrollManager::new(),
             input_tx,
             control_tx,
