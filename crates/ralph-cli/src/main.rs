@@ -805,9 +805,6 @@ async fn run_loop(config: RalphConfig, color_mode: ColorMode, enable_tui: bool) 
 /// `resume`: If true, publishes `task.resume` instead of `task.start`,
 /// signaling the planner to read existing scratchpad rather than doing fresh gap analysis.
 async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool, enable_tui: bool) -> Result<TerminationReason> {
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
-
     // Set up process group leadership per spec
     // "The orchestrator must run as a process group leader"
     process_management::setup_process_group();
@@ -829,45 +826,47 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
         false
     };
 
-    // Set up signal handling for graceful shutdown
+    // Set up signal handling for immediate termination
     // Per spec:
-    // - SIGINT (Ctrl+C): Allow current iteration to finish gracefully, exit with code 130
-    // - SIGTERM: Send SIGTERM to child process, wait up to 5s, then SIGKILL if needed
-    // - SIGHUP: Same as SIGTERM—kill child process before exiting
-    let interrupted = Arc::new(AtomicBool::new(false));
+    // - SIGINT (Ctrl+C): Immediately terminate child process (SIGTERM → 5s grace → SIGKILL), exit with code 130
+    // - SIGTERM: Same as SIGINT
+    // - SIGHUP: Same as SIGINT
+    //
+    // Use watch channel for interrupt notification so we can race execution vs interrupt
+    let (interrupt_tx, interrupt_rx) = tokio::sync::watch::channel(false);
 
     // Spawn task to listen for SIGINT (Ctrl+C)
-    let interrupted_sigint = Arc::clone(&interrupted);
+    let interrupt_tx_sigint = interrupt_tx.clone();
     tokio::spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
-            warn!("Interrupt received (SIGINT), finishing current iteration...");
-            interrupted_sigint.store(true, Ordering::SeqCst);
+            warn!("Interrupt received (SIGINT), terminating immediately...");
+            let _ = interrupt_tx_sigint.send(true);
         }
     });
 
     // Spawn task to listen for SIGTERM (Unix only)
     #[cfg(unix)]
     {
-        let interrupted_sigterm = Arc::clone(&interrupted);
+        let interrupt_tx_sigterm = interrupt_tx.clone();
         tokio::spawn(async move {
             let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                 .expect("Failed to register SIGTERM handler");
             sigterm.recv().await;
-            warn!("SIGTERM received, finishing current iteration...");
-            interrupted_sigterm.store(true, Ordering::SeqCst);
+            warn!("SIGTERM received, terminating immediately...");
+            let _ = interrupt_tx_sigterm.send(true);
         });
     }
 
     // Spawn task to listen for SIGHUP (Unix only)
     #[cfg(unix)]
     {
-        let interrupted_sighup = Arc::clone(&interrupted);
+        let interrupt_tx_sighup = interrupt_tx;
         tokio::spawn(async move {
             let mut sighup = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup())
                 .expect("Failed to register SIGHUP handler");
             sighup.recv().await;
-            warn!("SIGHUP received (terminal closed), finishing current iteration...");
-            interrupted_sighup.store(true, Ordering::SeqCst);
+            warn!("SIGHUP received (terminal closed), terminating immediately...");
+            let _ = interrupt_tx_sighup.send(true);
         });
     }
 
@@ -1063,12 +1062,42 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
         let timeout_secs = config.adapter_settings(&config.cli.backend).timeout;
         let timeout = Some(Duration::from_secs(timeout_secs));
 
-        let (output, success) = if use_interactive {
-            execute_pty(&backend, &config, &prompt, use_interactive).await?
-        } else {
-            let executor = CliExecutor::new(backend.clone());
-            let result = executor.execute(&prompt, stdout(), timeout).await?;
-            (result.output, result.success)
+        // Race execution against interrupt signal for immediate termination on Ctrl+C
+        let mut interrupt_rx_clone = interrupt_rx.clone();
+        let execute_future = async {
+            if use_interactive {
+                execute_pty(&backend, &config, &prompt, use_interactive).await
+            } else {
+                let executor = CliExecutor::new(backend.clone());
+                let result = executor.execute(&prompt, stdout(), timeout).await?;
+                Ok((result.output, result.success))
+            }
+        };
+
+        let (output, success) = tokio::select! {
+            result = execute_future => result?,
+            _ = interrupt_rx_clone.changed() => {
+                // Immediately terminate children via process group signal
+                #[cfg(unix)]
+                {
+                    use nix::sys::signal::{killpg, Signal};
+                    use nix::unistd::getpgrp;
+                    let pgid = getpgrp();
+                    info!("Sending SIGTERM to process group {}", pgid);
+                    let _ = killpg(pgid, Signal::SIGTERM);
+
+                    // Wait briefly for graceful exit, then SIGKILL
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    let _ = killpg(pgid, Signal::SIGKILL);
+                }
+
+                let reason = TerminationReason::Interrupted;
+                let terminate_event = event_loop.publish_terminate_event(&reason);
+                log_terminate_event(&mut event_logger, event_loop.state().iteration, &terminate_event);
+                handle_termination(&reason, event_loop.state(), config.git_checkpoint, &config.core.scratchpad);
+                cleanup_tui(tui_handle);
+                return Ok(reason);
+            }
         };
 
         // Log events from output before processing
@@ -1109,16 +1138,7 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
             }
         }
 
-        // Per spec: Check for interrupt after each iteration completes
-        // "SIGINT received during iteration → current iteration allowed to finish, then exit"
-        if interrupted.load(Ordering::SeqCst) {
-            let reason = TerminationReason::Interrupted;
-            let terminate_event = event_loop.publish_terminate_event(&reason);
-            log_terminate_event(&mut event_logger, event_loop.state().iteration, &terminate_event);
-            handle_termination(&reason, event_loop.state(), config.git_checkpoint, &config.core.scratchpad);
-            cleanup_tui(tui_handle);
-            return Ok(reason);
-        }
+        // Note: Interrupt handling moved into tokio::select! above for immediate termination
     }
 }
 

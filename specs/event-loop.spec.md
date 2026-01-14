@@ -901,9 +901,9 @@ The orchestrator owns all spawned CLI processes and must ensure no orphaned proc
 | Scenario | Behavior |
 |----------|----------|
 | **Normal exit** | Wait for current CLI process to complete, then exit |
-| **SIGINT (Ctrl+C)** | Allow current iteration to finish gracefully, then exit |
-| **SIGTERM** | Send SIGTERM to child process, wait up to 5s, then SIGKILL if needed |
-| **SIGHUP / terminal close** | Same as SIGTERM—kill child process before exiting |
+| **SIGINT (Ctrl+C)** | Immediately terminate: SIGTERM to process group, wait 5s grace, SIGKILL if needed, exit with code 130 |
+| **SIGTERM** | Same as SIGINT—immediate termination with grace period |
+| **SIGHUP / terminal close** | Same as SIGINT—immediate termination with grace period |
 | **Orchestrator crash** | Child processes inherit SIGKILL (process group leadership) |
 
 **Implementation requirement:** The orchestrator must run as a process group leader. All spawned CLI processes (Claude, Kiro, etc.) belong to this group. On termination, the entire process group receives the signal, preventing orphans.
@@ -1106,15 +1106,15 @@ The orchestrator owns all spawned CLI processes and must ensure no orphaned proc
 
 - **Given** user sends SIGINT (Ctrl+C)
 - **When** CLI process is running
-- **Then** current iteration completes, child process terminates, no orphans remain
+- **Then** SIGTERM is immediately sent to process group, 5s grace period, then SIGKILL if needed, Ralph exits with code 130
 
 - **Given** user sends SIGTERM
 - **When** CLI process is running
-- **Then** SIGTERM is forwarded to child, orchestrator waits up to 5s, then SIGKILL if needed
+- **Then** same as SIGINT—immediate termination with grace period
 
 - **Given** terminal is closed (SIGHUP)
 - **When** CLI process is running
-- **Then** child process is terminated before orchestrator exits
+- **Then** same as SIGINT—immediate termination with grace period
 
 - **Given** orchestrator crashes or is killed with SIGKILL
 - **When** CLI process was running
@@ -1198,7 +1198,7 @@ The orchestrator owns all spawned CLI processes and must ensure no orphaned proc
 
 - **Given** SIGINT received during iteration
 - **When** signal is handled
-- **Then** current iteration is allowed to finish, then loop exits with code 130
+- **Then** child process is immediately terminated (SIGTERM → 5s grace → SIGKILL), loop exits with code 130
 
 - **Given** loop terminated due to safeguard (not completion promise)
 - **When** user runs `ralph resume`
