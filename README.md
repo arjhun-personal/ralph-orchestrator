@@ -64,15 +64,17 @@ ralph run -p "Build a REST API with user authentication"
 ### 3. Run Ralph
 
 ```bash
-# Autonomous mode (headless)
+# Autonomous mode (headless, default)
 ralph run
 
-# Interactive TUI mode (real-time monitoring)
+# Interactive TUI mode (experimental, requires config flag)
 ralph run -i
 
 # With a preset workflow
 ralph run -c presets/tdd-red-green.yml
 ```
+
+> **Note:** Interactive TUI mode (`-i`) is experimental. Enable it by adding `cli.experimental_tui: true` to your config file.
 
 Ralph iterates through hats (planner → builder → reviewer) until the task completes or limits are reached.
 
@@ -118,7 +120,7 @@ All hats share `.agent/scratchpad.md` — persistent context across iterations. 
 | Command | Description |
 |---------|-------------|
 | `ralph run` | Run orchestration loop (default) |
-| `ralph run -i` | Interactive TUI mode |
+| `ralph run -i` | Interactive TUI mode (experimental, requires `cli.experimental_tui: true`) |
 | `ralph run -a` | Autonomous/headless mode |
 | `ralph resume` | Continue from existing scratchpad |
 | `ralph events` | View event history |
