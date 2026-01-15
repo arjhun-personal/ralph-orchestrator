@@ -911,7 +911,15 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
     // Per spec: Claude backend requires PTY mode to avoid hangs
     let interactive_requested = config.cli.default_mode == "interactive" || enable_tui;
     let user_interactive = if interactive_requested {
-        if stdout().is_terminal() {
+        // Check if experimental_tui is enabled
+        if !config.cli.experimental_tui {
+            warn!(
+                "Interactive TUI mode is experimental and disabled by default. \
+                To enable, set `cli.experimental_tui: true` in your config. \
+                Falling back to autonomous mode."
+            );
+            false
+        } else if stdout().is_terminal() {
             true
         } else {
             warn!("Interactive mode requested but stdout is not a TTY, falling back to autonomous");

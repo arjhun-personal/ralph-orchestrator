@@ -603,6 +603,12 @@ pub struct CliConfig {
     /// If None, defaults to "-p" for arg mode.
     #[serde(default)]
     pub prompt_flag: Option<String>,
+
+    /// Enable experimental TUI mode.
+    /// When false (default), interactive mode (-i/--interactive) falls back to autonomous.
+    /// Set to true to enable interactive TUI mode.
+    #[serde(default)]
+    pub experimental_tui: bool,
 }
 
 fn default_backend() -> String {
@@ -631,6 +637,7 @@ impl Default for CliConfig {
             idle_timeout_secs: default_idle_timeout(),
             args: Vec::new(),
             prompt_flag: None,
+            experimental_tui: false,
         }
     }
 }
