@@ -7,6 +7,10 @@
 //! - Application initialization and configuration
 //! - Entry point to the headless orchestration loop
 //! - Event history viewing via `ralph events`
+//! - Project initialization via `ralph init`
+
+mod init;
+mod presets;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -198,6 +202,31 @@ enum Commands {
 
     /// View event history for debugging
     Events(EventsArgs),
+
+    /// Initialize a new ralph.yml configuration file
+    Init(InitArgs),
+}
+
+/// Arguments for the init subcommand.
+#[derive(Parser, Debug)]
+struct InitArgs {
+    /// Backend to use (claude, kiro, gemini, codex, amp, custom).
+    /// When used alone, generates minimal config.
+    /// When used with --preset, overrides the preset's backend.
+    #[arg(long, conflicts_with = "list_presets")]
+    backend: Option<String>,
+
+    /// Copy embedded preset to ralph.yml
+    #[arg(long, conflicts_with = "list_presets")]
+    preset: Option<String>,
+
+    /// List all available embedded presets
+    #[arg(long, conflicts_with = "backend", conflicts_with = "preset")]
+    list_presets: bool,
+
+    /// Overwrite existing ralph.yml if present
+    #[arg(long)]
+    force: bool,
 }
 
 /// Arguments for the run subcommand.
@@ -348,6 +377,7 @@ async fn main() -> Result<()> {
         Some(Commands::Run(args)) => run_command(cli.config, cli.verbose, cli.color, args).await,
         Some(Commands::Resume(args)) => resume_command(cli.config, cli.verbose, cli.color, args).await,
         Some(Commands::Events(args)) => events_command(cli.color, args),
+        Some(Commands::Init(args)) => init_command(cli.color, args),
         None => {
             // Default to run with no overrides (backwards compatibility)
             let args = RunArgs {
@@ -588,6 +618,84 @@ async fn resume_command(
     if exit_code != 0 {
         std::process::exit(exit_code);
     }
+
+    Ok(())
+}
+
+fn init_command(color_mode: ColorMode, args: InitArgs) -> Result<()> {
+    let use_colors = color_mode.should_use_colors();
+
+    // Handle --list-presets
+    if args.list_presets {
+        println!("{}", init::format_preset_list());
+        return Ok(());
+    }
+
+    // Handle --preset (with optional --backend override)
+    if let Some(preset) = args.preset {
+        let backend_override = args.backend.as_deref();
+        match init::init_from_preset(&preset, backend_override, args.force) {
+            Ok(()) => {
+                let msg = if let Some(backend) = backend_override {
+                    format!("Created ralph.yml from '{}' preset with {} backend", preset, backend)
+                } else {
+                    format!("Created ralph.yml from '{}' preset", preset)
+                };
+                if use_colors {
+                    println!("{}✓{} {}", colors::GREEN, colors::RESET, msg);
+                    println!(
+                        "\n{}Next steps:{}\n  1. Create PROMPT.md with your task\n  2. Run: ralph run",
+                        colors::DIM,
+                        colors::RESET
+                    );
+                } else {
+                    println!("{}", msg);
+                    println!("\nNext steps:\n  1. Create PROMPT.md with your task\n  2. Run: ralph run");
+                }
+                return Ok(());
+            }
+            Err(e) => {
+                anyhow::bail!("{}", e);
+            }
+        }
+    }
+
+    // Handle --backend alone (minimal config)
+    if let Some(backend) = args.backend {
+        match init::init_from_backend(&backend, args.force) {
+            Ok(()) => {
+                if use_colors {
+                    println!(
+                        "{}✓{} Created ralph.yml with {} backend",
+                        colors::GREEN,
+                        colors::RESET,
+                        backend
+                    );
+                    println!(
+                        "\n{}Next steps:{}\n  1. Create PROMPT.md with your task\n  2. Run: ralph run",
+                        colors::DIM,
+                        colors::RESET
+                    );
+                } else {
+                    println!("Created ralph.yml with {} backend", backend);
+                    println!("\nNext steps:\n  1. Create PROMPT.md with your task\n  2. Run: ralph run");
+                }
+                return Ok(());
+            }
+            Err(e) => {
+                anyhow::bail!("{}", e);
+            }
+        }
+    }
+
+    // No flag specified - show help
+    println!("Initialize a new ralph.yml configuration file.\n");
+    println!("Usage:");
+    println!("  ralph init --backend <backend>   Generate minimal config for backend");
+    println!("  ralph init --preset <preset>     Use an embedded preset");
+    println!("  ralph init --list-presets        Show available presets\n");
+    println!("Backends: claude, kiro, gemini, codex, amp, custom");
+    println!("\nRun 'ralph init --list-presets' to see available presets.");
 
     Ok(())
 }
@@ -1303,6 +1411,11 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
             handle_termination(&reason, event_loop.state(), &config.core.scratchpad);
             cleanup_tui(tui_handle);
             return Ok(reason);
+        }
+
+        // Read events from JSONL that agent may have written
+        if let Err(e) = event_loop.process_events_from_jsonl() {
+            warn!(error = %e, "Failed to read events from JSONL");
         }
 
         // Precheck validation: Warn if no pending events after processing output

@@ -8,6 +8,9 @@ members = [
     "crates/ralph-cli",
     "crates/ralph-bench",
 ]
+exclude = [
+    ".eval-sandbox",  # Evaluation sandbox - should never be in workspace
+]
 
 [workspace.package]
 edition = "2024"
@@ -81,6 +84,9 @@ serde_yaml = "0.9"
 
 # CLI parsing
 clap = { version = "4", features = ["derive"] }
+
+# Regex for text processing
+regex = "1"
 
 # Error handling
 thiserror = "2"

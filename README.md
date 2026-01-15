@@ -41,23 +41,32 @@ cargo build --release
 ### 1. Initialize a project
 
 ```bash
-ralph init
+# Minimal config for Claude
+ralph init --backend claude
+
+# Use a preset workflow
+ralph init --preset tdd-red-green
+
+# Use a preset with a different backend
+ralph init --preset tdd-red-green --backend kiro
+
+# See all available presets
+ralph init --list-presets
 ```
 
-Creates:
-- `ralph.yml` — Configuration file
-- `PROMPT.md` — Task description template
-- `.agent/` — Workspace directories (scratchpad, events, prompts)
+This creates `ralph.yml` in your current directory.
 
 ### 2. Define your task
 
-Edit `PROMPT.md` or use an inline prompt:
+Create `PROMPT.md` with your task description:
 
 ```bash
-# File-based
 echo "Build a REST API with user authentication" > PROMPT.md
+```
 
-# Or inline
+Or use an inline prompt when running:
+
+```bash
 ralph run -p "Build a REST API with user authentication"
 ```
 
@@ -70,8 +79,8 @@ ralph run
 # Interactive TUI mode (experimental, requires config flag)
 ralph run -i
 
-# With a preset workflow
-ralph run -c presets/tdd-red-green.yml
+# With a different config
+ralph run -c my-config.yml
 ```
 
 > **Note:** Interactive TUI mode (`-i`) is experimental. Enable it by adding `cli.experimental_tui: true` to your config file.
@@ -119,6 +128,9 @@ All hats share `.agent/scratchpad.md` — persistent context across iterations. 
 
 | Command | Description |
 |---------|-------------|
+| `ralph init --backend <name>` | Initialize with minimal config for backend |
+| `ralph init --preset <name>` | Initialize from embedded preset |
+| `ralph init --list-presets` | List available presets |
 | `ralph run` | Run orchestration loop (default) |
 | `ralph run -i` | Interactive TUI mode (experimental, requires `cli.experimental_tui: true`) |
 | `ralph run -a` | Autonomous/headless mode |
