@@ -108,6 +108,7 @@ pub struct TimestampedRecord {
 ///
 /// assert_eq!(player.record_count(), 2);
 /// ```
+#[derive(Debug)]
 pub struct SessionPlayer {
     /// Parsed records with timing.
     records: Vec<TimestampedRecord>,
@@ -211,8 +212,8 @@ impl SessionPlayer {
         self.reset();
         let mut last_offset_ms: u64 = 0;
 
-        let writes = self.terminal_writes();
-        for record in writes {
+        let terminal_writes = self.terminal_writes();
+        for record in terminal_writes {
             // Calculate delay from previous event
             let delay_ms = record.offset_ms.saturating_sub(last_offset_ms);
             last_offset_ms = record.offset_ms;

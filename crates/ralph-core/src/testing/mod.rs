@@ -1,7 +1,9 @@
 //! Testing utilities for deterministic E2E tests.
 
 pub mod mock_backend;
+pub mod replay_backend;
 pub mod scenario;
 
-pub use mock_backend::{MockBackend, ExecutionRecord};
-pub use scenario::{Scenario, ScenarioRunner, ExecutionTrace};
+pub use mock_backend::{ExecutionRecord, MockBackend};
+pub use replay_backend::{ReplayBackend, ReplayTimingMode};
+pub use scenario::{ExecutionTrace, Scenario, ScenarioRunner};
