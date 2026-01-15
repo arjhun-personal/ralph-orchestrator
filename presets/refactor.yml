@@ -25,7 +25,7 @@ hats:
     name: "Refactorer"
     triggers: ["refactor.task"]
     publishes: ["refactor.done", "refactor.blocked"]
-    default_publishes: ["refactor.done"]
+    default_publishes: "refactor.done"
     instructions: |
       ## REFACTORER MODE
 
@@ -71,7 +71,7 @@ hats:
     name: "Verifier"
     triggers: ["refactor.done"]
     publishes: ["verify.passed", "verify.failed"]
-    default_publishes: ["verify.passed"]
+    default_publishes: "verify.passed"
     instructions: |
       ## VERIFIER MODE
 

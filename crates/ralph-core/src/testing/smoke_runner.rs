@@ -152,7 +152,7 @@ pub fn list_fixtures(dir: impl AsRef<Path>) -> std::io::Result<Vec<PathBuf>> {
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "jsonl") {
+        if path.extension().is_some_and(|ext| ext == "jsonl") {
             fixtures.push(path);
         }
     }

@@ -1,3 +1,11 @@
+---
+status: review
+gap_analysis: 2026-01-14
+related:
+  - benchmark-harness.spec.md
+  - terminal-ui.spec.md
+---
+
 # Benchmark UX Testing Specification
 
 ## Overview

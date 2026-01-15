@@ -214,6 +214,25 @@ class IterationCapture:
 
         return last_content, False
 
+    async def wait_for_process_exit(
+        self,
+        timeout: float = 120.0,
+        check_interval: float = 1.0,
+    ) -> tuple[bool, str]:
+        """Wait for Ralph process to exit.
+
+        Alias for wait_for_termination with swapped return order for compatibility.
+
+        Args:
+            timeout: Maximum time to wait (seconds)
+            check_interval: How often to check (seconds)
+
+        Returns:
+            Tuple of (exited, final_content)
+        """
+        content, terminated = await self.wait_for_termination(timeout, check_interval)
+        return terminated, content or ""
+
     def extract_exit_code(self, content: str) -> Optional[int]:
         """Extract exit code from terminal content.
 

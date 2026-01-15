@@ -1,3 +1,10 @@
+---
+status: implemented
+gap_analysis: 2026-01-14
+related:
+  - benchmark-harness.spec.md
+---
+
 # Benchmark Task Suite Specification
 
 ## Overview

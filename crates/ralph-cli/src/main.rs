@@ -1001,7 +1001,7 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
 
         // Wire observer to EventBus so events are recorded
         let observer = SessionRecorder::make_observer(Arc::clone(&recorder));
-        event_loop.set_observer(observer);
+        event_loop.add_observer(observer);
 
         info!("Session recording enabled: {:?}", record_path);
         Some(recorder)
@@ -1078,7 +1078,7 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
         }
         
         let observer = tui.observer();
-        event_loop.set_observer(observer);
+        event_loop.add_observer(observer);
         Some(tokio::spawn(async move { tui.run().await }))
     } else {
         None
@@ -1192,12 +1192,16 @@ async fn run_loop_impl(config: RalphConfig, color_mode: ColorMode, resume: bool,
             use_colors,
         );
 
-        // Per spec: Log "Putting on my {hat} hat." when hat changes
+        // Log hat changes with appropriate messaging
         if last_hat.as_ref() != Some(&hat_id) {
-            info!("Putting on my {} hat.", hat_id);
+            if hat_id.as_str() == "ralph" {
+                info!("Ralph here. Assessing the situation.");
+            } else {
+                info!("Putting on my {} hat.", hat_id);
+            }
             last_hat = Some(hat_id.clone());
         }
-        debug!("Iteration {}/{} — wearing {} hat", iteration, config.event_loop.max_iterations, hat_id);
+        debug!("Iteration {}/{} — {} active", iteration, config.event_loop.max_iterations, hat_id);
 
         // Build prompt for this hat
         let prompt = match event_loop.build_prompt(&hat_id) {

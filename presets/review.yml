@@ -12,6 +12,7 @@ event_loop:
   completion_promise: "REVIEW_COMPLETE"
   max_iterations: 15
   max_runtime_seconds: 3600
+  starting_event: "review.start"  # Ralph publishes this after coordination
 
 cli:
   backend: "claude"
@@ -23,7 +24,7 @@ core:
 hats:
   reviewer:
     name: "Code Reviewer"
-    triggers: ["task.start", "task.resume", "analysis.complete"]
+    triggers: ["review.start", "analysis.complete"]
     publishes: ["review.section", "review.complete"]
     instructions: |
       ## CODE REVIEWER MODE

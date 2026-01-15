@@ -1,8 +1,8 @@
 //! Event bus for pub/sub messaging.
 //!
 //! The event bus routes events to subscribed hats based on topic patterns.
-//! An optional observer can be set to receive all published events for
-//! recording and benchmarking purposes.
+//! Multiple observers can be added to receive all published events for
+//! recording, TUI updates, and benchmarking purposes.
 
 use crate::{Event, Hat, HatId};
 use std::collections::HashMap;
@@ -19,8 +19,9 @@ pub struct EventBus {
     /// Pending events for each hat.
     pending: HashMap<HatId, Vec<Event>>,
 
-    /// Optional observer that receives all published events.
-    observer: Option<Observer>,
+    /// Observers that receive all published events.
+    /// Multiple observers can be registered (e.g., session recorder + TUI).
+    observers: Vec<Observer>,
 }
 
 
@@ -30,21 +31,35 @@ impl EventBus {
         Self::default()
     }
 
-    /// Sets an observer that receives all published events.
+    /// Adds an observer that receives all published events.
     ///
+    /// Multiple observers can be added (e.g., session recorder + TUI).
+    /// Each observer is called before events are routed to subscribers.
     /// This enables recording sessions by subscribing to the event stream
-    /// without modifying the routing logic. The observer is called before
-    /// events are routed to subscribers.
+    /// without modifying the routing logic.
+    pub fn add_observer<F>(&mut self, observer: F)
+    where
+        F: Fn(&Event) + Send + 'static,
+    {
+        self.observers.push(Box::new(observer));
+    }
+
+    /// Sets a single observer, clearing any existing observers.
+    ///
+    /// Prefer `add_observer` when multiple observers are needed.
+    /// This method is kept for backwards compatibility.
+    #[deprecated(since = "2.0.0", note = "Use add_observer instead")]
     pub fn set_observer<F>(&mut self, observer: F)
     where
         F: Fn(&Event) + Send + 'static,
     {
-        self.observer = Some(Box::new(observer));
+        self.observers.clear();
+        self.observers.push(Box::new(observer));
     }
 
-    /// Clears the observer callback.
-    pub fn clear_observer(&mut self) {
-        self.observer = None;
+    /// Clears all observer callbacks.
+    pub fn clear_observers(&mut self) {
+        self.observers.clear();
     }
 
     /// Registers a hat with the event bus.
@@ -60,8 +75,8 @@ impl EventBus {
     /// If an observer is set, it receives the event before routing.
     #[allow(clippy::needless_pass_by_value)] // Event is cloned to multiple recipients
     pub fn publish(&mut self, event: Event) -> Vec<HatId> {
-        // Notify observer before routing
-        if let Some(ref observer) = self.observer {
+        // Notify all observers before routing
+        for observer in &self.observers {
             observer(&event);
         }
 
@@ -236,7 +251,7 @@ mod tests {
         let observed: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
         let observed_clone = Arc::clone(&observed);
-        bus.set_observer(move |event| {
+        bus.add_observer(move |event| {
             observed_clone
                 .lock()
                 .unwrap()
@@ -259,22 +274,48 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_observer() {
+    fn test_multiple_observers() {
+        use std::sync::{Arc, Mutex};
+
+        let mut bus = EventBus::new();
+        let observer1_count = Arc::new(Mutex::new(0));
+        let observer2_count = Arc::new(Mutex::new(0));
+
+        let count1 = Arc::clone(&observer1_count);
+        bus.add_observer(move |_| {
+            *count1.lock().unwrap() += 1;
+        });
+
+        let count2 = Arc::clone(&observer2_count);
+        bus.add_observer(move |_| {
+            *count2.lock().unwrap() += 1;
+        });
+
+        bus.publish(Event::new("test", "1"));
+        bus.publish(Event::new("test", "2"));
+
+        // Both observers should have received both events
+        assert_eq!(*observer1_count.lock().unwrap(), 2);
+        assert_eq!(*observer2_count.lock().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_clear_observers() {
         use std::sync::{Arc, Mutex};
 
         let mut bus = EventBus::new();
         let count = Arc::new(Mutex::new(0));
 
         let count_clone = Arc::clone(&count);
-        bus.set_observer(move |_| {
+        bus.add_observer(move |_| {
             *count_clone.lock().unwrap() += 1;
         });
 
         bus.publish(Event::new("test", "1"));
         assert_eq!(*count.lock().unwrap(), 1);
 
-        bus.clear_observer();
+        bus.clear_observers();
         bus.publish(Event::new("test", "2"));
-        assert_eq!(*count.lock().unwrap(), 1); // Still 1, observer cleared
+        assert_eq!(*count.lock().unwrap(), 1); // Still 1, observers cleared
     }
 }

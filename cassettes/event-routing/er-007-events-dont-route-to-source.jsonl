@@ -1,0 +1,6 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpIYXQ6IHBsYW5uZXIKUmVjZWl2ZWQgZXZlbnQ6IHRhc2suc3RhcnQKCkVtaXR0aW5nIGJ1aWxkLnRhc2sgZXZlbnQuLi4KCjxldmVudCB0b3BpYz0iYnVpbGQudGFzayI+CkltcGxlbWVudCBmZWF0dXJlCjwvZXZlbnQ+CgpOb3RlOiBQbGFubmVyIGRvZXMgTk9UIHJlLXRyaWdnZXIgb24gaXRzIG93biBidWlsZC50YXNrIG91dHB1dC4=", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "ux.terminal.write", "data": {"bytes": "SGF0OiBidWlsZGVyCihOZXh0IGl0ZXJhdGlvbiAtIGJ1aWxkZXIgcmVjZWl2ZXMgYnVpbGQudGFzaywgbm90IHBsYW5uZXIpCgo8ZXZlbnQgdG9waWM9ImJ1aWxkLmRvbmUiPgp0ZXN0czogcGFzcwo8L2V2ZW50PgoKTE9PUF9DT01QTEVURQ==", "stdout": true, "offset_ms": 1000}}
+{"ts": 3000, "event": "_meta.iteration", "data": {"n": 1, "elapsed_ms": 1000, "hat": "planner"}}
+{"ts": 4000, "event": "bus.publish", "data": {"topic": "build.task", "payload": "Implement feature", "source_hat": "planner"}}
+{"ts": 5000, "event": "_meta.iteration", "data": {"n": 2, "elapsed_ms": 2000, "hat": "builder"}}
+{"ts": 6000, "event": "bus.publish", "data": {"topic": "build.done", "payload": {"tests": "pass"}}}

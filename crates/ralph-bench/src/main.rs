@@ -397,7 +397,7 @@ async fn run_task_loop(
 
         // Wire observer to EventBus so events are recorded
         let observer = SessionRecorder::make_observer(Arc::clone(&recorder));
-        event_loop.set_observer(observer);
+        event_loop.add_observer(observer);
 
         Some(recorder)
     } else {

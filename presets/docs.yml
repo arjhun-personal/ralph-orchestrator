@@ -22,7 +22,7 @@ core:
 hats:
   writer:
     name: "Writer"
-    triggers: ["write.section"]
+    triggers: ["write.section", "review.revision"]
     publishes: ["write.done"]
     default_publishes: "write.done"
     instructions: |

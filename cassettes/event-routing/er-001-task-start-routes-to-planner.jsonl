@@ -1,0 +1,4 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpIYXQ6IHBsYW5uZXIKUmVjZWl2ZWQgZXZlbnQ6IHRhc2suc3RhcnQKClJlYWRpbmcgc3BlY3MgZnJvbSAuL3NwZWNzLy4uLgpSZWFkaW5nIHNjcmF0Y2hwYWQuLi4KCjxldmVudCB0b3BpYz0iYnVpbGQudGFzayI+CkltcGxlbWVudCBmZWF0dXJlIFgKPC9ldmVudD4=", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "_meta.iteration", "data": {"n": 1, "elapsed_ms": 1000, "hat": "planner"}}
+{"ts": 3000, "event": "bus.publish", "data": {"topic": "task.start", "payload": "Implement feature"}}
+{"ts": 4000, "event": "bus.publish", "data": {"topic": "build.task", "payload": "Implement feature X"}}

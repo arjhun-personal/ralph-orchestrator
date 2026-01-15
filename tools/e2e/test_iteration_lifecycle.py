@@ -94,6 +94,13 @@ async def test_iteration_counter_increments(
                 target_iter,
                 timeout=45.0,
             )
+            
+            if capture is None:
+                pytest.fail(
+                    f"Failed to capture iteration {target_iter}. "
+                    f"Timeout waiting for [iter {target_iter}] pattern."
+                )
+            
             captures.append(capture)
 
             # Save capture to evidence

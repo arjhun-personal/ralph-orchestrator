@@ -1219,6 +1219,7 @@ dependencies = [
  "ralph-core",
  "ralph-proto",
  "ratatui",
+ "scopeguard",
  "tokio",
  "tracing",
  "tui-term",

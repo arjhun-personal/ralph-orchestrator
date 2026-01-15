@@ -1,3 +1,11 @@
+---
+status: review
+gap_analysis: 2026-01-14
+related:
+  - v1-v2-feature-parity.spec.md
+  - cli-adapters.spec.md
+---
+
 # Feature Parity Specification
 
 ## Overview

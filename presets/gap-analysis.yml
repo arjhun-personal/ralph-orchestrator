@@ -8,6 +8,7 @@
 #   ralph run --config presets/gap-analysis.yml -p "Focus on cli-adapters.spec.md"
 
 event_loop:
+  starting_event: "gap.start"  # Ralph publishes this after coordination
   prompt: |
     Perform a deep gap analysis between specs and implementation.
 
@@ -67,7 +68,7 @@ core:
 hats:
   analyzer:
     name: "Gap Analyzer"
-    triggers: ["task.start", "task.resume", "verify.complete", "report.complete"]
+    triggers: ["gap.start", "verify.complete", "report.complete"]
     publishes: ["analyze.spec", "verify.request", "report.request"]
     instructions: |
       ## GAP ANALYZER MODE

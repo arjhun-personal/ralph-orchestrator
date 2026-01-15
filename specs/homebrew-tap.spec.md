@@ -1,3 +1,8 @@
+---
+status: draft
+gap_analysis: 2026-01-14
+---
+
 # Homebrew Tap Specification
 
 ## Overview

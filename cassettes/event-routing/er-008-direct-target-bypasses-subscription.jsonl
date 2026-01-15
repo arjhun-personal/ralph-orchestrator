@@ -1,0 +1,4 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpIYXQ6IGJ1aWxkZXIgKGRpcmVjdCB0YXJnZXQpClJlY2VpdmVkIGV2ZW50IHZpYSBkaXJlY3QgdGFyZ2V0aW5nIChub3Qgc3Vic2NyaXB0aW9uKQpUb3BpYzogY3VzdG9tLmV2ZW50CgpQcm9jZXNzaW5nIGRpcmVjdCBldmVudC4uLgoKPGV2ZW50IHRvcGljPSJidWlsZC5kb25lIj4KRGlyZWN0IHRhcmdldCBoYW5kbGVkCjwvZXZlbnQ+CgpMT09QX0NPTVBMRVRF", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "_meta.iteration", "data": {"n": 1, "elapsed_ms": 1000, "hat": "builder"}}
+{"ts": 3000, "event": "bus.publish", "data": {"topic": "custom.event", "payload": "Direct message", "target": "builder"}}
+{"ts": 4000, "event": "bus.publish", "data": {"topic": "build.done", "payload": "Direct target handled"}}

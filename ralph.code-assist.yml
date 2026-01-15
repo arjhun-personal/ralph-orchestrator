@@ -22,7 +22,6 @@ core:
     - "Fresh context each iteration - scratchpad is memory"
     - "Don't assume 'not implemented' - search first"
     - "Backpressure is law - tests/typecheck/lint must pass"
-    - "TDD is mandatory - RED → GREEN → REFACTOR"
 
 hats:
   builder:
@@ -53,6 +52,7 @@ hats:
       Explanation of what's blocking progress
       </event>
       ```
+      If the plan has already been created, work on a single, highest priority single, atomic task. 
 
 # Feature flags
 verbose: false

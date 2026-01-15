@@ -1,0 +1,57 @@
+# Meta-Ralph: Hat Collection Preset Evaluator
+# Purpose: Systematically test each hat collection preset with Kiro CLI
+# Output: Consolidated findings in tools/preset-evaluation-findings.md
+
+# Event loop settings - generous limits for thorough evaluation
+event_loop:
+  completion_promise: "EVALUATION_COMPLETE"
+  max_iterations: 200              # Allow many iterations for 12 presets
+  max_runtime_seconds: 28800       # 8 hours max
+  max_consecutive_failures: 3
+  starting_event: "evaluation.start"  # Ralph publishes this after coordination
+
+# Use Kiro CLI as the backend
+cli:
+  backend: "claude"
+  prompt_mode: "arg"
+  pty_mode: false
+  pty_interactive: false           # Non-interactive for batch evaluation
+  idle_timeout_secs: 120           # 2 min timeout per action
+
+# Core behaviors
+core:
+  scratchpad: ".agent/preset-eval-scratchpad.md"
+  specs_dir: "./specs/"
+  guardrails:
+    - "Document ALL findings - both successes and failures"
+    - "Be specific about error messages and stack traces"
+    - "Note timing and performance observations"
+    - "Capture UX friction points as you experience them"
+
+# Prompt file containing the evaluation instructions
+prompt_file: "tools/PRESET_EVALUATOR_PROMPT.md"
+
+# Single-hat mode for the meta-evaluator
+# Ralph handles task.start for coordination, then delegates via evaluation.start
+hats:
+  evaluator:
+    name: "🧪 Preset Evaluator"
+    triggers: ["evaluation.start"]
+    publishes: ["evaluation.complete"]
+    instructions: |
+      You are evaluating Ralph's hat collection presets.
+
+      Your job:
+      1. Manually test each preset with a representative task
+      2. Document what works and what doesn't
+      3. Identify UX improvements and bugs
+      4. Save all findings to tools/preset-evaluation-findings.md
+
+# Adapter settings
+adapters:
+  kiro:
+    timeout: 600                   # 10 min per CLI call
+    enabled: true
+
+# Verbose for debugging
+verbose: true

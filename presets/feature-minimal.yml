@@ -25,12 +25,12 @@ hats:
     name: "Builder"
     triggers: ["build.task"]
     publishes: ["build.done", "build.blocked"]
-    default_publishes: ["build.done"]
+    default_publishes: "build.done"
     # No instructions - derived from pub/sub contract!
 
   reviewer:
     name: "Reviewer"
     triggers: ["review.request"]
     publishes: ["review.approved", "review.changes_requested"]
-    default_publishes: ["review.approved"]
+    default_publishes: "review.approved"
     # No instructions - derived from pub/sub contract!

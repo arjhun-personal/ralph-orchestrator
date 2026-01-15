@@ -1,3 +1,9 @@
+---
+status: completed
+created: 2026-01-14
+started: 2026-01-14
+completed: 2026-01-14
+---
 # Task: E2E Idle Timeout Validation with TUI Capture
 
 ## Description

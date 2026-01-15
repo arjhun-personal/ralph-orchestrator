@@ -1,0 +1,6 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpIYXQ6IHRlc3RfaGF0IChzdWJzY3JpYmVzIHRvOiBidWlsZC4qKQpSZWNlaXZlZCBldmVudDogYnVpbGQudGFzawpQYXR0ZXJuIG1hdGNoZWQ6IGJ1aWxkLiogLT4gYnVpbGQudGFzawoKPGV2ZW50IHRvcGljPSJidWlsZC5hY2siPgpUYXNrIGFja25vd2xlZGdlZAo8L2V2ZW50Pg==", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "ux.terminal.write", "data": {"bytes": "SGF0OiB0ZXN0X2hhdCAoc3Vic2NyaWJlcyB0bzogYnVpbGQuKikKUmVjZWl2ZWQgZXZlbnQ6IGJ1aWxkLmRvbmUKUGF0dGVybiBtYXRjaGVkOiBidWlsZC4qIC0+IGJ1aWxkLmRvbmUKCkxPT1BfQ09NUExFVEU=", "stdout": true, "offset_ms": 1000}}
+{"ts": 3000, "event": "_meta.iteration", "data": {"n": 1, "elapsed_ms": 1000, "hat": "test_hat"}}
+{"ts": 4000, "event": "bus.publish", "data": {"topic": "build.task", "payload": "Test task"}}
+{"ts": 5000, "event": "_meta.iteration", "data": {"n": 2, "elapsed_ms": 2000, "hat": "test_hat"}}
+{"ts": 6000, "event": "bus.publish", "data": {"topic": "build.done", "payload": "Test complete"}}

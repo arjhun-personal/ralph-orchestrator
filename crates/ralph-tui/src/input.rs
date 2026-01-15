@@ -135,6 +135,11 @@ impl InputRouter {
         self.mode = InputMode::Scroll;
     }
 
+    /// Exits scroll mode back to normal.
+    pub fn exit_scroll_mode(&mut self) {
+        self.mode = InputMode::Normal;
+    }
+
     fn is_prefix(&self, key: KeyEvent) -> bool {
         key.code == self.prefix_key && key.modifiers.contains(self.prefix_modifiers)
     }

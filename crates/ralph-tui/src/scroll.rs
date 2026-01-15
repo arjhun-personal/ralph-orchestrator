@@ -67,13 +67,13 @@ impl ScrollManager {
         }
     }
 
-    /// Scrolls down by n lines.
-    fn scroll_down(&mut self, n: usize) {
+    /// Scrolls down by n lines (toward live output).
+    pub fn scroll_down(&mut self, n: usize) {
         self.offset = self.offset.saturating_sub(n);
     }
 
-    /// Scrolls up by n lines.
-    fn scroll_up(&mut self, n: usize) {
+    /// Scrolls up by n lines (into history).
+    pub fn scroll_up(&mut self, n: usize) {
         self.offset = (self.offset + n).min(self.max_offset());
     }
 

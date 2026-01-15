@@ -30,6 +30,13 @@
 - Work step-by-step: spec → dogfood spec → implement → dogfood implementation → done
 - The bar: A new team member should implement using only the spec and codebase
 
+## Tasks
+
+- Create code tasks in `tasks/` using `.code-task.md` extension
+- Use `/code-task-generator` to create structured task files from descriptions
+- Run tasks with `/code-assist tasks/<task-name>.code-task.md`
+- Tasks are self-contained implementation units with acceptance criteria
+
 ## Build & Test
 
 ```bash
@@ -52,6 +59,8 @@ cargo test -p ralph-core kiro
 **Fixtures location:** `crates/ralph-core/tests/fixtures/`
 - `basic_session.jsonl` — Claude CLI session
 - `kiro/` — Kiro CLI sessions (basic, tool use, autonomous mode)
+
+**IMPORTANT**: You must smoke test after you make code changes.
 
 ### Recording New Fixtures
 

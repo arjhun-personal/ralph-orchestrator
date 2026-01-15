@@ -353,6 +353,20 @@ impl RalphConfig {
             });
         }
 
+        // Check for reserved triggers: task.start and task.resume are reserved for Ralph
+        // Per design: Ralph coordinates first, then delegates to custom hats via events
+        const RESERVED_TRIGGERS: &[&str] = &["task.start", "task.resume"];
+        for (hat_id, hat_config) in &self.hats {
+            for trigger in &hat_config.triggers {
+                if RESERVED_TRIGGERS.contains(&trigger.as_str()) {
+                    return Err(ConfigError::ReservedTrigger {
+                        trigger: trigger.clone(),
+                        hat: hat_id.clone(),
+                    });
+                }
+            }
+        }
+
         // Check for ambiguous routing: each trigger topic must map to exactly one hat
         // Per spec: "Every trigger maps to exactly one hat | No ambiguous routing"
         if !self.hats.is_empty() {
@@ -458,8 +472,19 @@ pub struct EventLoopConfig {
     #[serde(default = "default_max_failures")]
     pub max_consecutive_failures: u32,
 
-    /// Starting hat for multi-hat mode.
+    /// Starting hat for multi-hat mode (deprecated, use starting_event instead).
     pub starting_hat: Option<String>,
+
+    /// Event to publish after Ralph completes initial coordination.
+    ///
+    /// When custom hats are defined, Ralph handles `task.start` to do gap analysis
+    /// and planning, then publishes this event to delegate to the first hat.
+    ///
+    /// Example: `starting_event: "tdd.start"` for TDD workflow.
+    ///
+    /// If not specified and hats are defined, Ralph will determine the appropriate
+    /// event from the hat topology.
+    pub starting_event: Option<String>,
 }
 
 fn default_prompt_file() -> String {
@@ -493,6 +518,7 @@ impl Default for EventLoopConfig {
             max_cost_usd: None,
             max_consecutive_failures: default_max_failures(),
             starting_hat: None,
+            starting_event: None,
         }
     }
 }
@@ -790,6 +816,9 @@ pub enum ConfigError {
 
     #[error("Custom backend requires a command - set 'cli.command' in config")]
     CustomBackendRequiresCommand,
+
+    #[error("Reserved trigger '{trigger}' used by hat '{hat}' - task.start and task.resume are reserved for Ralph (the coordinator). Use a delegated event like 'work.start' instead.")]
+    ReservedTrigger { trigger: String, hat: String },
 }
 
 #[cfg(test)]
@@ -973,11 +1002,12 @@ future_feature: true
     #[test]
     fn test_ambiguous_routing_rejected() {
         // Per spec: "Every trigger maps to exactly one hat | No ambiguous routing"
+        // Note: using semantic events since task.start is reserved
         let yaml = r#"
 hats:
   planner:
     name: "Planner"
-    triggers: ["task.start", "build.done"]
+    triggers: ["planning.start", "build.done"]
   builder:
     name: "Builder"
     triggers: ["build.task", "build.done"]
@@ -997,11 +1027,12 @@ hats:
     #[test]
     fn test_unique_triggers_accepted() {
         // Valid config: each trigger maps to exactly one hat
+        // Note: task.start is reserved for Ralph, so use semantic events
         let yaml = r#"
 hats:
   planner:
     name: "Planner"
-    triggers: ["task.start", "build.done", "build.blocked"]
+    triggers: ["planning.start", "build.done", "build.blocked"]
   builder:
     name: "Builder"
     triggers: ["build.task"]
@@ -1010,6 +1041,50 @@ hats:
         let result = config.validate();
 
         assert!(result.is_ok(), "Expected valid config, got: {:?}", result.unwrap_err());
+    }
+
+    #[test]
+    fn test_reserved_trigger_task_start_rejected() {
+        // Per design: task.start is reserved for Ralph (the coordinator)
+        let yaml = r#"
+hats:
+  my_hat:
+    name: "My Hat"
+    triggers: ["task.start"]
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let result = config.validate();
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(&err, ConfigError::ReservedTrigger { trigger, hat }
+                if trigger == "task.start" && hat == "my_hat"),
+            "Expected ReservedTrigger error for 'task.start', got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_reserved_trigger_task_resume_rejected() {
+        // Per design: task.resume is reserved for Ralph (the coordinator)
+        let yaml = r#"
+hats:
+  my_hat:
+    name: "My Hat"
+    triggers: ["task.resume", "other.event"]
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let result = config.validate();
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(&err, ConfigError::ReservedTrigger { trigger, hat }
+                if trigger == "task.resume" && hat == "my_hat"),
+            "Expected ReservedTrigger error for 'task.resume', got: {:?}",
+            err
+        );
     }
 
     #[test]

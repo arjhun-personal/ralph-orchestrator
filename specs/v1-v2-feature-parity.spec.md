@@ -1,3 +1,10 @@
+---
+status: current
+gap_analysis: 2026-01-15
+related:
+  - feature-parity.spec.md
+---
+
 # Feature Parity Spec: v1 → v2 Migration
 
 ## Context
@@ -35,6 +42,8 @@ Ralph Orchestrator v1 (Python) accumulated significant feature bloat that contra
 | **Auto-Backend Detection** | `orchestrator.py` | ✅ Done | `backend: auto` |
 | **Instruction Builder** | N/A (new in v2) | ✅ Done | Meta-prompt injection |
 | **Multi-Hat Mode** | N/A (new in v2) | ✅ Done | Event-driven multi-agent |
+| **Kiro Backend** | `adapters/kiro.py` | ✅ Done | AWS Kiro CLI adapter |
+| **TUI (Terminal UI)** | N/A (new in v2) | ✅ Done | Full ratatui-based interface |
 
 ### ⚠️ SIMPLIFY — Keep Concept, Reduce Scope
 
@@ -54,13 +63,11 @@ Ralph Orchestrator v1 (Python) accumulated significant feature bloat that contra
 | **SQLite Database** | `web/database.py` | History lives in git commits |
 | **ACP Protocol** | `adapters/acp*.py` | Over-abstracted. Just run CLI commands. |
 | **QChat Adapter** | `adapters/qchat.py` | Deprecated in v1, don't port |
-| **Kiro Adapter** | `adapters/kiro.py` | Low adoption. Add later if needed. |
 | **Fuzzy Loop Detection** | `safety.py` (rapidfuzz) | Agents self-correct. Consecutive failures sufficient. |
 | **Context Optimization** | `context.py` | CLI tools manage their context. Not our job. |
 | **Prompt Summarization** | `context.py` | Same as above |
 | **Security Masking** | `security.py` | CLI tools (Claude) handle sensitive data |
 | **Path Sanitization** | `security.py` | Agent sandboxing handles this |
-| **Rich Terminal UI** | `output/rich_formatter.py` | Adds 6+ dependencies for colored boxes. Plain text works. |
 | **Tool Call Tracking** | `output/base.py` | Agents report their own tool usage |
 | **Per-Tool Pricing Tables** | `metrics.py` | CLI tools report costs. Don't duplicate. |
 | **Async Execution Mode** | `adapters/base.py` | Single agent at a time. Sync is fine. |
@@ -92,6 +99,7 @@ Ralph Orchestrator v1 (Python) accumulated significant feature bloat that contra
 - [x] Gemini (`gemini` CLI)
 - [x] Codex (`codex` CLI)
 - [x] Amp (`amp` CLI)
+- [x] Kiro (`kiro-cli` CLI)
 - [x] Custom (user-defined command)
 - [x] Auto-detection with priority ordering
 
@@ -106,11 +114,11 @@ Ralph Orchestrator v1 (Python) accumulated significant feature bloat that contra
 - [x] Optional verbose mode (debug level)
 - [x] Termination summary (reason, iterations, time, cost)
 - [x] Colored output (optional, via `--color` flag)
+- [x] TUI mode (`-i` flag with ratatui-based interface)
 
 ### Deferred (Implement If Requested)
 - [ ] Prompt file archiving
 - [ ] Metrics export (JSON/CSV)
-- [ ] TUI (placeholder exists in `ralph-tui`)
 
 ---
 

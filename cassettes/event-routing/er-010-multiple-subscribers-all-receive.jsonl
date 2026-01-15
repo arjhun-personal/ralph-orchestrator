@@ -1,0 +1,7 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpFdmVudCB0b3BpYzogc2hhcmVkLmV2ZW50CgpIYXQgQSByZWNlaXZlZDogc2hhcmVkLmV2ZW50CkhhdCBCIHJlY2VpdmVkOiBzaGFyZWQuZXZlbnQKCkJvdGggc3Vic2NyaWJlcnMgYWN0aXZhdGVkIGZvciBzYW1lIHRvcGljLgoKPGV2ZW50IHRvcGljPSJoYXRfYS5kb25lIj4KSGFuZGxlZCBieSBIYXQgQQo8L2V2ZW50Pg==", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "ux.terminal.write", "data": {"bytes": "PGV2ZW50IHRvcGljPSJoYXRfYi5kb25lIj4KSGFuZGxlZCBieSBIYXQgQgo8L2V2ZW50PgoKTE9PUF9DT01QTEVURQ==", "stdout": true, "offset_ms": 1000}}
+{"ts": 3000, "event": "bus.publish", "data": {"topic": "shared.event", "payload": "Multi-subscriber test"}}
+{"ts": 4000, "event": "_meta.iteration", "data": {"n": 1, "elapsed_ms": 1000, "hat": "hat_a"}}
+{"ts": 5000, "event": "_meta.iteration", "data": {"n": 2, "elapsed_ms": 2000, "hat": "hat_b"}}
+{"ts": 6000, "event": "bus.publish", "data": {"topic": "hat_a.done", "payload": "Handled by Hat A"}}
+{"ts": 7000, "event": "bus.publish", "data": {"topic": "hat_b.done", "payload": "Handled by Hat B"}}

@@ -7,7 +7,7 @@ use ralph_tui::Tui;
 use std::process::Stdio;
 use tokio::io::AsyncReadExt;
 use tokio::process::Command;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
     let (output_tx, output_rx) = mpsc::unbounded_channel();
     let (input_tx, _input_rx) = mpsc::unbounded_channel();
     let (control_tx, _control_rx) = mpsc::unbounded_channel();
+    let (_terminated_tx, terminated_rx) = watch::channel(false);
 
     // Clone output_tx before moving it
     let output_tx_clone = output_tx.clone();
@@ -58,6 +59,7 @@ async fn main() -> anyhow::Result<()> {
         output_rx,
         input_tx,
         control_tx,
+        terminated_rx,
     };
 
     // Create TUI with PTY handle

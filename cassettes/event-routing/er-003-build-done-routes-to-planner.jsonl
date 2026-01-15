@@ -1,0 +1,4 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpIYXQ6IHBsYW5uZXIKUmVjZWl2ZWQgZXZlbnQ6IGJ1aWxkLmRvbmUKCkJ1aWxkZXIgY29tcGxldGVkIHRhc2suCk1hcmtpbmcgdGFzayBbXSAtPiBbeF0gaW4gc2NyYXRjaHBhZAoKQ2hlY2tpbmcgcmVtYWluaW5nIHRhc2tzLi4uCgo8ZXZlbnQgdG9waWM9ImJ1aWxkLnRhc2siPgpJbXBsZW1lbnQgZmVhdHVyZSBZCjwvZXZlbnQ+", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "_meta.iteration", "data": {"n": 2, "elapsed_ms": 2000, "hat": "planner"}}
+{"ts": 3000, "event": "bus.publish", "data": {"topic": "build.done", "payload": {"tests": "pass", "lint": "pass"}}}
+{"ts": 4000, "event": "bus.publish", "data": {"topic": "build.task", "payload": "Implement feature Y"}}

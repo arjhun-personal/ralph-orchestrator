@@ -179,6 +179,7 @@ impl EventLoop {
             config.event_loop.completion_promise.clone(),
             config.core.clone(),
             &registry,
+            config.event_loop.starting_event.clone(),
         );
 
         let event_reader = EventReader::new(".agent/events.jsonl");
@@ -219,14 +220,26 @@ impl EventLoop {
             .and_then(|config| config.backend.as_ref())
     }
 
-    /// Sets an observer that receives all published events.
+    /// Adds an observer that receives all published events.
     ///
-    /// This enables external components (like TUI) to monitor the event stream
-    /// without modifying the routing logic.
+    /// Multiple observers can be added (e.g., session recorder + TUI).
+    /// Each observer is called before events are routed to subscribers.
+    pub fn add_observer<F>(&mut self, observer: F)
+    where
+        F: Fn(&Event) + Send + 'static,
+    {
+        self.bus.add_observer(observer);
+    }
+
+    /// Sets a single observer, clearing any existing observers.
+    ///
+    /// Prefer `add_observer` when multiple observers are needed.
+    #[deprecated(since = "2.0.0", note = "Use add_observer instead")]
     pub fn set_observer<F>(&mut self, observer: F)
     where
         F: Fn(&Event) + Send + 'static,
     {
+        #[allow(deprecated)]
         self.bus.set_observer(observer);
     }
 
@@ -313,13 +326,28 @@ impl EventLoop {
     ///
     /// Returns true if a fallback event was injected, false if recovery is not possible.
     pub fn inject_fallback_event(&mut self) -> bool {
-        // Ralph always handles task.resume as the implicit coordinator
         let fallback_event = Event::new(
             "task.resume",
             "RECOVERY: Previous iteration did not publish an event. \
              Review the scratchpad and either dispatch the next task or complete the loop."
         );
-        info!("Injecting fallback event to recover - triggering Ralph with task.resume");
+
+        // If a custom hat was last executing, target the fallback back to it
+        // This preserves hat context instead of always falling back to Ralph
+        let fallback_event = match &self.state.last_hat {
+            Some(hat_id) if hat_id.as_str() != "ralph" => {
+                info!(
+                    hat = %hat_id.as_str(),
+                    "Injecting fallback event to recover - targeting last hat with task.resume"
+                );
+                fallback_event.with_target(hat_id.clone())
+            }
+            _ => {
+                info!("Injecting fallback event to recover - triggering Ralph with task.resume");
+                fallback_event
+            }
+        };
+
         self.bus.publish(fallback_event);
         true
     }

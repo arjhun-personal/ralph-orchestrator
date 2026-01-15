@@ -11,6 +11,8 @@ pub struct HatlessRalph {
     completion_promise: String,
     core: CoreConfig,
     hat_topology: Option<HatTopology>,
+    /// Event to publish after coordination to start the hat workflow.
+    starting_event: Option<String>,
 }
 
 /// Hat topology for multi-hat mode prompt generation.
@@ -43,7 +45,18 @@ impl HatTopology {
 
 impl HatlessRalph {
     /// Creates a new HatlessRalph.
-    pub fn new(completion_promise: impl Into<String>, core: CoreConfig, registry: &HatRegistry) -> Self {
+    ///
+    /// # Arguments
+    /// * `completion_promise` - String that signals loop completion
+    /// * `core` - Core configuration (scratchpad, specs_dir, guardrails)
+    /// * `registry` - Hat registry for topology generation
+    /// * `starting_event` - Optional event to publish after coordination to start hat workflow
+    pub fn new(
+        completion_promise: impl Into<String>,
+        core: CoreConfig,
+        registry: &HatRegistry,
+        starting_event: Option<String>,
+    ) -> Self {
         let hat_topology = if registry.is_empty() {
             None
         } else {
@@ -54,6 +67,7 @@ impl HatlessRalph {
             completion_promise: completion_promise.into(),
             core,
             hat_topology,
+            starting_event,
         }
     }
 
@@ -113,8 +127,29 @@ Task markers:
     }
 
     fn workflow_section(&self) -> String {
-        format!(
-            r"## WORKFLOW
+        // Different workflow for solo mode vs multi-hat mode
+        if self.hat_topology.is_some() {
+            // Multi-hat mode: Ralph coordinates and delegates
+            format!(
+                r"## WORKFLOW
+
+### 1. GAP ANALYSIS
+Compare specs against codebase. Use parallel subagents (up to 10) for searches.
+
+### 2. PLAN
+Update `{scratchpad}` with prioritized tasks.
+
+### 3. DELEGATE
+Publish the starting event to hand off to specialized hats.
+**DO NOT implement yourself** — that's what the hats are for.
+
+",
+                scratchpad = self.core.scratchpad
+            )
+        } else {
+            // Solo mode: Ralph does everything
+            format!(
+                r"## WORKFLOW
 
 ### 1. GAP ANALYSIS
 Compare specs against codebase. Use parallel subagents (up to 10) for searches.
@@ -132,12 +167,21 @@ Capture the why, not just the what. Mark `[x]` in scratchpad.
 Until all tasks `[x]` or `[~]`.
 
 ",
-            scratchpad = self.core.scratchpad
-        )
+                scratchpad = self.core.scratchpad
+            )
+        }
     }
 
     fn hats_section(&self, topology: &HatTopology) -> String {
         let mut section = String::from("## HATS\n\nDelegate via events.\n\n");
+
+        // Include starting_event instruction if configured
+        if let Some(ref starting_event) = self.starting_event {
+            section.push_str(&format!(
+                "**After coordination, publish `{}` to start the workflow.**\n\n",
+                starting_event
+            ));
+        }
 
         // Build hat table
         section.push_str("| Hat | Triggers On | Publishes |\n");
@@ -185,7 +229,7 @@ mod tests {
     fn test_prompt_without_hats() {
         let config = RalphConfig::default();
         let registry = HatRegistry::new(); // Empty registry
-        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry);
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         let prompt = ralph.build_prompt("");
 
@@ -226,11 +270,12 @@ mod tests {
 
     #[test]
     fn test_prompt_with_hats() {
+        // Note: using semantic events since task.start is reserved for Ralph
         let yaml = r#"
 hats:
   planner:
     name: "Planner"
-    triggers: ["task.start", "build.done", "build.blocked"]
+    triggers: ["planning.start", "build.done", "build.blocked"]
     publishes: ["build.task"]
   builder:
     name: "Builder"
@@ -239,7 +284,12 @@ hats:
 "#;
         let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
         let registry = HatRegistry::from_config(&config);
-        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry);
+        let ralph = HatlessRalph::new(
+            "LOOP_COMPLETE",
+            config.core.clone(),
+            &registry,
+            Some("planning.start".to_string()),
+        );
 
         let prompt = ralph.build_prompt("");
 
@@ -250,9 +300,18 @@ hats:
         assert!(prompt.contains("### 0a. ORIENTATION"));
         assert!(prompt.contains("### 0b. SCRATCHPAD"));
 
-        // Workflow is always present
+        // Multi-hat workflow: DELEGATE, not IMPLEMENT
         assert!(prompt.contains("## WORKFLOW"));
         assert!(prompt.contains("### 1. GAP ANALYSIS"));
+        assert!(prompt.contains("### 3. DELEGATE"), "Multi-hat mode should have DELEGATE step");
+        assert!(
+            !prompt.contains("### 3. IMPLEMENT"),
+            "Multi-hat mode should NOT tell Ralph to implement"
+        );
+        assert!(
+            prompt.contains("DO NOT implement yourself"),
+            "Should explicitly tell Ralph not to implement"
+        );
 
         // Hats section when hats are defined
         assert!(prompt.contains("## HATS"));
@@ -268,7 +327,7 @@ hats:
     fn test_should_handle_always_true() {
         let config = RalphConfig::default();
         let registry = HatRegistry::new();
-        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry);
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         assert!(ralph.should_handle(&Topic::new("any.topic")));
         assert!(ralph.should_handle(&Topic::new("build.task")));
@@ -279,7 +338,7 @@ hats:
     fn test_ghuntley_patterns_present() {
         let config = RalphConfig::default();
         let registry = HatRegistry::new();
-        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry);
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         let prompt = ralph.build_prompt("");
 
@@ -311,7 +370,7 @@ hats:
     fn test_scratchpad_format_documented() {
         let config = RalphConfig::default();
         let registry = HatRegistry::new();
-        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry);
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         let prompt = ralph.build_prompt("");
 
@@ -319,5 +378,55 @@ hats:
         assert!(prompt.contains("- `[ ]` pending"));
         assert!(prompt.contains("- `[x]` done"));
         assert!(prompt.contains("- `[~]` cancelled (with reason)"));
+    }
+
+    #[test]
+    fn test_starting_event_in_prompt() {
+        // When starting_event is configured, prompt should include delegation instruction
+        let yaml = r#"
+hats:
+  tdd_writer:
+    name: "TDD Writer"
+    triggers: ["tdd.start"]
+    publishes: ["test.written"]
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let registry = HatRegistry::from_config(&config);
+        let ralph = HatlessRalph::new(
+            "LOOP_COMPLETE",
+            config.core.clone(),
+            &registry,
+            Some("tdd.start".to_string()),
+        );
+
+        let prompt = ralph.build_prompt("");
+
+        // Should include delegation instruction
+        assert!(
+            prompt.contains("After coordination, publish `tdd.start` to start the workflow"),
+            "Prompt should include starting_event delegation instruction"
+        );
+    }
+
+    #[test]
+    fn test_no_starting_event_instruction_when_none() {
+        // When starting_event is None, no delegation instruction should appear
+        let yaml = r#"
+hats:
+  some_hat:
+    name: "Some Hat"
+    triggers: ["some.event"]
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let registry = HatRegistry::from_config(&config);
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
+
+        let prompt = ralph.build_prompt("");
+
+        // Should NOT include delegation instruction
+        assert!(
+            !prompt.contains("After coordination, publish"),
+            "Prompt should NOT include starting_event delegation when None"
+        );
     }
 }

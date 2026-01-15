@@ -1,0 +1,85 @@
+# Consumer-Driven API Design
+# Pattern: Outside-In Design
+# Design APIs from the consumer's perspective
+
+event_loop:
+  starting_event: "api.start"  # Ralph publishes this after coordination
+
+hats:
+  consumer:
+    name: "👤 API Consumer"
+    triggers: ["api.start", "api.refined"]
+    publishes: ["usage.examples"]
+    instructions: |
+      Write code AS IF the API already exists.
+
+      Create realistic usage examples covering:
+      - Happy path: typical usage
+      - Error handling: how should errors be caught/handled?
+      - Edge cases: empty inputs, large inputs, nulls
+      - Integration: how does it fit with existing code?
+      - Discoverability: how would someone learn this API?
+
+      Write the code you WISH you could write.
+      Don't worry about implementation—focus on ergonomics.
+
+      Questions to answer with your examples:
+      - Is the import/setup obvious?
+      - Are method names self-explanatory?
+      - Is error handling intuitive?
+      - Can I compose this with other APIs?
+
+  designer:
+    name: "✏️ API Designer"
+    triggers: ["usage.examples"]
+    publishes: ["api.designed"]
+    instructions: |
+      Design the API to support the usage examples.
+
+      Create:
+      - Interface/type definitions
+      - Function/method signatures
+      - Error types and conditions
+      - Documentation strings
+
+      Design principles:
+      - Clarity > cleverness
+      - Consistency > convenience
+      - Explicit > implicit
+      - Predictable > powerful
+
+      Follow platform conventions (Rust traits, Go interfaces, etc.)
+
+  critic:
+    name: "🎯 API Critic"
+    triggers: ["api.designed"]
+    publishes: ["api.approved", "api.refined"]
+    instructions: |
+      Review the API design for usability issues.
+
+      Checklist:
+      - [ ] Is it intuitive for first-time users?
+      - [ ] Are there footguns (easy mistakes to make)?
+      - [ ] Is naming consistent with platform conventions?
+      - [ ] Does error handling follow the platform's idioms?
+      - [ ] Is it extensible without breaking changes?
+      - [ ] Are there unnecessary concepts to learn?
+      - [ ] Can it be misused easily?
+
+      If issues found: publish api.refined with specific feedback
+      If solid: publish api.approved
+
+  implementer:
+    name: "🔧 Implementer"
+    triggers: ["api.approved"]
+    publishes: ["task.complete"]
+    default_publishes: "task.complete"
+    instructions: |
+      Implement the approved API design.
+
+      - Follow the design exactly
+      - Write tests from the usage examples
+      - Document any implementation constraints
+      - Ensure all examples from consumer phase work
+
+      LOOP_COMPLETE when done.

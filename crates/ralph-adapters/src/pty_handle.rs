@@ -3,7 +3,7 @@
 //! Provides a channel-based interface for bidirectional communication with a PTY.
 //! The TUI can send input and control commands while receiving output asynchronously.
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 /// Handle for communicating with a PTY process.
 pub struct PtyHandle {
@@ -13,6 +13,9 @@ pub struct PtyHandle {
     pub input_tx: mpsc::UnboundedSender<Vec<u8>>,
     /// Sends control commands to the PTY.
     pub control_tx: mpsc::UnboundedSender<ControlCommand>,
+    /// Signals when the PTY process has terminated.
+    /// TUI should exit when this becomes `true`.
+    pub terminated_rx: watch::Receiver<bool>,
 }
 
 /// Control commands for PTY management.

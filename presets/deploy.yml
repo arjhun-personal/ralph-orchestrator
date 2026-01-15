@@ -62,19 +62,19 @@ hats:
     name: "Builder"
     triggers: ["build.task"]
     publishes: ["build.done", "build.blocked"]
-    default_publishes: ["build.done"]
+    default_publishes: "build.done"
     # Instructions derived from event metadata!
 
   deployer:
     name: "Deployer"
     triggers: ["deploy.ready", "deploy.start", "deploy.rollback"]
     publishes: ["deploy.start", "deploy.done", "deploy.failed"]
-    default_publishes: ["deploy.done"]
+    default_publishes: "deploy.done"
     # Instructions derived from event metadata!
 
   verifier:
     name: "Verifier"
     triggers: ["deploy.done"]
     publishes: ["verify.pass", "verify.fail", "deploy.rollback"]
-    default_publishes: ["verify.pass"]
+    default_publishes: "verify.pass"
     # Instructions derived from event metadata!

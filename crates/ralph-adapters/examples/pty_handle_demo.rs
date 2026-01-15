@@ -4,7 +4,7 @@
 //! sends "test\n", and verifies round-trip.
 
 use ralph_adapters::PtyHandle;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 #[tokio::main]
 async fn main() {
@@ -15,12 +15,14 @@ async fn main() {
     let (output_tx, output_rx) = mpsc::unbounded_channel();
     let (input_tx, mut input_rx) = mpsc::unbounded_channel();
     let (control_tx, mut _control_rx) = mpsc::unbounded_channel();
+    let (_terminated_tx, terminated_rx) = watch::channel(false);
 
     // Create PtyHandle
     let mut handle = PtyHandle {
         output_rx,
         input_tx: input_tx.clone(),
         control_tx,
+        terminated_rx,
     };
 
     // Spawn loopback task: forward input to output

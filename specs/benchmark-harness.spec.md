@@ -1,3 +1,11 @@
+---
+status: implemented
+gap_analysis: 2026-01-14
+related:
+  - benchmark-tasks.spec.md
+  - benchmark-ux.spec.md
+---
+
 # Benchmark Harness Specification
 
 ## Overview

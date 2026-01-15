@@ -1,0 +1,8 @@
+{"ts": 1000, "event": "ux.terminal.write", "data": {"bytes": "UmFscGggb3JjaGVzdHJhdG9yIHN0YXJ0aW5nLi4uCgpPYnNlcnZlciBpbnZva2VkIGZvcjogdGFzay5zdGFydApPYnNlcnZlciBpbnZva2VkIGZvcjogYnVpbGQudGFzawoKSGF0OiBwbGFubmVyCgo8ZXZlbnQgdG9waWM9ImJ1aWxkLnRhc2siPgpJbXBsZW1lbnQgZmVhdHVyZQo8L2V2ZW50Pg==", "stdout": true, "offset_ms": 0}}
+{"ts": 2000, "event": "ux.terminal.write", "data": {"bytes": "T2JzZXJ2ZXIgaW52b2tlZCBmb3I6IGJ1aWxkLmRvbmUKCkhhdDogcGxhbm5lcgoKTE9PUF9DT01QTEVURQ==", "stdout": true, "offset_ms": 1000}}
+{"ts": 3000, "event": "_meta.observer", "data": {"topic": "task.start", "timestamp": 1000}}
+{"ts": 4000, "event": "_meta.observer", "data": {"topic": "build.task", "timestamp": 2000}}
+{"ts": 5000, "event": "_meta.observer", "data": {"topic": "build.done", "timestamp": 3000}}
+{"ts": 6000, "event": "bus.publish", "data": {"topic": "task.start", "payload": "Start"}}
+{"ts": 7000, "event": "bus.publish", "data": {"topic": "build.task", "payload": "Implement feature"}}
+{"ts": 8000, "event": "bus.publish", "data": {"topic": "build.done", "payload": "Done"}}
