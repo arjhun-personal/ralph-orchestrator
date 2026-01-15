@@ -5,6 +5,7 @@
 use crate::config::CoreConfig;
 use crate::hat_registry::HatRegistry;
 use ralph_proto::Topic;
+use std::path::Path;
 
 /// Hatless Ralph - the constant coordinator.
 pub struct HatlessRalph {
@@ -91,6 +92,21 @@ impl HatlessRalph {
         true
     }
 
+    /// Checks if this is a fresh start (starting_event set, no scratchpad).
+    ///
+    /// Used to enable fast path delegation that skips the PLAN step
+    /// when immediate delegation to specialized hats is appropriate.
+    fn is_fresh_start(&self) -> bool {
+        // Fast path only applies when starting_event is configured
+        if self.starting_event.is_none() {
+            return false;
+        }
+
+        // Check if scratchpad exists
+        let path = Path::new(&self.core.scratchpad);
+        !path.exists()
+    }
+
     fn core_prompt(&self) -> String {
         let guardrails = self
             .core
@@ -129,17 +145,28 @@ Task markers:
     fn workflow_section(&self) -> String {
         // Different workflow for solo mode vs multi-hat mode
         if self.hat_topology.is_some() {
+            // Check for fast path: starting_event set AND no scratchpad
+            if self.is_fresh_start() {
+                // Fast path: immediate delegation without planning
+                return format!(
+                    r"## WORKFLOW
+
+**FAST PATH**: Publish `{}` immediately to start the hat workflow.
+Do not plan or analyze — delegate now.
+
+",
+                    self.starting_event.as_ref().unwrap()
+                );
+            }
+
             // Multi-hat mode: Ralph coordinates and delegates
             format!(
                 r"## WORKFLOW
 
-### 1. GAP ANALYSIS
-Compare specs against codebase. Use parallel subagents (up to 10) for searches.
-
-### 2. PLAN
+### 1. PLAN
 Update `{scratchpad}` with prioritized tasks.
 
-### 3. DELEGATE
+### 2. DELEGATE
 Publish the starting event to hand off to specialized hats.
 **DO NOT implement yourself** — that's what the hats are for.
 
@@ -151,8 +178,8 @@ Publish the starting event to hand off to specialized hats.
             format!(
                 r"## WORKFLOW
 
-### 1. GAP ANALYSIS
-Compare specs against codebase. Use parallel subagents (up to 10) for searches.
+### 1. Study the prompt. 
+Study, explore, and research what needs to be done. Use parallel subagents (up to 10) for searches.
 
 ### 2. PLAN
 Update `{scratchpad}` with prioritized tasks.
@@ -248,9 +275,9 @@ mod tests {
         assert!(prompt.contains("- `[x]` done"));
         assert!(prompt.contains("- `[~]` cancelled"));
 
-        // Workflow with numbered steps
+        // Workflow with numbered steps (solo mode)
         assert!(prompt.contains("## WORKFLOW"));
-        assert!(prompt.contains("### 1. GAP ANALYSIS"));
+        assert!(prompt.contains("### 1. Study the prompt"));
         assert!(prompt.contains("Use parallel subagents (up to 10)"));
         assert!(prompt.contains("### 2. PLAN"));
         assert!(prompt.contains("### 3. IMPLEMENT"));
@@ -270,7 +297,7 @@ mod tests {
 
     #[test]
     fn test_prompt_with_hats() {
-        // Note: using semantic events since task.start is reserved for Ralph
+        // Test multi-hat mode WITHOUT starting_event (no fast path)
         let yaml = r#"
 hats:
   planner:
@@ -284,12 +311,8 @@ hats:
 "#;
         let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
         let registry = HatRegistry::from_config(&config);
-        let ralph = HatlessRalph::new(
-            "LOOP_COMPLETE",
-            config.core.clone(),
-            &registry,
-            Some("planning.start".to_string()),
-        );
+        // Note: No starting_event - tests normal multi-hat workflow (not fast path)
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         let prompt = ralph.build_prompt("");
 
@@ -300,10 +323,10 @@ hats:
         assert!(prompt.contains("### 0a. ORIENTATION"));
         assert!(prompt.contains("### 0b. SCRATCHPAD"));
 
-        // Multi-hat workflow: DELEGATE, not IMPLEMENT
+        // Multi-hat workflow: PLAN + DELEGATE, not IMPLEMENT
         assert!(prompt.contains("## WORKFLOW"));
-        assert!(prompt.contains("### 1. GAP ANALYSIS"));
-        assert!(prompt.contains("### 3. DELEGATE"), "Multi-hat mode should have DELEGATE step");
+        assert!(prompt.contains("### 1. PLAN"));
+        assert!(prompt.contains("### 2. DELEGATE"), "Multi-hat mode should have DELEGATE step");
         assert!(
             !prompt.contains("### 3. IMPLEMENT"),
             "Multi-hat mode should NOT tell Ralph to implement"
@@ -427,6 +450,45 @@ hats:
         assert!(
             !prompt.contains("After coordination, publish"),
             "Prompt should NOT include starting_event delegation when None"
+        );
+    }
+
+    #[test]
+    fn test_fast_path_with_starting_event() {
+        // When starting_event is configured AND scratchpad doesn't exist,
+        // should use fast path (skip PLAN step)
+        let yaml = r#"
+core:
+  scratchpad: "/nonexistent/path/scratchpad.md"
+hats:
+  tdd_writer:
+    name: "TDD Writer"
+    triggers: ["tdd.start"]
+    publishes: ["test.written"]
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        let registry = HatRegistry::from_config(&config);
+        let ralph = HatlessRalph::new(
+            "LOOP_COMPLETE",
+            config.core.clone(),
+            &registry,
+            Some("tdd.start".to_string()),
+        );
+
+        let prompt = ralph.build_prompt("");
+
+        // Should use fast path - immediate delegation
+        assert!(
+            prompt.contains("FAST PATH"),
+            "Prompt should indicate fast path when starting_event set and no scratchpad"
+        );
+        assert!(
+            prompt.contains("Publish `tdd.start` immediately"),
+            "Prompt should instruct immediate event publishing"
+        );
+        assert!(
+            !prompt.contains("### 1. PLAN"),
+            "Fast path should skip PLAN step"
         );
     }
 }
