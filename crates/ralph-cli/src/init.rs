@@ -270,10 +270,10 @@ event_loop:
 
     #[test]
     fn test_override_backend_adds_cli_section() {
-        let content = r#"# Comment header
+        let content = r"# Comment header
 event_loop:
   max_iterations: 100
-"#;
+";
         let result = super::override_backend_in_yaml(content, "codex").unwrap();
         assert!(result.contains("cli:"));
         assert!(result.contains(r#"backend: "codex""#));

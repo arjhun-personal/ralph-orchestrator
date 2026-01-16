@@ -266,7 +266,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let scratchpad = tmp.path().join("scratchpad.md");
 
-        let content = r#"# Tasks
+        let content = r"# Tasks
 
 Some intro text.
 
@@ -277,7 +277,7 @@ Some intro text.
 ## Notes
 
 More text here.
-"#;
+";
         fs::write(&scratchpad, content).unwrap();
 
         let writer = SummaryWriter::default();

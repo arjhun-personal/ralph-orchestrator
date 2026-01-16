@@ -514,7 +514,7 @@ mod tests {
             .with_step_mode()
             .with_filter(vec!["ux.".to_string()]);
 
-        assert_eq!(config.speed, 2.0);
+        assert!((config.speed - 2.0).abs() < f32::EPSILON);
         assert!(config.step_mode);
         assert_eq!(config.event_filter, vec!["ux."]);
     }

@@ -985,18 +985,16 @@ fn list_directory_contents(path: &Path, use_colors: bool, indent: usize) -> Resu
                 println!("{}{}/", indent_str, file_name.to_string_lossy());
             }
             list_directory_contents(&entry_path, use_colors, indent + 1)?;
+        } else if use_colors {
+            println!(
+                "{}{}{}{}",
+                indent_str,
+                colors::DIM,
+                file_name.to_string_lossy(),
+                colors::RESET
+            );
         } else {
-            if use_colors {
-                println!(
-                    "{}{}{}{}",
-                    indent_str,
-                    colors::DIM,
-                    file_name.to_string_lossy(),
-                    colors::RESET
-                );
-            } else {
-                println!("{}{}", indent_str, file_name.to_string_lossy());
-            }
+            println!("{}{}", indent_str, file_name.to_string_lossy());
         }
     }
 

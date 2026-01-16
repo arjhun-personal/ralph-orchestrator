@@ -754,11 +754,11 @@ mod tests {
     fn test_extract_timestamp() {
         assert_eq!(
             extract_timestamp("ralph-bench-hello-world-1704067200000"),
-            Some(1704067200000)
+            Some(1_704_067_200_000)
         );
         assert_eq!(
             extract_timestamp("ralph-bench-fizz-buzz-tdd-1704067300000"),
-            Some(1704067300000)
+            Some(1_704_067_300_000)
         );
         assert_eq!(extract_timestamp("ralph-bench-invalid"), None);
         assert_eq!(extract_timestamp("other-dir"), None);

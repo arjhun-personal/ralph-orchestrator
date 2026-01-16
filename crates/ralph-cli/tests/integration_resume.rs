@@ -88,7 +88,7 @@ core:
     let agent_dir = temp_path.join(".agent");
     fs::create_dir_all(&agent_dir)?;
 
-    let scratchpad_content = r#"# Task List
+    let scratchpad_content = r"# Task List
 
 ## Current Tasks
 - [ ] Implement feature A
@@ -97,7 +97,7 @@ core:
 
 ## Notes
 Previous work completed on feature B.
-"#;
+";
     fs::write(agent_dir.join("scratchpad.md"), scratchpad_content)?;
 
     // Run ralph resume
@@ -147,7 +147,7 @@ core:
     let agent_dir = temp_path.join(".agent");
     fs::create_dir_all(&agent_dir)?;
     
-    let scratchpad_content = r#"# Task List
+    let scratchpad_content = r"# Task List
 
 ## Current Tasks
 - [ ] Resume this task
@@ -155,7 +155,7 @@ core:
 
 ## Notes
 This is a resumed session.
-"#;
+";
     fs::write(agent_dir.join("scratchpad.md"), scratchpad_content)?;
     
     // Run ralph resume
@@ -301,7 +301,7 @@ core:
     let agent_dir = temp_path.join(".agent");
     fs::create_dir_all(&agent_dir)?;
 
-    let scratchpad_content = r#"# Existing Task List
+    let scratchpad_content = r"# Existing Task List
 
 ## Current Tasks
 - [ ] UNIQUE_TASK_MARKER: Complete the special feature
@@ -309,7 +309,7 @@ core:
 
 ## Notes
 This scratchpad contains UNIQUE_CONTENT_MARKER for testing.
-"#;
+";
     fs::write(agent_dir.join("scratchpad.md"), scratchpad_content)?;
 
     // Run ralph resume

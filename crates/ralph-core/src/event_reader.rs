@@ -275,7 +275,7 @@ mod tests {
             r#"{{"topic":"good","ts":"2024-01-01T00:00:00Z"}}"#
         )
         .unwrap();
-        writeln!(file, r#"{{corrupt json}}"#).unwrap();
+        writeln!(file, r"{{corrupt json}}").unwrap();
         writeln!(
             file,
             r#"{{"topic":"also_good","ts":"2024-01-01T00:00:01Z"}}"#

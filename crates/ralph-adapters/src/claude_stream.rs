@@ -151,7 +151,7 @@ mod tests {
                 assert_eq!(message.content.len(), 1);
                 match &message.content[0] {
                     ContentBlock::Text { text } => assert_eq!(text, "Hello world"),
-                    _ => panic!("Expected Text content"),
+                    ContentBlock::ToolUse { .. } => panic!("Expected Text content"),
                 }
             }
             _ => panic!("Expected Assistant event"),
@@ -172,7 +172,7 @@ mod tests {
                         assert_eq!(name, "bash");
                         assert_eq!(input["command"], "ls");
                     }
-                    _ => panic!("Expected ToolUse content"),
+                    ContentBlock::Text { .. } => panic!("Expected ToolUse content"),
                 }
             }
             _ => panic!("Expected Assistant event"),

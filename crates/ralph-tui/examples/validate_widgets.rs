@@ -35,7 +35,7 @@ fn main() {
 
     state.iteration = 2;
     state.max_iterations = Some(10);
-    state.loop_started = Some(std::time::Instant::now() - Duration::from_secs(272));
+    state.loop_started = Some(std::time::Instant::now().checked_sub(Duration::from_secs(272)).unwrap());
     state.pending_hat = Some((HatId::new("builder"), "🔨Builder".to_string()));
     state.loop_mode = ralph_tui::LoopMode::Auto;
     state.last_event = Some("build.task".to_string());
@@ -124,7 +124,7 @@ fn main() {
     println!();
 
     // Render footer (idle state)
-    state.last_event_at = Some(std::time::Instant::now() - Duration::from_secs(10));
+    state.last_event_at = Some(std::time::Instant::now().checked_sub(Duration::from_secs(10)).unwrap());
     let backend = TestBackend::new(80, 3);
     let mut terminal = Terminal::new(backend).unwrap();
     terminal
