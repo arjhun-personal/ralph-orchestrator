@@ -36,5 +36,3 @@ hats:
     publishes: ["build.done", "build.blocked"]
     default_publishes: "build.done"
     # No instructions - derived from pub/sub contract
-
-verbose: false

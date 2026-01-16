@@ -48,6 +48,3 @@ core:
 #       Review the implementation for correctness, style, and security.
 #       If good: publish review.done
 #       If problems: publish review.rejected with specific feedback
-
-# Feature flags
-verbose: false

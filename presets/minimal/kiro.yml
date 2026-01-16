@@ -38,11 +38,3 @@ hats:
     triggers: ["build.task"]
     publishes: ["build.done", "build.blocked"]
     instructions: ""            # Empty = use default rich prompt
-
-# Adapter-specific settings
-adapters:
-  kiro:
-    timeout: 900              # 15 minutes for CLI execution
-
-# Feature flags
-verbose: false

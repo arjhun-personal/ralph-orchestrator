@@ -24,5 +24,3 @@ core:
     - "Fresh context each iteration - scratchpad is memory"
     - "Don't assume 'not implemented' - search first"
     - "Backpressure is law - tests/typecheck/lint must pass"
-
-verbose: false

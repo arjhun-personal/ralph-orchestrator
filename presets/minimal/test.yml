@@ -21,5 +21,3 @@ core:
   specs_dir: "./specs/"
   guardrails:
     - "Fresh context each iteration - scratchpad is memory"
-
-verbose: false

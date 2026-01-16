@@ -52,7 +52,4 @@ hats:
       Explanation of what's blocking progress
       </event>
       ```
-      If the plan has already been created, work on a single, highest priority single, atomic task. 
-
-# Feature flags
-verbose: false
+      If the plan has already been created, work on a single, highest priority single, atomic task.
