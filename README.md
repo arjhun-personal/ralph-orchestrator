@@ -62,7 +62,7 @@ See [AGENTS.md](AGENTS.md) for the full philosophy.
 
 ## Features
 
-- **Multi-Backend Support** — Works with Claude Code, Kiro, Gemini CLI, Codex, and Amp
+- **Multi-Backend Support** — Works with Claude Code, Kiro, Gemini CLI, Codex, Amp, and Copilot CLI
 - **Hat System** — Specialized Ralph personas with distinct behaviors
 - **Event-Driven Coordination** — Hats communicate through typed events with glob pattern matching
 - **Backpressure Enforcement** — Gates that reject incomplete work (tests, lint, typecheck)
@@ -81,6 +81,7 @@ See [AGENTS.md](AGENTS.md) for the full philosophy.
   - [Gemini CLI](https://github.com/google-gemini/gemini-cli)
   - [Codex](https://github.com/openai/codex)
   - [Amp](https://github.com/sourcegraph/amp)
+  - [Copilot CLI](https://docs.github.com/copilot) (`npm install -g @github/copilot`)
 
 ### Via npm (Recommended)
 
@@ -281,7 +282,7 @@ event_loop:
 
 # CLI backend settings
 cli:
-  backend: "claude"                     # claude, kiro, gemini, codex, amp, custom
+  backend: "claude"                     # claude, kiro, gemini, codex, amp, copilot, custom
   prompt_mode: "arg"                    # arg (CLI argument) or stdin
   experimental_tui: false               # Enable TUI mode support
 
@@ -446,7 +447,7 @@ tests: pass, lint: pass, typecheck: pass
 
 | Option | Description |
 |--------|-------------|
-| `--backend <NAME>` | Backend: `claude`, `kiro`, `gemini`, `codex`, `amp` |
+| `--backend <NAME>` | Backend: `claude`, `kiro`, `gemini`, `codex`, `amp`, `copilot` |
 | `--preset <NAME>` | Use preset configuration |
 | `--list-presets` | List available presets |
 | `--force` | Overwrite existing config |
