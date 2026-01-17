@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange)](https://www.rust-lang.org/)
-[![Build](https://img.shields.io/github/actions/workflow/status/mikeyobrien/ralph-orchestrator/release.yml?branch=main&label=CI)](https://github.com/mikeyobrien/ralph-orchestrator/actions)
+[![Build](https://img.shields.io/github/actions/workflow/status/mikeyobrien/ralph-orchestrator/ci.yml?branch=main&label=CI)](https://github.com/mikeyobrien/ralph-orchestrator/actions)
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 
 
@@ -42,8 +42,8 @@ Ralph supports two orchestration styles:
 
 | Mode | Description | Best For |
 |------|-------------|----------|
-| **Traditional** | Simple loop with no hats — Ralph iterates until done | Quick tasks, simple automation, minimal config |
-| **Hat-Based** | Specialized Ralph personas coordinate through events | Complex workflows, multi-step processes, role separation |
+| **Traditional** | Simple loop — Ralph iterates until done | Quick tasks, simple automation, minimal config |
+| **Hat-Based** | Ralph can wear many hats — specialized personas coordinate through events | Complex workflows, multi-step processes, role separation |
 
 **Traditional mode** is the original Ralph Wiggum approach: start a loop, let it run until it outputs the completion promise. No roles, no events, just iteration.
 
