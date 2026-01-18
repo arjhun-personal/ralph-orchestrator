@@ -51,7 +51,11 @@ fn error_result(text: impl Into<String>) -> Result<CallToolResult, McpError> {
 #[tool_router]
 impl RalphMcpServer {
     /// Start a new Ralph orchestration session.
-    #[tool(description = "Start a new Ralph orchestration session with the given prompt")]
+    #[tool(description = "Start a new Ralph orchestration session. \
+        The prompt should describe the task to accomplish (e.g., 'Implement the UserService class'). \
+        Returns a session_id for tracking. Sessions run asynchronously—use ralph_status to monitor \
+        progress and ralph_stop to cancel. Each session uses a 'hat' persona from the config to \
+        guide behavior.")]
     async fn ralph_run(
         &self,
         Parameters(params): Parameters<RunParams>,
@@ -71,7 +75,9 @@ impl RalphMcpServer {
     }
 
     /// Get status of a Ralph session.
-    #[tool(description = "Get the status of a Ralph orchestration session")]
+    #[tool(description = "Get the status of a Ralph orchestration session. \
+        Returns: status (running|completed|failed|not_found), iteration count, elapsed time, \
+        current hat, and recent activity. Poll periodically to monitor long-running sessions.")]
     async fn ralph_status(
         &self,
         Parameters(params): Parameters<StatusParams>,
@@ -83,7 +89,12 @@ impl RalphMcpServer {
     }
 
     /// Stop a running Ralph session.
-    #[tool(description = "Stop a running Ralph orchestration session")]
+    #[tool(
+        description = "Stop a running Ralph orchestration session gracefully. \
+        Idempotent: safe to call multiple times or on already-stopped sessions. \
+        Returns confirmation with final status. Use when a task is no longer needed \
+        or to free resources."
+    )]
     async fn ralph_stop(
         &self,
         Parameters(params): Parameters<StopParams>,
@@ -92,13 +103,22 @@ impl RalphMcpServer {
     }
 
     /// List all Ralph sessions.
-    #[tool(description = "List all Ralph orchestration sessions")]
+    #[tool(
+        description = "List all Ralph orchestration sessions (running, completed, and failed). \
+        Returns session_id, status, start time, and prompt summary for each. \
+        Use to find session IDs for ralph_status or ralph_stop calls."
+    )]
     async fn ralph_list_sessions(&self) -> Result<CallToolResult, McpError> {
         text_result("No sessions found (stub implementation)")
     }
 
     /// List available hats from config.
-    #[tool(description = "List available hats from Ralph configuration")]
+    #[tool(
+        description = "List available hats (agent personas) from Ralph configuration. \
+        Returns hat ID, name, description, trigger events, and published events for each. \
+        Hats define specialized behaviors—use to understand what personas are available \
+        before starting a session. Read-only: does not modify any state."
+    )]
     async fn ralph_list_hats(
         &self,
         Parameters(params): Parameters<ListHatsParams>,
@@ -144,9 +164,11 @@ impl ServerHandler for RalphMcpServer {
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
             instructions: Some(
-                "Ralph Orchestrator MCP server. Use ralph_run to start orchestration sessions, \
-                 ralph_status to check progress, ralph_stop to halt sessions, \
-                 ralph_list_sessions to see all sessions, and ralph_list_hats to see available hats."
+                "Ralph Orchestrator manages AI agent sessions that execute coding tasks autonomously. \
+                 Workflow: (1) ralph_list_hats to see available personas, (2) ralph_run to start a session, \
+                 (3) ralph_status to monitor progress, (4) ralph_stop if cancellation needed. \
+                 Sessions run asynchronously and persist across tool calls. Each session uses 'hats' \
+                 (specialized personas) that switch based on events during execution."
                     .to_string(),
             ),
         }
