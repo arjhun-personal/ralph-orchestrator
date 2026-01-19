@@ -1,0 +1,27 @@
+# Ralph Orchestrator Configuration - OpenCode
+# v2 nested format
+#
+# Requires:
+# - `opencode` CLI installed (https://github.com/opencode-ai/opencode)
+# - Configured provider credentials (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
+
+# Event loop settings
+event_loop:
+  completion_promise: "LOOP_COMPLETE"
+  max_iterations: 100
+  max_runtime_seconds: 14400           # 4 hours
+  idle_timeout_secs: 1800
+
+# CLI backend settings
+cli:
+  backend: "opencode"
+  prompt_mode: "arg"                   # Positional argument after `run` subcommand
+
+# Core behaviors (always injected into prompts)
+core:
+  scratchpad: ".agent/scratchpad.md"
+  specs_dir: "./specs/"
+  guardrails:
+    - "Fresh context each iteration - scratchpad is memory"
+    - "Don't assume 'not implemented' - search first"
+    - "Backpressure is law - tests/typecheck/lint must pass"
