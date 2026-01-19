@@ -263,7 +263,7 @@ impl CliBackend {
     /// | Codex   | no `exec` subcommand |
     /// | Amp     | removes `--dangerously-allow-all` |
     /// | Copilot | removes `--allow-all-tools` |
-    /// | OpenCode| removes `--dangerously-skip-permissions` |
+    /// | OpenCode| `run` subcommand with positional prompt |
     ///
     /// # Errors
     /// Returns `CustomBackendError` if the backend name is not recognized.
@@ -352,43 +352,53 @@ impl CliBackend {
 
     /// Creates the OpenCode backend for autonomous mode.
     ///
-    /// Uses OpenCode CLI with `--dangerously-skip-permissions` for automated tool approval.
+    /// Uses OpenCode CLI with `run` subcommand. The prompt is passed as a
+    /// positional argument after the subcommand:
+    /// ```bash
+    /// opencode run "prompt text here"
+    /// ```
+    ///
     /// Output is plain text (no JSON streaming available).
     pub fn opencode() -> Self {
         Self {
             command: "opencode".to_string(),
-            args: vec!["--dangerously-skip-permissions".to_string()],
-            prompt_mode: PromptMode::Arg,
-            prompt_flag: Some("-p".to_string()),
-            output_format: OutputFormat::Text,
-        }
-    }
-
-    /// Creates the OpenCode TUI backend for interactive mode.
-    ///
-    /// Runs OpenCode in full interactive mode (no -p flag), allowing
-    /// OpenCode's native TUI to render. The prompt is passed as a
-    /// positional argument.
-    pub fn opencode_tui() -> Self {
-        Self {
-            command: "opencode".to_string(),
-            args: vec![], // No --dangerously-skip-permissions in TUI mode
+            args: vec!["run".to_string()],
             prompt_mode: PromptMode::Arg,
             prompt_flag: None, // Positional argument
             output_format: OutputFormat::Text,
         }
     }
 
-    /// OpenCode in interactive mode (removes --dangerously-skip-permissions).
+    /// Creates the OpenCode TUI backend for interactive mode.
     ///
-    /// Unlike headless `opencode()`, this runs without the auto-approve flag,
-    /// requiring user confirmation for tool usage.
+    /// Runs OpenCode with `run` subcommand. The prompt is passed as a
+    /// positional argument:
+    /// ```bash
+    /// opencode run "prompt text here"
+    /// ```
+    pub fn opencode_tui() -> Self {
+        Self {
+            command: "opencode".to_string(),
+            args: vec!["run".to_string()],
+            prompt_mode: PromptMode::Arg,
+            prompt_flag: None, // Positional argument
+            output_format: OutputFormat::Text,
+        }
+    }
+
+    /// OpenCode in interactive mode.
+    ///
+    /// Uses OpenCode CLI with `run` subcommand. The prompt is passed as a
+    /// positional argument:
+    /// ```bash
+    /// opencode run "prompt text here"
+    /// ```
     pub fn opencode_interactive() -> Self {
         Self {
             command: "opencode".to_string(),
-            args: vec![],
+            args: vec!["run".to_string()],
             prompt_mode: PromptMode::Arg,
-            prompt_flag: Some("-p".to_string()),
+            prompt_flag: None, // Positional argument
             output_format: OutputFormat::Text,
         }
     }
@@ -499,11 +509,7 @@ impl CliBackend {
                 .into_iter()
                 .filter(|a| a != "--allow-all-tools")
                 .collect(),
-            "opencode" => args
-                .into_iter()
-                .filter(|a| a != "--dangerously-skip-permissions")
-                .collect(),
-            _ => args, // claude, gemini unchanged
+            _ => args, // claude, gemini, opencode unchanged
         }
     }
 }
@@ -1001,12 +1007,11 @@ mod tests {
         let (cmd, args, stdin, _temp) = backend.build_command("test prompt", false);
 
         assert_eq!(cmd, "opencode");
-        assert_eq!(
-            args,
-            vec!["--dangerously-skip-permissions", "-p", "test prompt"]
-        );
+        // Uses `run` subcommand with positional prompt arg
+        assert_eq!(args, vec!["run", "test prompt"]);
         assert!(stdin.is_none());
         assert_eq!(backend.output_format, OutputFormat::Text);
+        assert_eq!(backend.prompt_flag, None);
     }
 
     #[test]
@@ -1015,29 +1020,34 @@ mod tests {
         let (cmd, args, stdin, _temp) = backend.build_command("test prompt", false);
 
         assert_eq!(cmd, "opencode");
-        // Should have prompt as positional arg, no -p flag, no --dangerously-skip-permissions
-        assert_eq!(args, vec!["test prompt"]);
+        // Uses `run` subcommand with positional prompt arg
+        assert_eq!(args, vec!["run", "test prompt"]);
         assert!(stdin.is_none());
         assert_eq!(backend.output_format, OutputFormat::Text);
         assert_eq!(backend.prompt_flag, None);
     }
 
     #[test]
-    fn test_opencode_interactive_mode_omits_flag() {
+    fn test_opencode_interactive_mode_unchanged() {
+        // OpenCode has no flags to filter in interactive mode
         let backend = CliBackend::opencode();
-        let (cmd, args, stdin, _temp) = backend.build_command("test prompt", true);
+        let (cmd, args_auto, stdin_auto, _) = backend.build_command("test prompt", false);
+        let (_, args_interactive, stdin_interactive, _) =
+            backend.build_command("test prompt", true);
 
         assert_eq!(cmd, "opencode");
-        assert_eq!(args, vec!["-p", "test prompt"]);
-        assert!(stdin.is_none());
-        assert!(!args.contains(&"--dangerously-skip-permissions".to_string()));
+        // Should be identical in both modes
+        assert_eq!(args_auto, args_interactive);
+        assert_eq!(args_auto, vec!["run", "test prompt"]);
+        assert!(stdin_auto.is_none());
+        assert!(stdin_interactive.is_none());
     }
 
     #[test]
     fn test_from_name_opencode() {
         let backend = CliBackend::from_name("opencode").unwrap();
         assert_eq!(backend.command, "opencode");
-        assert_eq!(backend.prompt_flag, Some("-p".to_string()));
+        assert_eq!(backend.prompt_flag, None); // Positional argument
     }
 
     #[test]
@@ -1046,9 +1056,9 @@ mod tests {
         let (cmd, args, stdin, _temp) = backend.build_command("test prompt", false);
 
         assert_eq!(cmd, "opencode");
-        // Should NOT have --dangerously-skip-permissions
-        assert_eq!(args, vec!["-p", "test prompt"]);
-        assert!(!args.contains(&"--dangerously-skip-permissions".to_string()));
+        // Uses `run` subcommand with positional prompt arg
+        assert_eq!(args, vec!["run", "test prompt"]);
         assert!(stdin.is_none());
+        assert_eq!(backend.prompt_flag, None);
     }
 }
