@@ -10,9 +10,11 @@ A hat-based orchestration framework that keeps Ralph in a loop until the task is
 
 > "Me fail English? That's unpossible!" - Ralph Wiggum
 
-**Alpha Notice:** Ralph Orchestrator is under active development. It works today, but expect rough edges and breaking changes between releases.
+**Notice:** Ralph Orchestrator is under active development. It works today, but expect rough edges and breaking changes between releases.
 
 v1.0.0 was ralphed into existence with little oversight and guidance. v2.0.0 is a simpler, more-structured implementation. Looking for the old version? See [v1.2.3](https://github.com/mikeyobrien/ralph-orchestrator/tree/v1.2.3). 
+
+<img width="912" height="712" alt="Screenshot 2026-01-20 at 10 27 57 AM" src="https://github.com/user-attachments/assets/91b08b47-8b0a-4e2c-b66e-88551c2c5cc6" />
 
 ## Table of Contents
 
