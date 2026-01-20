@@ -1,4 +1,4 @@
-//! Event reader for consuming events from `.agent/events.jsonl`.
+//! Event reader for consuming events from `.ralph/events.jsonl`.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fs::File;
@@ -94,7 +94,7 @@ pub struct Event {
     pub ts: String,
 }
 
-/// Reads new events from `.agent/events.jsonl` since last read.
+/// Reads new events from `.ralph/events.jsonl` since last read.
 pub struct EventReader {
     path: PathBuf,
     position: u64,

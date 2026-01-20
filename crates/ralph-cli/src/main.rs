@@ -398,8 +398,8 @@ struct EmitArgs {
     #[arg(long)]
     pub ts: Option<String>,
 
-    /// Path to events file (defaults to .agent/events.jsonl)
-    #[arg(long, default_value = ".agent/events.jsonl")]
+    /// Path to events file (defaults to .ralph/events.jsonl)
+    #[arg(long, default_value = ".ralph/events.jsonl")]
     pub file: PathBuf,
 }
 
@@ -1022,8 +1022,14 @@ fn emit_command(color_mode: ColorMode, args: EmitArgs) -> Result<()> {
         "ts": ts
     });
 
+    // Read events path from marker file, fall back to CLI arg if marker doesn't exist
+    // This ensures `ralph emit` writes to the same events file as the active run
+    let events_file = fs::read_to_string(".ralph/current-events")
+        .map(|s| PathBuf::from(s.trim()))
+        .unwrap_or_else(|_| args.file.clone());
+
     // Ensure parent directory exists
-    if let Some(parent) = args.file.parent()
+    if let Some(parent) = events_file.parent()
         && !parent.as_os_str().is_empty()
     {
         fs::create_dir_all(parent)
@@ -1034,8 +1040,8 @@ fn emit_command(color_mode: ColorMode, args: EmitArgs) -> Result<()> {
     let mut file = fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&args.file)
-        .with_context(|| format!("Failed to open events file: {}", args.file.display()))?;
+        .open(&events_file)
+        .with_context(|| format!("Failed to open events file: {}", events_file.display()))?;
 
     // Write as single-line JSON (JSONL format)
     let json_line = serde_json::to_string(&record)?;
@@ -1527,6 +1533,20 @@ async fn run_loop_impl(
     // 4. Config prompt_file (file path)
     // 5. Default PROMPT.md
     let prompt_content = resolve_prompt_content(&config.event_loop)?;
+
+    // For fresh runs (not resume), generate a unique timestamped events file
+    // This prevents stale events from previous runs polluting new runs (issue #82)
+    // The marker file `.ralph/current-events` coordinates path between Ralph and agents
+    if !resume {
+        let run_id = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
+        let events_path = format!(".ralph/events-{}.jsonl", run_id);
+
+        fs::create_dir_all(".ralph").context("Failed to create .ralph directory")?;
+        fs::write(".ralph/current-events", &events_path)
+            .context("Failed to write .ralph/current-events marker file")?;
+
+        debug!("Created events file for this run: {}", events_path);
+    }
 
     // Initialize event loop
     let mut event_loop = EventLoop::new(config.clone());

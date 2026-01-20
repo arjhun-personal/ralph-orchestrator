@@ -188,7 +188,12 @@ impl EventLoop {
             config.event_loop.starting_event.clone(),
         );
 
-        let event_reader = EventReader::new(".agent/events.jsonl");
+        // Read events path from marker file, fall back to default if not present
+        // The marker file is written by run_loop_impl() at run startup
+        let events_path = std::fs::read_to_string(".ralph/current-events")
+            .map(|s| s.trim().to_string())
+            .unwrap_or_else(|_| ".ralph/events.jsonl".to_string());
+        let event_reader = EventReader::new(&events_path);
 
         Self {
             config,

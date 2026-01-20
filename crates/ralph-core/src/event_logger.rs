@@ -1,6 +1,6 @@
 //! Event logging for debugging and post-mortem analysis.
 //!
-//! Logs all events to `.agent/events.jsonl` as specified in the event-loop spec.
+//! Logs all events to `.ralph/events.jsonl` as specified in the event-loop spec.
 //! The observer pattern allows hooking into the event bus without modifying routing.
 
 use ralph_proto::{Event, HatId};
@@ -136,11 +136,11 @@ pub struct EventLogger {
 
 impl EventLogger {
     /// Default path for the events file.
-    pub const DEFAULT_PATH: &'static str = ".agent/events.jsonl";
+    pub const DEFAULT_PATH: &'static str = ".ralph/events.jsonl";
 
     /// Creates a new event logger.
     ///
-    /// The `.agent/` directory is created if it doesn't exist.
+    /// The `.ralph/` directory is created if it doesn't exist.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),

@@ -6,12 +6,12 @@ use tempfile::TempDir;
 
 #[test]
 fn test_orphaned_event_falls_to_ralph() {
-    // Setup: Create a temp directory with .agent/events.jsonl
+    // Setup: Create a temp directory with .ralph/events.jsonl
     let temp_dir = TempDir::new().unwrap();
-    let agent_dir = temp_dir.path().join(".agent");
-    fs::create_dir_all(&agent_dir).unwrap();
+    let ralph_dir = temp_dir.path().join(".ralph");
+    fs::create_dir_all(&ralph_dir).unwrap();
 
-    let events_file = agent_dir.join("events.jsonl");
+    let events_file = ralph_dir.join("events.jsonl");
 
     // Write an orphaned event (no hat subscribes to "orphan.event")
     fs::write(
