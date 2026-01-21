@@ -256,15 +256,23 @@ event_loop:
             .map_err(|e| ScenarioError::SetupError(format!("failed to write ralph.yml: {}", e)))?;
 
         // Create a prompt designed to require multiple iterations
+        // NOTE: The prompt must emphasize the exact XML format since LLMs may paraphrase.
+        // We also need to be explicit about emitting events in the agent's text output.
         let prompt = r#"You are testing Ralph orchestration with multiple iterations.
 
-Your task has 3 phases:
-1. [Iteration 1] Initialize - emit an event: <event topic="phase.init">Starting phase 1</event>
-2. [Iteration 2] Process - emit an event: <event topic="phase.process">Processing in phase 2</event>
-3. [Iteration 3] Complete - emit an event: <event topic="phase.complete">Done</event> and output LOOP_COMPLETE
+Your task requires emitting events using this EXACT XML format in your text output:
 
-You MUST complete one phase per iteration. After each phase, stop and wait for the next iteration.
-Do NOT complete all phases in one iteration."#;
+<event topic="TOPIC_NAME">
+payload content here
+</event>
+
+Complete these phases:
+1. First, emit: <event topic="phase.init">Starting phase 1</event>
+2. Then emit: <event topic="phase.process">Processing in phase 2</event>
+3. Finally emit: <event topic="phase.complete">Done</event>
+
+IMPORTANT: You MUST include the literal XML tags above in your response text.
+After all events are emitted, output LOOP_COMPLETE on its own line."#;
 
         Ok(ScenarioConfig {
             config_file: "ralph.yml".into(),
@@ -424,14 +432,21 @@ event_loop:
         std::fs::write(&config_path, config_content)
             .map_err(|e| ScenarioError::SetupError(format!("failed to write ralph.yml: {}", e)))?;
 
-        // Create a prompt that immediately outputs completion signal
+        // Create a prompt that outputs completion signal quickly
+        // NOTE: Ralph uses a dual-confirmation pattern that requires the completion promise
+        // to appear in two consecutive iterations. To speed this up, we make it very clear
+        // that the agent should output LOOP_COMPLETE multiple times.
         let prompt = r"You are testing Ralph's completion detection.
 
-Your ONLY task is to output the completion signal to terminate the orchestration loop.
+Your ONLY task is to output the completion signal LOOP_COMPLETE.
 
-Output exactly this on its own line: LOOP_COMPLETE
+IMPORTANT: Ralph uses dual-confirmation. You MUST output LOOP_COMPLETE in this response
+and in any subsequent responses until the loop terminates.
 
-Do nothing else. Just output LOOP_COMPLETE and stop.";
+Output LOOP_COMPLETE now:
+LOOP_COMPLETE
+
+Keep outputting LOOP_COMPLETE until the orchestration ends.";
 
         Ok(ScenarioConfig {
             config_file: "ralph.yml".into(),

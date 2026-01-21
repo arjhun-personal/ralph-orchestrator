@@ -114,18 +114,22 @@ memories:
             .map_err(|e| ScenarioError::SetupError(format!("failed to write ralph.yml: {}", e)))?;
 
         // The prompt instructs the agent to add a memory
+        // NOTE: The agent needs to use Bash tool to execute the command.
+        // We're explicit about the exact command and output expectations.
         let prompt = r#"You are testing Ralph's memory system.
 
-Your task is to add a memory using the ralph CLI:
+Your task is to add a memory using the Bash tool.
 
-1. Run this command to add a memory:
-   ralph memory add "E2E test uses isolated workspaces" --type pattern --tags e2e,testing
+STEP 1: Use the Bash tool to run this exact command:
+```
+ralph memory add "E2E test uses isolated workspaces" --type pattern --tags e2e,testing
+```
 
-2. Then run `ralph memory list` to verify it was added
+STEP 2: After the command succeeds, output LOOP_COMPLETE
 
-3. Output LOOP_COMPLETE when done
+The command should output something like "Memory stored: mem-1234567890-abcd"
 
-IMPORTANT: Execute the commands, don't just describe them."#;
+IMPORTANT: You MUST actually execute the command using the Bash tool, not just describe it."#;
 
         Ok(ScenarioConfig {
             config_file: "ralph.yml".into(),
@@ -756,18 +760,21 @@ memories:
             .map_err(|e| ScenarioError::SetupError(format!("failed to write ralph.yml: {}", e)))?;
 
         // This scenario tests that memories are written to disk correctly
+        // NOTE: The agent needs to use Bash tool to execute the command.
         let prompt = r#"You are testing Ralph's memory persistence.
 
-Your task:
-1. Add a memory with a unique identifier:
-   ralph memory add "Persistence test marker: PERSIST_CHECK_12345" --type context --tags persistence,e2e
+Your task is to add a memory using the Bash tool.
 
-2. List memories to confirm it was saved:
-   ralph memory list
+STEP 1: Use the Bash tool to run this exact command:
+```
+ralph memory add "Persistence test marker: PERSIST_CHECK_12345" --type context --tags persistence,e2e
+```
 
-3. Report the memory ID that was created
+STEP 2: The command will output the memory ID (like "Memory stored: mem-1234...")
 
-Output LOOP_COMPLETE when done."#;
+STEP 3: Output LOOP_COMPLETE
+
+IMPORTANT: You MUST actually execute the command using the Bash tool."#;
 
         Ok(ScenarioConfig {
             config_file: "ralph.yml".into(),

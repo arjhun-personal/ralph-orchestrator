@@ -260,18 +260,21 @@ event_loop:
             .map_err(|e| ScenarioError::SetupError(format!("failed to write ralph.yml: {}", e)))?;
 
         // Create a prompt that exercises the backpressure protocol
+        // NOTE: Must be explicit about including literal XML tags in output
         let prompt = r#"You are testing Ralph's backpressure mechanism.
 
-Backpressure is Ralph's quality gate system. Before completing work, you must:
-1. Run verification (tests, lint, typecheck)
-2. Emit a build.done event with the results
+Backpressure is Ralph's quality gate system. You must emit a build.done event.
 
-Your task:
-1. Emit a build.done event with passing results:
-   <event topic="build.done">tests: pass, lint: pass</event>
-2. Then output LOOP_COMPLETE
+IMPORTANT: You MUST include this EXACT XML in your response text:
 
-This simulates the standard backpressure flow where work is verified before completion."#;
+<event topic="build.done">
+tests: pass
+lint: pass
+</event>
+
+After emitting the event above, output LOOP_COMPLETE on its own line.
+
+Now emit the event:"#;
 
         Ok(ScenarioConfig {
             config_file: "ralph.yml".into(),
