@@ -2,16 +2,45 @@
 //!
 //! The event loop coordinates the execution of hats via pub/sub messaging.
 
-use crate::config::{HatBackend, RalphConfig};
+use crate::config::{HatBackend, InjectMode, RalphConfig};
 use crate::event_parser::EventParser;
 use crate::event_reader::EventReader;
 use crate::hat_registry::HatRegistry;
 use crate::hatless_ralph::HatlessRalph;
 use crate::instructions::InstructionBuilder;
+use crate::memory_store::{MarkdownMemoryStore, format_memories_as_markdown, truncate_to_budget};
 use ralph_proto::{Event, EventBus, Hat, HatId};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
+
+/// Skill content injected when `memories.skill_injection: true`.
+///
+/// This teaches the agent how to read and create memories.
+const MEMORIES_SKILL: &str = r#"
+## Using Project Memories
+
+This project uses Ralph's memory system for persistent learnings across sessions.
+
+### Reading Memories
+Memories are automatically included in your context. Review the `# Memories` section above for:
+- **Patterns**: How this codebase does things
+- **Decisions**: Why architectural choices were made
+- **Fixes**: Solutions to recurring problems
+- **Context**: Project-specific knowledge
+
+### Storing New Memories
+When you discover something worth remembering:
+```bash
+ralph memory add "<learning>" --type <type> --tags <tags>
+```
+
+**When to create memories:**
+- You discover a codebase pattern others should follow
+- You make an architectural decision with rationale
+- You solve a problem that might recur
+- You learn project-specific context
+"#;
 
 /// Reason the event loop terminated.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -398,6 +427,9 @@ impl EventLoop {
     /// When in multi-hat mode, this method collects ALL pending events across all hats
     /// and builds Ralph's prompt with that context. The `## HATS` section in Ralph's
     /// prompt documents the topology for coordination awareness.
+    ///
+    /// If memories are configured with `inject: auto`, this method also prepends
+    /// primed memories to the prompt context.
     pub fn build_prompt(&mut self, hat_id: &HatId) -> Option<String> {
         // Handle "ralph" hat - the constant coordinator
         // Per spec: "Hatless Ralph is constant — Cannot be replaced, overwritten, or configured away"
@@ -411,8 +443,12 @@ impl EventLoop {
                     .collect::<Vec<_>>()
                     .join("\n");
 
+                // Build base prompt and prepend memories if enabled
+                let base_prompt = self.ralph.build_prompt(&events_context, &[]);
+                let final_prompt = self.prepend_memories(base_prompt);
+
                 debug!("build_prompt: routing to HatlessRalph (solo mode)");
-                return Some(self.ralph.build_prompt(&events_context, &[]));
+                return Some(final_prompt);
             } else {
                 // Multi-hat mode: collect events and determine active hats
                 let all_hat_ids: Vec<HatId> = self.bus.hat_ids().cloned().collect();
@@ -431,6 +467,10 @@ impl EventLoop {
                     .collect::<Vec<_>>()
                     .join("\n");
 
+                // Build base prompt and prepend memories if enabled
+                let base_prompt = self.ralph.build_prompt(&events_context, &active_hats);
+                let final_prompt = self.prepend_memories(base_prompt);
+
                 // Build prompt with active hats - filters instructions to only active hats
                 debug!(
                     "build_prompt: routing to HatlessRalph (multi-hat coordinator mode), active_hats: {:?}",
@@ -439,7 +479,7 @@ impl EventLoop {
                         .map(|h| h.id.as_str())
                         .collect::<Vec<_>>()
                 );
-                return Some(self.ralph.build_prompt(&events_context, &active_hats));
+                return Some(final_prompt);
             }
         }
 
@@ -471,6 +511,60 @@ impl EventLoop {
             self.instruction_builder
                 .build_custom_hat(hat, &events_context),
         )
+    }
+
+    /// Prepends memories and usage skill to the prompt if auto-injection is enabled.
+    ///
+    /// Per spec: When `memories.inject: auto` is configured, memories are loaded
+    /// from `.agent/memories.md` and prepended to every prompt.
+    fn prepend_memories(&self, prompt: String) -> String {
+        let memories_config = &self.config.memories;
+
+        // Only inject if enabled and set to auto mode
+        if !memories_config.enabled || memories_config.inject != InjectMode::Auto {
+            return prompt;
+        }
+
+        // Load memories from the store
+        let store = MarkdownMemoryStore::with_default_path(".");
+        let memories = match store.load() {
+            Ok(memories) => memories,
+            Err(e) => {
+                debug!("Failed to load memories for injection: {}", e);
+                return prompt;
+            }
+        };
+
+        if memories.is_empty() {
+            return prompt;
+        }
+
+        // Format memories as markdown
+        let mut memories_content = format_memories_as_markdown(&memories);
+
+        // Apply budget if configured
+        if memories_config.budget > 0 {
+            memories_content = truncate_to_budget(&memories_content, memories_config.budget);
+        }
+
+        debug!(
+            "Injecting {} memories ({} chars) into prompt",
+            memories.len(),
+            memories_content.len()
+        );
+
+        // Build final prompt with memories prefix
+        let mut final_prompt = memories_content;
+
+        // Add usage skill if configured
+        if memories_config.skill_injection {
+            final_prompt.push_str(MEMORIES_SKILL);
+        }
+
+        final_prompt.push_str("\n\n");
+        final_prompt.push_str(&prompt);
+
+        final_prompt
     }
 
     /// Builds the Ralph prompt (coordination mode).

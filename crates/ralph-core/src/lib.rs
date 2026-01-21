@@ -44,7 +44,9 @@ pub use hat_registry::HatRegistry;
 pub use hatless_ralph::{HatInfo, HatTopology, HatlessRalph};
 pub use instructions::InstructionBuilder;
 pub use memory::{Memory, MemoryType};
-pub use memory_store::{DEFAULT_MEMORIES_PATH, MarkdownMemoryStore};
+pub use memory_store::{
+    DEFAULT_MEMORIES_PATH, MarkdownMemoryStore, format_memories_as_markdown, truncate_to_budget,
+};
 pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
 pub use session_recorder::{Record, SessionRecorder};
 pub use summary_writer::SummaryWriter;

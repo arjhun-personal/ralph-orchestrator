@@ -235,6 +235,99 @@ impl MarkdownMemoryStore {
     }
 }
 
+/// Formats memories as markdown for context injection.
+///
+/// This produces a markdown document suitable for including in agent prompts:
+/// ```markdown
+/// # Memories
+///
+/// ## Patterns
+/// ### mem-xxx-xxxx
+/// > Memory content
+/// <!-- tags: tag1, tag2 | created: 2025-01-20 -->
+/// ```
+///
+/// Used by `ralph memory prime` and the event loop's auto-injection feature.
+#[must_use]
+pub fn format_memories_as_markdown(memories: &[Memory]) -> String {
+    if memories.is_empty() {
+        return String::new();
+    }
+
+    let mut output = String::from("# Memories\n");
+
+    // Group by type
+    for memory_type in MemoryType::all() {
+        let type_memories: Vec<_> = memories
+            .iter()
+            .filter(|m| m.memory_type == *memory_type)
+            .collect();
+
+        if type_memories.is_empty() {
+            continue;
+        }
+
+        output.push_str(&format!("\n## {}\n", memory_type.section_name()));
+
+        for memory in type_memories {
+            output.push_str(&format!(
+                "\n### {}\n> {}\n<!-- tags: {} | created: {} -->\n",
+                memory.id,
+                memory.content.replace('\n', "\n> "),
+                memory.tags.join(", "),
+                memory.created
+            ));
+        }
+    }
+
+    output
+}
+
+/// Truncates memory content to approximately fit within a token budget.
+///
+/// Uses a simple heuristic of ~4 characters per token. Tries to end
+/// at a natural break point (end of a memory block).
+///
+/// # Arguments
+/// * `content` - The markdown content to truncate
+/// * `budget` - Maximum tokens (0 = unlimited)
+///
+/// # Returns
+/// The truncated content with a truncation notice if applicable.
+#[must_use]
+pub fn truncate_to_budget(content: &str, budget: usize) -> String {
+    if budget == 0 || content.is_empty() {
+        return content.to_string();
+    }
+
+    // Rough estimate: 4 chars per token
+    let char_budget = budget * 4;
+
+    if content.len() <= char_budget {
+        return content.to_string();
+    }
+
+    // Find a good break point (end of a memory block)
+    let truncated = &content[..char_budget];
+
+    // Try to find the last complete memory block (ends with -->)
+    if let Some(last_complete) = truncated.rfind("-->") {
+        let end = last_complete + 3;
+        // Find the next newline after -->
+        let final_end = truncated[end..].find('\n').map_or(end, |n| end + n + 1);
+        format!(
+            "{}\n\n<!-- truncated: budget {} tokens exceeded -->",
+            &content[..final_end],
+            budget
+        )
+    } else {
+        format!(
+            "{}\n\n<!-- truncated: budget {} tokens exceeded -->",
+            truncated, budget
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -543,5 +636,82 @@ mod tests {
 
         let loaded = store.get(&id).unwrap().unwrap();
         assert_eq!(loaded.content, "Line 1\nLine 2\nLine 3");
+    }
+
+    #[test]
+    fn test_format_memories_as_markdown_empty() {
+        let output = format_memories_as_markdown(&[]);
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn test_format_memories_as_markdown_single() {
+        let memory = Memory {
+            id: "mem-123-abcd".to_string(),
+            memory_type: MemoryType::Pattern,
+            content: "Use barrel exports".to_string(),
+            tags: vec!["imports".to_string()],
+            created: "2025-01-20".to_string(),
+        };
+
+        let output = format_memories_as_markdown(&[memory]);
+
+        assert!(output.contains("# Memories"));
+        assert!(output.contains("## Patterns"));
+        assert!(output.contains("### mem-123-abcd"));
+        assert!(output.contains("> Use barrel exports"));
+        assert!(output.contains("tags: imports"));
+    }
+
+    #[test]
+    fn test_format_memories_as_markdown_grouped_by_type() {
+        let pattern = Memory {
+            id: "mem-1-p".to_string(),
+            memory_type: MemoryType::Pattern,
+            content: "A pattern".to_string(),
+            tags: vec![],
+            created: "2025-01-20".to_string(),
+        };
+        let decision = Memory {
+            id: "mem-2-d".to_string(),
+            memory_type: MemoryType::Decision,
+            content: "A decision".to_string(),
+            tags: vec![],
+            created: "2025-01-20".to_string(),
+        };
+
+        let output = format_memories_as_markdown(&[pattern, decision]);
+
+        // Both sections should be present
+        assert!(output.contains("## Patterns"));
+        assert!(output.contains("## Decisions"));
+
+        // Patterns section should come before Decisions
+        let patterns_pos = output.find("## Patterns").unwrap();
+        let decisions_pos = output.find("## Decisions").unwrap();
+        assert!(patterns_pos < decisions_pos);
+    }
+
+    #[test]
+    fn test_truncate_to_budget_no_truncation_needed() {
+        let content = "Short content";
+        let result = truncate_to_budget(content, 100);
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn test_truncate_to_budget_zero_means_unlimited() {
+        let content = "This is some long content that would normally be truncated";
+        let result = truncate_to_budget(content, 0);
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn test_truncate_to_budget_adds_notice() {
+        let content = "x".repeat(1000); // 1000 chars = ~250 tokens
+        let result = truncate_to_budget(&content, 10); // 10 tokens = 40 chars
+
+        assert!(result.len() < content.len());
+        assert!(result.contains("<!-- truncated:"));
     }
 }
