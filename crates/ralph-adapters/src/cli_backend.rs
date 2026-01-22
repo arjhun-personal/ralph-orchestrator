@@ -383,19 +383,21 @@ impl CliBackend {
         }
     }
 
-    /// OpenCode in interactive mode.
+    /// OpenCode in interactive TUI mode.
     ///
-    /// Uses OpenCode CLI with `run` subcommand. The prompt is passed as a
-    /// positional argument:
+    /// Runs OpenCode TUI with an initial prompt via `--prompt` flag:
     /// ```bash
-    /// opencode run "prompt text here"
+    /// opencode --prompt "prompt text here"
     /// ```
+    ///
+    /// Unlike `opencode()` which uses `opencode run` (headless mode),
+    /// this launches the interactive TUI and injects the prompt.
     pub fn opencode_interactive() -> Self {
         Self {
             command: "opencode".to_string(),
-            args: vec!["run".to_string()],
+            args: vec![],
             prompt_mode: PromptMode::Arg,
-            prompt_flag: None, // Positional argument
+            prompt_flag: Some("--prompt".to_string()),
             output_format: OutputFormat::Text,
         }
     }
@@ -1053,9 +1055,42 @@ mod tests {
         let (cmd, args, stdin, _temp) = backend.build_command("test prompt", false);
 
         assert_eq!(cmd, "opencode");
-        // Uses `run` subcommand with positional prompt arg
-        assert_eq!(args, vec!["run", "test prompt"]);
+        // Uses --prompt flag for TUI mode (no `run` subcommand)
+        assert_eq!(args, vec!["--prompt", "test prompt"]);
         assert!(stdin.is_none());
-        assert_eq!(backend.prompt_flag, None);
+        assert_eq!(backend.prompt_flag, Some("--prompt".to_string()));
+    }
+
+    #[test]
+    fn test_opencode_interactive_launches_tui_not_headless() {
+        // Issue #96: opencode backend doesn't start interactive session with ralph plan
+        //
+        // The bug: opencode_interactive() uses `opencode run "prompt"` which is headless mode.
+        // The fix: Interactive mode should use `opencode --prompt "prompt"` (without `run`)
+        // to launch the TUI with an initial prompt.
+        //
+        // From `opencode --help`:
+        // - `opencode [project]` = start opencode tui (interactive mode) [default]
+        // - `opencode run [message..]` = run opencode with a message (headless mode)
+        let backend = CliBackend::opencode_interactive();
+        let (cmd, args, _, _) = backend.build_command("test prompt", true);
+
+        assert_eq!(cmd, "opencode");
+        // Interactive mode should NOT include "run" subcommand
+        // `run` makes opencode execute headlessly, which defeats the purpose of interactive mode
+        assert!(
+            !args.contains(&"run".to_string()),
+            "opencode_interactive() should not use 'run' subcommand. \
+             'opencode run' is headless mode, but interactive mode needs TUI. \
+             Expected: opencode --prompt \"test prompt\", got: opencode {}",
+            args.join(" ")
+        );
+        // Should pass prompt via --prompt flag for TUI mode
+        assert!(
+            args.contains(&"--prompt".to_string()),
+            "opencode_interactive() should use --prompt flag for TUI mode. \
+             Expected args to contain '--prompt', got: {:?}",
+            args
+        );
     }
 }
