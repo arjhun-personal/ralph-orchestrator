@@ -7,6 +7,19 @@ description: Use when discovering codebase patterns, making architectural decisi
 
 Persistent learning system for accumulated wisdom across sessions. Storage: `.agent/memories.md`.
 
+## When to Search Memories
+
+**Search BEFORE starting work when:**
+- Entering unfamiliar code area → `ralph tools memory search "area-name"`
+- Encountering an error → `ralph tools memory search -t fix "error message"`
+- Making architectural decisions → `ralph tools memory search -t decision "topic"`
+- Something feels familiar → there might be a memory about it
+
+**Search strategies:**
+- Start broad, narrow with filters: `search "api"` → `search -t pattern --tags api`
+- Check fixes first for errors: `search -t fix "ECONNREFUSED"`
+- Review decisions before changing architecture: `search -t decision`
+
 ## When to Create Memories
 
 **Create a memory when:**
@@ -16,7 +29,7 @@ Persistent learning system for accumulated wisdom across sessions. Storage: `.ag
 - You learn project-specific knowledge others need (context)
 
 **Do NOT create memories for:**
-- Session-specific state (use scratchpad)
+- Session-specific state (use tasks instead)
 - Obvious/universal practices
 - Temporary workarounds
 
@@ -29,15 +42,33 @@ Persistent learning system for accumulated wisdom across sessions. Storage: `.ag
 | fix | `-t fix` | "ECONNREFUSED on :5432 means run docker-compose up" |
 | context | `-t context` | "ralph-core is shared lib, ralph-cli is binary" |
 
+## Discover Available Tags
+
+Before searching or adding, check what tags already exist:
+
+```bash
+# See all memories with their tags
+ralph tools memory list
+
+# Extract unique tags (grep the file directly)
+grep -o 'tags: [^|]*' .agent/memories.md | sort -u
+```
+
+Reuse existing tags for consistency. Common tag patterns:
+- Component names: `api`, `auth`, `database`, `cli`
+- Concerns: `testing`, `performance`, `error-handling`
+- Tools: `docker`, `postgres`, `redis`
+
 ## Quick Reference
 
 ```bash
 # Add memory (creates file if needed)
 ralph tools memory add "content" -t pattern --tags tag1,tag2
 
-# Search
+# Search (start broad, narrow with filters)
 ralph tools memory search "query"
-ralph tools memory search --type fix --tags docker
+ralph tools memory search -t fix "error message"
+ralph tools memory search --tags api,auth
 
 # List and show
 ralph tools memory list
@@ -49,6 +80,8 @@ ralph tools memory delete mem-1737372000-a1b2
 
 # Prime for context injection
 ralph tools memory prime --budget 2000
+ralph tools memory prime --tags api,auth    # Prime specific tags only
+ralph tools memory prime --recent 7         # Only last 7 days
 ```
 
 ## Best Practices

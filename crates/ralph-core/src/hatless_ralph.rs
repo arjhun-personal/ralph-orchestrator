@@ -202,23 +202,35 @@ Task markers:
             ));
         } else {
             // When memories are enabled, include task tracking instructions
-            prompt.push_str("### 0b. TASKS\nUse `ralph tools task` CLI to track work:\n\n");
-            prompt.push_str("```bash\n");
             prompt.push_str(
-                "ralph tools task add \"Title\" -p 2           # Create task (priority 1-5)\n",
+                "### 0b. TASKS
+
+Runtime work tracking. For implementation planning, use code tasks (`tasks/*.code-task.md`).
+
+**When to create tasks:**
+- Work has 2+ distinct steps that need tracking
+- You need to defer work (blocked, out of scope, lower priority)
+- Dependencies exist between pieces of work (use `--blocked-by`)
+
+**When NOT to create tasks:**
+- Single-step work you'll do immediately
+- Already tracked elsewhere (spec file, PR description)
+
+**Commands:**
+```bash
+ralph tools task add 'Title' -p 2           # Create (priority 1-5, 1=highest)
+ralph tools task add 'X' --blocked-by Y     # With dependency
+ralph tools task list                        # All tasks
+ralph tools task ready                       # Unblocked tasks only
+ralph tools task close <id>                  # Mark complete
+```
+
+**NEVER use echo/cat** — use CLI tools only.
+
+Before LOOP_COMPLETE, close all tasks.
+
+",
             );
-            prompt.push_str(
-                "ralph tools task add \"X\" --blocked-by Y     # Create with dependency\n",
-            );
-            prompt.push_str("ralph tools task list                        # Show all tasks\n");
-            prompt
-                .push_str("ralph tools task ready                       # Show unblocked tasks\n");
-            prompt.push_str("ralph tools task close <id>                  # Mark complete\n");
-            prompt.push_str("```\n\n");
-            prompt.push_str(
-                "⚠️ **NEVER use echo/cat to write memories or tasks** — use the CLI tools.\n\n",
-            );
-            prompt.push_str("Before saying LOOP_COMPLETE, close all tasks.\n\n");
         }
 
         prompt.push_str(&format!(

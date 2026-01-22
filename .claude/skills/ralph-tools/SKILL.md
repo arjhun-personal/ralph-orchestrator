@@ -49,6 +49,8 @@ ralph tools memory delete <mem-id>
 
 **Memory ID format:** `mem-{timestamp}-{4hex}` (e.g., `mem-1737372000-a1b2`)
 
+**NEVER use echo/cat to write tasks or memories** — always use CLI tools.
+
 ## Output Formats
 
 All commands support `--format`:
