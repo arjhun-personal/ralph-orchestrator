@@ -297,13 +297,13 @@ struct RunArgs {
     // ─────────────────────────────────────────────────────────────────────────
     // Execution Mode Options
     // ─────────────────────────────────────────────────────────────────────────
-    /// Enable TUI observation mode for real-time monitoring
+    /// Disable TUI observation mode (TUI is enabled by default)
     #[arg(long, conflicts_with = "autonomous")]
-    tui: bool,
+    no_tui: bool,
 
     /// Force autonomous mode (headless, non-interactive).
     /// Overrides default_mode from config.
-    #[arg(short, long, conflicts_with = "tui")]
+    #[arg(short, long, conflicts_with = "no_tui")]
     autonomous: bool,
 
     /// Idle timeout in seconds for interactive mode (default: 30).
@@ -338,12 +338,12 @@ struct ResumeArgs {
     #[arg(long)]
     max_iterations: Option<u32>,
 
-    /// Enable TUI observation mode for real-time monitoring
+    /// Disable TUI observation mode (TUI is enabled by default)
     #[arg(long, conflicts_with = "autonomous")]
-    tui: bool,
+    no_tui: bool,
 
     /// Force autonomous mode
-    #[arg(short, long, conflicts_with = "tui")]
+    #[arg(short, long, conflicts_with = "no_tui")]
     autonomous: bool,
 
     /// Idle timeout in seconds for TUI mode
@@ -467,9 +467,10 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Detect if TUI mode is requested - TUI owns the terminal, so logs must not go to stdout
+    // TUI is enabled by default unless --no-tui is specified or --autonomous is used
     let tui_enabled = match &cli.command {
-        Some(Commands::Run(args)) => args.tui,
-        Some(Commands::Resume(args)) => args.tui,
+        Some(Commands::Run(args)) => !args.no_tui && !args.autonomous,
+        Some(Commands::Resume(args)) => !args.no_tui && !args.autonomous,
         _ => false,
     };
 
@@ -571,7 +572,7 @@ async fn main() -> Result<()> {
         Some(Commands::Task(args)) => code_task_command(cli.config, cli.color, args),
         Some(Commands::Tools(args)) => tools::execute(args, cli.color.should_use_colors()),
         None => {
-            // Default to run with no overrides (backwards compatibility)
+            // Default to run with TUI enabled (new default behavior)
             let args = RunArgs {
                 prompt_text: None,
                 prompt_file: None,
@@ -579,7 +580,7 @@ async fn main() -> Result<()> {
                 completion_promise: None,
                 dry_run: false,
                 continue_mode: false,
-                tui: false,
+                no_tui: false, // TUI enabled by default
                 autonomous: false,
                 idle_timeout: None,
                 verbose: false,
@@ -652,9 +653,10 @@ async fn run_command(
     }
 
     // Apply execution mode overrides per spec
+    // TUI is enabled by default (unless --no-tui is specified)
     if args.autonomous {
         config.cli.default_mode = "autonomous".to_string();
-    } else if args.tui {
+    } else if !args.no_tui {
         config.cli.default_mode = "interactive".to_string();
     }
 
@@ -733,7 +735,8 @@ async fn run_command(
     }
 
     // Run the orchestration loop and exit with proper exit code
-    let enable_tui = args.tui;
+    // TUI is enabled by default (unless --no-tui or --autonomous is specified)
+    let enable_tui = !args.no_tui && !args.autonomous;
     let verbosity = Verbosity::resolve(verbose || args.verbose, args.quiet);
     let reason = run_loop_impl(
         config,
@@ -813,9 +816,10 @@ async fn resume_command(
     }
 
     // Apply execution mode overrides
+    // TUI is enabled by default (unless --no-tui is specified)
     if args.autonomous {
         config.cli.default_mode = "autonomous".to_string();
-    } else if args.tui {
+    } else if !args.no_tui {
         config.cli.default_mode = "interactive".to_string();
     }
 
@@ -854,7 +858,8 @@ async fn resume_command(
     // Run the orchestration loop in resume mode
     // The key difference: we publish task.resume instead of task.start,
     // signaling the planner to read the existing scratchpad
-    let enable_tui = args.tui;
+    // TUI is enabled by default (unless --no-tui or --autonomous is specified)
+    let enable_tui = !args.no_tui && !args.autonomous;
     let verbosity = Verbosity::resolve(verbose || args.verbose, args.quiet);
     let reason = run_loop_impl(
         config,

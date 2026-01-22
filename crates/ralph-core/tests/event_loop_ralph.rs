@@ -90,6 +90,7 @@ event_loop:
 
 #[test]
 fn test_ralph_prompt_includes_ghuntley_style() {
+    // Test legacy scratchpad mode (memories and tasks disabled)
     let yaml = r#"
 core:
   scratchpad: ".agent/scratchpad.md"
@@ -99,6 +100,10 @@ core:
     - "Backpressure is law"
 event_loop:
   completion_promise: "LOOP_COMPLETE"
+memories:
+  enabled: false
+tasks:
+  enabled: false
 "#;
 
     let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
@@ -106,14 +111,14 @@ event_loop:
 
     let prompt = event_loop.build_ralph_prompt("Test context");
 
-    // Verify prompt includes ghuntley-style structure
+    // Verify prompt includes RFC2119-style structure
     assert!(
-        prompt.contains("I'm Ralph"),
-        "Prompt should identify Ralph with ghuntley style"
+        prompt.contains("You are Ralph"),
+        "Prompt should identify Ralph with RFC2119 style"
     );
     assert!(
-        prompt.contains("Fresh context each iteration"),
-        "Prompt should include ghuntley identity"
+        prompt.contains("You have fresh context each iteration"),
+        "Prompt should include RFC2119 identity"
     );
     assert!(
         prompt.contains("### 0a. ORIENTATION"),
@@ -202,6 +207,147 @@ event_loop:
     assert!(
         prompt.contains("| Hat | Triggers On | Publishes |"),
         "Hat table header should be present"
+    );
+}
+
+// =============================================================================
+// Task Completion Verification Backpressure Tests
+// =============================================================================
+
+#[test]
+fn test_solo_mode_memories_task_verification_requirements() {
+    // Test that solo mode with memories/tasks enabled includes task verification requirements
+    let yaml = r#"
+core:
+  scratchpad: ".agent/scratchpad.md"
+  specs_dir: "./specs"
+event_loop:
+  completion_promise: "LOOP_COMPLETE"
+memories:
+  enabled: true
+tasks:
+  enabled: true
+"#;
+
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let event_loop = EventLoop::new(config);
+
+    let prompt = event_loop.build_ralph_prompt("");
+
+    // CRITICAL: Task Closure Requirements section must be present
+    assert!(
+        prompt.contains("CRITICAL: Task Closure Requirements"),
+        "Prompt should include CRITICAL task closure requirements"
+    );
+
+    // Verification conditions must be listed
+    assert!(
+        prompt.contains("You MUST NOT close a task unless ALL"),
+        "Prompt should require verification before closing"
+    );
+    assert!(
+        prompt.contains("implementation is actually complete"),
+        "Prompt should require complete implementation"
+    );
+    assert!(
+        prompt.contains("Tests pass"),
+        "Prompt should require tests to pass"
+    );
+    assert!(
+        prompt.contains("evidence of completion"),
+        "Prompt should require evidence"
+    );
+
+    // VERIFY & COMMIT step in workflow
+    assert!(
+        prompt.contains("### 4. VERIFY & COMMIT"),
+        "Workflow should have VERIFY & COMMIT step"
+    );
+    assert!(
+        prompt.contains("only AFTER verification passes"),
+        "Workflow should emphasize closing only after verification"
+    );
+}
+
+#[test]
+fn test_multihat_mode_has_workflow_section() {
+    // Test that multi-hat mode has the proper workflow with DELEGATE step
+    // (Individual hat instructions are tested in unit tests since those modules are private)
+    let yaml = r#"
+core:
+  scratchpad: ".agent/scratchpad.md"
+  specs_dir: "./specs"
+event_loop:
+  completion_promise: "LOOP_COMPLETE"
+hats:
+  builder:
+    name: "Builder"
+    description: "Implements code changes"
+    triggers: ["build.task"]
+    publishes: ["build.done", "build.blocked"]
+"#;
+
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let event_loop = EventLoop::new(config);
+
+    let prompt = event_loop.build_ralph_prompt("");
+
+    // Multi-hat mode should have DELEGATE step (not IMPLEMENT)
+    assert!(
+        prompt.contains("### 2. DELEGATE"),
+        "Multi-hat mode should have DELEGATE step"
+    );
+    assert!(
+        !prompt.contains("### 3. IMPLEMENT"),
+        "Multi-hat mode should NOT have IMPLEMENT step (Ralph delegates, doesn't implement)"
+    );
+
+    // HATS section should be present
+    assert!(
+        prompt.contains("## HATS"),
+        "Multi-hat mode should have HATS section"
+    );
+    assert!(
+        prompt.contains("Builder"),
+        "Multi-hat mode should list the Builder hat"
+    );
+}
+
+#[test]
+fn test_scratchpad_mode_no_task_verification() {
+    // Test that legacy scratchpad mode does NOT have the detailed task verification
+    // (it uses different task tracking via [ ] / [x] markers)
+    let yaml = r#"
+core:
+  scratchpad: ".agent/scratchpad.md"
+  specs_dir: "./specs"
+event_loop:
+  completion_promise: "LOOP_COMPLETE"
+memories:
+  enabled: false
+tasks:
+  enabled: false
+"#;
+
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let event_loop = EventLoop::new(config);
+
+    let prompt = event_loop.build_ralph_prompt("");
+
+    // Scratchpad mode should NOT have the CRITICAL task closure section
+    assert!(
+        !prompt.contains("CRITICAL: Task Closure Requirements"),
+        "Scratchpad mode should not have detailed task closure requirements"
+    );
+
+    // But it should have the standard COMMIT step with scratchpad markers
+    assert!(
+        prompt.contains("### 4. COMMIT"),
+        "Scratchpad mode should have COMMIT step"
+    );
+    assert!(
+        prompt.contains("mark the task `[x]`"),
+        "Scratchpad mode should use markdown task markers"
     );
 }
 

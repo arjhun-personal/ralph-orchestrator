@@ -17,7 +17,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:

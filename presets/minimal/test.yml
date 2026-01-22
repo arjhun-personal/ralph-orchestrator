@@ -17,7 +17,6 @@ cli:
 
 # Core behaviors
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
-    - "Fresh context each iteration - scratchpad is memory"
+    - "Fresh context each iteration - save learnings to memories for next time"

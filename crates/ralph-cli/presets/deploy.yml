@@ -17,7 +17,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 # Define what each custom event means
@@ -49,7 +48,7 @@ events:
 
   verify.pass:
     description: "Post-deployment verification passed"
-    on_trigger: "Mark deployment complete, update scratchpad, notify success"
+    on_trigger: "Mark deployment complete, notify success"
     on_publish: "Signal all verification checks passed"
 
   verify.fail:

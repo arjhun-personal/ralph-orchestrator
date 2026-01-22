@@ -1309,8 +1309,8 @@ hats:
             "Planner prompt should have guardrails section"
         );
         assert!(
-            planner_prompt.contains("Fresh context each iteration"),
-            "Planner prompt should have ghuntley identity"
+            planner_prompt.contains("You have fresh context each iteration"),
+            "Planner prompt should have RFC2119 identity"
         );
 
         // Now trigger builder hat by publishing build.task event
@@ -1321,14 +1321,14 @@ hats:
 
         let builder_prompt = event_loop.build_prompt(&hat_id).unwrap();
 
-        // Verify ghuntley-style structure for builder too
+        // Verify RFC2119-style structure for builder too
         assert!(
             builder_prompt.contains("### 0. ORIENTATION"),
-            "Builder should use ghuntley-style orientation phase"
+            "Builder should use RFC2119-style orientation phase"
         );
         assert!(
-            builder_prompt.contains("Only 1 subagent for build/tests"),
-            "Builder prompt should have subagent limit"
+            builder_prompt.contains("You MUST NOT use more than 1 subagent for build/tests"),
+            "Builder prompt should have subagent limit with MUST NOT"
         );
     }
 
@@ -2125,10 +2125,10 @@ hats:
         assert!(prompt.is_some(), "Should build prompt for ralph");
         let prompt = prompt.unwrap();
 
-        // Should contain ghuntley-style Ralph identity (uses "I'm Ralph" not "You are Ralph")
+        // Should contain RFC2119-style Ralph identity (uses "You are Ralph")
         assert!(
-            prompt.contains("I'm Ralph"),
-            "Should identify as Ralph with ghuntley style"
+            prompt.contains("You are Ralph"),
+            "Should identify as Ralph with RFC2119 style"
         );
         assert!(
             prompt.contains("## WORKFLOW"),

@@ -109,6 +109,7 @@ impl HatlessRalph {
         // Include pending events BEFORE workflow so Ralph sees the task first
         if !context.trim().is_empty() {
             prompt.push_str("## PENDING EVENTS\n\n");
+            prompt.push_str("You MUST handle these events in this iteration:\n\n");
             prompt.push_str(context);
             prompt.push_str("\n\n");
         }
@@ -176,11 +177,11 @@ impl HatlessRalph {
             .join("\n");
 
         let mut prompt = format!(
-            r"I'm Ralph. Fresh context each iteration.
+            r"You are Ralph. You have fresh context each iteration.
 
 ### 0a. ORIENTATION
-Study `{specs_dir}` to understand requirements.
-Don't assume features aren't implemented—search first.
+You MUST study `{specs_dir}` to understand requirements.
+You MUST NOT assume features aren't implemented — search first.
 
 ",
             specs_dir = self.core.specs_dir,
@@ -190,7 +191,7 @@ Don't assume features aren't implemented—search first.
         if self.include_scratchpad {
             prompt.push_str(&format!(
                 r"### 0b. SCRATCHPAD
-Study `{scratchpad}`. It's shared state. It's memory.
+You MUST study `{scratchpad}`. It is shared state and memory across iterations.
 
 Task markers:
 - `[ ]` pending
@@ -207,12 +208,12 @@ Task markers:
 
 Runtime work tracking. For implementation planning, use code tasks (`tasks/*.code-task.md`).
 
-**When to create tasks:**
+**When you SHOULD create tasks:**
 - Work has 2+ distinct steps that need tracking
 - You need to defer work (blocked, out of scope, lower priority)
 - Dependencies exist between pieces of work (use `--blocked-by`)
 
-**When NOT to create tasks:**
+**When you SHOULD NOT create tasks:**
 - Single-step work you'll do immediately
 - Already tracked elsewhere (spec file, PR description)
 
@@ -222,12 +223,19 @@ ralph tools task add 'Title' -p 2           # Create (priority 1-5, 1=highest)
 ralph tools task add 'X' --blocked-by Y     # With dependency
 ralph tools task list                        # All tasks
 ralph tools task ready                       # Unblocked tasks only
-ralph tools task close <id>                  # Mark complete
+ralph tools task close <id>                  # Mark complete (ONLY after verification)
 ```
 
-**NEVER use echo/cat** — use CLI tools only.
+You MUST NOT use echo/cat — use CLI tools only.
 
-Before LOOP_COMPLETE, close all tasks.
+**CRITICAL: Task Closure Requirements**
+You MUST NOT close a task unless ALL of these conditions are met:
+1. The implementation is actually complete (not partially done)
+2. Tests pass (run them and verify output)
+3. Build succeeds (if applicable)
+4. You have evidence of completion (command output, test results)
+
+You MUST close all tasks before LOOP_COMPLETE.
 
 ",
             );
@@ -253,8 +261,8 @@ Before LOOP_COMPLETE, close all tasks.
                 return format!(
                     r"## WORKFLOW
 
-**FAST PATH**: Publish `{}` immediately to start the hat workflow.
-Do not plan or analyze — delegate now.
+**FAST PATH**: You MUST publish `{}` immediately to start the hat workflow.
+You MUST NOT plan or analyze — delegate now.
 
 ",
                     self.starting_event.as_ref().unwrap()
@@ -267,11 +275,11 @@ Do not plan or analyze — delegate now.
                     r"## WORKFLOW
 
 ### 1. PLAN
-Update `{scratchpad}` with prioritized tasks.
+You MUST update `{scratchpad}` with prioritized tasks.
 
 ### 2. DELEGATE
-You have one job. Publish ONE event to hand off to specialized hats. Do
-NOT do any work.
+You MUST publish exactly ONE event to hand off to specialized hats.
+You MUST NOT do implementation work — delegation is your only job.
 
 ",
                     scratchpad = self.core.scratchpad
@@ -281,11 +289,11 @@ NOT do any work.
                 r"## WORKFLOW
 
 ### 1. PLAN
-Review memories and pending events to understand context.
+You MUST review memories and pending events to understand context.
 
 ### 2. DELEGATE
-You have one job. Publish ONE event to hand off to specialized hats. Do
-NOT do any work.
+You MUST publish exactly ONE event to hand off to specialized hats.
+You MUST NOT do implementation work — delegation is your only job.
 
 "
                 .to_string()
@@ -297,19 +305,22 @@ NOT do any work.
                     r"## WORKFLOW
 
 ### 1. Study the prompt.
-Study, explore, and research what needs to be done. Use parallel subagents (up to 10) for searches.
+You MUST study, explore, and research what needs to be done.
+You MAY use parallel subagents (up to 10) for searches.
 
 ### 2. PLAN
-Update `{scratchpad}` with prioritized tasks.
+You MUST update `{scratchpad}` with prioritized tasks.
 
 ### 3. IMPLEMENT
-Pick ONE task. Only 1 subagent for build/tests.
+You MUST pick exactly ONE task to implement.
+You MUST NOT use more than 1 subagent for build/tests.
 
 ### 4. COMMIT
-Capture the why, not just the what. Mark `[x]` in scratchpad.
+You MUST capture the why, not just the what.
+You MUST mark the task `[x]` in scratchpad when complete.
 
 ### 5. REPEAT
-Until all tasks `[x]` or `[~]`.
+You MUST continue until all tasks are `[x]` or `[~]`.
 
 ",
                     scratchpad = self.core.scratchpad
@@ -319,19 +330,26 @@ Until all tasks `[x]` or `[~]`.
                 r"## WORKFLOW
 
 ### 1. Study the prompt.
-Study, explore, and research what needs to be done. Use parallel subagents (up to 10) for searches.
+You MUST study, explore, and research what needs to be done.
+You MAY use parallel subagents (up to 10) for searches.
 
 ### 2. PLAN
-Review memories for context. Create tasks with `ralph tools task add`.
+You MUST review memories for context.
+You SHOULD create tasks with `ralph tools task add` for multi-step work.
 
 ### 3. IMPLEMENT
-Pick ONE task from `ralph tools task ready`. Only 1 subagent for build/tests.
+You MUST pick exactly ONE task from `ralph tools task ready`.
+You MUST NOT use more than 1 subagent for build/tests.
 
-### 4. COMMIT
-Capture the why, not just the what. Close task with `ralph tools task close`. Save learnings with `ralph tools memory add`.
+### 4. VERIFY & COMMIT
+You MUST run tests and verify the implementation works before closing.
+You MUST NOT close a task without evidence of completion (test output, build success).
+You MUST capture the why, not just the what.
+You MUST close the task with `ralph tools task close` only AFTER verification passes.
+You SHOULD save learnings with `ralph tools memory add`.
 
 ### 5. REPEAT
-Until `ralph tools task list` shows all tasks closed.
+You MUST continue until `ralph tools task list` shows all tasks closed.
 
 "
                 .to_string()
@@ -530,34 +548,32 @@ Until `ralph tools task list` shows all tasks closed.
     fn event_writing_section(&self) -> String {
         let detailed_output_hint = if self.include_scratchpad {
             format!(
-                "For detailed output, write to `{}` and emit a brief event.",
+                "You SHOULD write detailed output to `{}` and emit only a brief event.",
                 self.core.scratchpad
             )
         } else {
-            "For detailed output, create a memory with `ralph tools memory add` and emit a brief event."
+            "You SHOULD create a memory with `ralph tools memory add` for detailed output and emit only a brief event."
                 .to_string()
         };
 
         format!(
             r#"## EVENT WRITING
 
-Events are **routing signals**, not data transport. Keep payloads brief.
+Events are routing signals, not data transport. You SHOULD keep payloads brief.
 
-**Use `ralph emit` to write events** (handles JSON escaping correctly):
+You MUST use `ralph emit` to write events (handles JSON escaping correctly):
 ```bash
 ralph emit "build.done" "tests: pass, lint: pass"
 ralph emit "review.done" --json '{{"status": "approved", "issues": 0}}'
 ```
 
-⚠️ **NEVER use echo/cat to write events** — shell escaping breaks JSON.
+You MUST NOT use echo/cat to write events because shell escaping breaks JSON.
 
 {detailed_output_hint}
 
-**CRITICAL: STOP after publishing the event.** A new iteration will start
-with fresh context to handle the work. Do NOT continue working in this
-iteration — let the next iteration handle the event with the appropriate
-hat persona. By doing the work now, you won't be wearing the correct hat
-the specialty to do an even better job.
+**Constraints:**
+- You MUST stop working after publishing an event because a new iteration will start with fresh context
+- You MUST NOT continue with additional work after publishing because the next iteration handles it with the appropriate hat persona
 "#,
             detailed_output_hint = detailed_output_hint
         )
@@ -567,9 +583,10 @@ the specialty to do an even better job.
         format!(
             r"## DONE
 
-Output {} when all tasks complete.
+You MUST output {} when all tasks are complete.
+You MUST NOT output {} until all tasks are verified complete.
 ",
-            self.completion_promise
+            self.completion_promise, self.completion_promise
         )
     }
 }
@@ -587,13 +604,13 @@ mod tests {
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Identity with ghuntley style
-        assert!(prompt.contains("I'm Ralph. Fresh context each iteration."));
+        // Identity with RFC2119 style
+        assert!(prompt.contains("You are Ralph. You have fresh context each iteration."));
 
-        // Numbered orientation phases
+        // Numbered orientation phases (RFC2119)
         assert!(prompt.contains("### 0a. ORIENTATION"));
-        assert!(prompt.contains("Study"));
-        assert!(prompt.contains("Don't assume features aren't implemented"));
+        assert!(prompt.contains("MUST study"));
+        assert!(prompt.contains("MUST NOT assume features aren't implemented"));
 
         // Scratchpad section with task markers
         assert!(prompt.contains("### 0b. SCRATCHPAD"));
@@ -602,24 +619,24 @@ mod tests {
         assert!(prompt.contains("- `[x]` done"));
         assert!(prompt.contains("- `[~]` cancelled"));
 
-        // Workflow with numbered steps (solo mode)
+        // Workflow with numbered steps (solo mode) using RFC2119
         assert!(prompt.contains("## WORKFLOW"));
         assert!(prompt.contains("### 1. Study the prompt"));
-        assert!(prompt.contains("Use parallel subagents (up to 10)"));
+        assert!(prompt.contains("You MAY use parallel subagents (up to 10)"));
         assert!(prompt.contains("### 2. PLAN"));
         assert!(prompt.contains("### 3. IMPLEMENT"));
-        assert!(prompt.contains("Only 1 subagent for build/tests"));
+        assert!(prompt.contains("You MUST NOT use more than 1 subagent for build/tests"));
         assert!(prompt.contains("### 4. COMMIT"));
-        assert!(prompt.contains("Capture the why"));
+        assert!(prompt.contains("You MUST capture the why"));
         assert!(prompt.contains("### 5. REPEAT"));
 
         // Should NOT have hats section when no hats
         assert!(!prompt.contains("## HATS"));
 
-        // Event writing and completion
+        // Event writing and completion using RFC2119
         assert!(prompt.contains("## EVENT WRITING"));
-        assert!(prompt.contains("ralph emit"));
-        assert!(prompt.contains("NEVER use echo/cat"));
+        assert!(prompt.contains("You MUST use `ralph emit`"));
+        assert!(prompt.contains("You MUST NOT use echo/cat"));
         assert!(prompt.contains("LOOP_COMPLETE"));
     }
 
@@ -644,14 +661,14 @@ hats:
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Identity with ghuntley style
-        assert!(prompt.contains("I'm Ralph. Fresh context each iteration."));
+        // Identity with RFC2119 style
+        assert!(prompt.contains("You are Ralph. You have fresh context each iteration."));
 
         // Orientation phases
         assert!(prompt.contains("### 0a. ORIENTATION"));
         assert!(prompt.contains("### 0b. SCRATCHPAD"));
 
-        // Multi-hat workflow: PLAN + DELEGATE, not IMPLEMENT
+        // Multi-hat workflow: PLAN + DELEGATE, not IMPLEMENT (RFC2119)
         assert!(prompt.contains("## WORKFLOW"));
         assert!(prompt.contains("### 1. PLAN"));
         assert!(
@@ -663,7 +680,7 @@ hats:
             "Multi-hat mode should NOT tell Ralph to implement"
         );
         assert!(
-            prompt.contains("CRITICAL: STOP after publishing"),
+            prompt.contains("You MUST stop working after publishing"),
             "Should explicitly tell Ralph to stop after publishing event"
         );
 
@@ -689,30 +706,33 @@ hats:
     }
 
     #[test]
-    fn test_ghuntley_patterns_present() {
+    fn test_rfc2119_patterns_present() {
         let config = RalphConfig::default();
         let registry = HatRegistry::new();
         let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Key ghuntley language patterns
-        assert!(prompt.contains("Study"), "Should use 'study' verb");
+        // Key RFC2119 language patterns
         assert!(
-            prompt.contains("Don't assume features aren't implemented"),
-            "Should have 'don't assume' guardrail"
+            prompt.contains("You MUST study"),
+            "Should use RFC2119 MUST with 'study' verb"
         );
         assert!(
-            prompt.contains("parallel subagents"),
-            "Should mention parallel subagents for reads"
+            prompt.contains("You MUST NOT assume features aren't implemented"),
+            "Should have RFC2119 MUST NOT assume guardrail"
         );
         assert!(
-            prompt.contains("Only 1 subagent"),
-            "Should limit to 1 subagent for builds"
+            prompt.contains("You MAY use parallel subagents"),
+            "Should mention parallel subagents with MAY"
         );
         assert!(
-            prompt.contains("Capture the why"),
-            "Should emphasize 'why' in commits"
+            prompt.contains("You MUST NOT use more than 1 subagent"),
+            "Should limit to 1 subagent for builds with MUST NOT"
+        );
+        assert!(
+            prompt.contains("You MUST capture the why"),
+            "Should emphasize 'why' in commits with MUST"
         );
 
         // Numbered guardrails (999+)
@@ -926,14 +946,14 @@ hats:
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Should use fast path - immediate delegation
+        // Should use fast path - immediate delegation with RFC2119
         assert!(
             prompt.contains("FAST PATH"),
             "Prompt should indicate fast path when starting_event set and no scratchpad"
         );
         assert!(
-            prompt.contains("Publish `tdd.start` immediately"),
-            "Prompt should instruct immediate event publishing"
+            prompt.contains("You MUST publish `tdd.start` immediately"),
+            "Prompt should instruct immediate event publishing with MUST"
         );
         assert!(
             !prompt.contains("### 1. PLAN"),
@@ -1241,8 +1261,8 @@ hats:
             "Scratchpad section should be included by default"
         );
         assert!(
-            prompt.contains("Study `.agent/scratchpad.md`"),
-            "Scratchpad path should be referenced"
+            prompt.contains("You MUST study `.agent/scratchpad.md`"),
+            "Scratchpad path should be referenced with MUST"
         );
         assert!(
             prompt.contains("Task markers:"),
@@ -1290,10 +1310,10 @@ hats:
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Workflow should mention memories, not scratchpad
+        // Workflow should mention memories, not scratchpad (RFC2119)
         assert!(
-            prompt.contains("Review memories"),
-            "Workflow should reference memories when scratchpad disabled"
+            prompt.contains("You MUST review memories"),
+            "Workflow should reference memories with MUST when scratchpad disabled"
         );
         assert!(
             !prompt.contains("Update `.agent/scratchpad.md`"),
@@ -1334,10 +1354,10 @@ hats:
 
         let prompt = ralph.build_prompt("", &[]);
 
-        // Multi-hat workflow should mention memories
+        // Multi-hat workflow should mention memories (RFC2119)
         assert!(
-            prompt.contains("Review memories and pending events"),
-            "Multi-hat workflow should reference memories when scratchpad disabled"
+            prompt.contains("You MUST review memories and pending events"),
+            "Multi-hat workflow should reference memories with MUST when scratchpad disabled"
         );
         assert!(
             !prompt.contains("Update `.agent/scratchpad.md`"),
@@ -1382,6 +1402,98 @@ hats:
         assert!(
             !prompt.contains("save learnings to memories"),
             "Guardrails should NOT mention memories when scratchpad enabled"
+        );
+    }
+
+    // === Task Completion Verification Tests ===
+
+    #[test]
+    fn test_task_closure_verification_in_tasks_section() {
+        // When memories/tasks mode is enabled, the TASKS section should include
+        // verification requirements before closing tasks
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Should contain task closure verification requirements
+        assert!(
+            prompt.contains("CRITICAL: Task Closure Requirements"),
+            "Should include CRITICAL task closure section"
+        );
+        assert!(
+            prompt.contains("You MUST NOT close a task unless ALL"),
+            "Should require verification before closing"
+        );
+        assert!(
+            prompt.contains("implementation is actually complete"),
+            "Should require complete implementation"
+        );
+        assert!(
+            prompt.contains("Tests pass"),
+            "Should require tests to pass"
+        );
+        assert!(
+            prompt.contains("evidence of completion"),
+            "Should require evidence"
+        );
+    }
+
+    #[test]
+    fn test_workflow_verify_and_commit_step() {
+        // Solo mode with memories should have VERIFY & COMMIT step
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Should have VERIFY & COMMIT step (not just COMMIT)
+        assert!(
+            prompt.contains("### 4. VERIFY & COMMIT"),
+            "Should have VERIFY & COMMIT step in workflow"
+        );
+        assert!(
+            prompt
+                .contains("You MUST run tests and verify the implementation works before closing"),
+            "Should require verification before closing"
+        );
+        assert!(
+            prompt.contains("You MUST NOT close a task without evidence of completion"),
+            "Should require evidence before closing"
+        );
+        assert!(
+            prompt.contains("only AFTER verification passes"),
+            "Should emphasize closing only after verification"
+        );
+    }
+
+    #[test]
+    fn test_scratchpad_mode_still_has_commit_step() {
+        // Scratchpad mode should still have commit step (but not task verification)
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(true);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Scratchpad mode uses different format - COMMIT step without task CLI
+        assert!(
+            prompt.contains("### 4. COMMIT"),
+            "Should have COMMIT step in workflow"
+        );
+        assert!(
+            prompt.contains("mark the task `[x]`"),
+            "Should mark task in scratchpad"
+        );
+        // Scratchpad mode doesn't have the detailed task closure requirements
+        assert!(
+            !prompt.contains("CRITICAL: Task Closure Requirements"),
+            "Scratchpad mode should not have CRITICAL task closure section"
         );
     }
 }

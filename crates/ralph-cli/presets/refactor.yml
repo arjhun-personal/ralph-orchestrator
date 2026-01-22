@@ -17,7 +17,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -38,15 +37,11 @@ hats:
       3. **Run tests** immediately after
       4. **Run clippy** to catch new warnings
       5. **Commit** with clear message
-      6. **Publish** `<event topic="refactor.done">`
+      6. **Publish** event using `ralph emit`
 
       ### Event Format
-      ```
-      <event topic="refactor.done">
-      step: [step description]
-      tests: pass
-      clippy: pass
-      </event>
+      ```bash
+      ralph emit "refactor.done" "step: [step description], tests: pass, clippy: pass"
       ```
 
       ### Commit Format
@@ -59,7 +54,7 @@ hats:
 
       ### If Tests Fail
       - DO NOT commit
-      - Publish `<event topic="refactor.blocked">` with failure details
+      - Publish event: `ralph emit "refactor.blocked" "failure details here"`
       - Ralph will coordinate next steps
 
       ### DON'T
@@ -86,10 +81,11 @@ hats:
       4. Manual spot-check if tests are sparse
 
       ### If All Pass
-      Publish `<event topic="verify.passed">`
+      ```bash
+      ralph emit "verify.passed"
+      ```
 
       ### If Any Fail
-      Publish `<event topic="verify.failed">` with details:
-      - Which check failed
-      - Error output
-      - Suspected cause
+      ```bash
+      ralph emit "verify.failed" "check: [which failed], error: [error output], cause: [suspected]"
+      ```

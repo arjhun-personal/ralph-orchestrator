@@ -62,7 +62,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -74,33 +73,14 @@ hats:
     instructions: |
       ## GAP ANALYZER MODE
 
-      You're coordinating the gap analysis. Own the scratchpad.
+      You're coordinating the gap analysis.
 
       ### Process
-      1. **Inventory specs.** List all specs in ./specs/ on scratchpad.
+      1. **Inventory specs.** List all specs in ./specs/ and track progress.
       2. **Dispatch analysis.** Publish `analyze.spec` for each spec.
       3. **Request verification.** After analysis, dispatch `verify.request`.
       4. **Request report.** After verification, dispatch `report.request`.
       5. **Update frontmatter.** Set `gap_analysis: YYYY-MM-DD` in analyzed specs.
-
-      ### Scratchpad Format
-      ```markdown
-      # Gap Analysis
-
-      ## Specs to Analyze
-      - [ ] cli-adapters.spec.md
-      - [ ] interactive-mode.spec.md
-      - [x] event-loop.spec.md
-
-      ## Findings
-      ### cli-adapters.spec.md
-      - CRITICAL: Working directory not set in PTY (pty_executor.rs:181)
-      - MISSING: No cwd configuration option
-
-      ## Status
-      Analyzing: [current spec]
-      Next: [what's next]
-      ```
 
       ### DON'T
       - Don't read implementation code deeply (that's verifier's job)
@@ -125,7 +105,7 @@ hats:
       1. **Find the implementation.** Search codebase for relevant code.
       2. **Trace the code path.** Understand what actually happens.
       3. **Compare to spec.** Does behavior match acceptance criteria?
-      4. **Document gaps.** Add findings to scratchpad.
+      4. **Document gaps.** Record findings for the report.
 
       ### Verification Checklist
       - [ ] Happy path works as specified
@@ -140,7 +120,7 @@ hats:
       - Don't skip error handling checks
 
       ### Output
-      Add findings to scratchpad under the spec being verified.
+      Record findings for the spec being verified.
       Publish `verify.complete` when done with current spec.
 
   reporter:
@@ -154,7 +134,7 @@ hats:
       Compile findings into structured ISSUES.md.
 
       ### Process
-      1. **Read scratchpad.** Gather all findings from analysis.
+      1. **Gather findings.** Collect all findings from analysis.
       2. **Categorize.** Group by severity (critical, missing, undocumented, improvements).
       3. **Write ISSUES.md.** Use the format from the prompt.
       4. **Be specific.** Include file:line references, spec quotes, code snippets.

@@ -117,6 +117,10 @@ pub struct RalphConfig {
     /// Memories configuration for persistent learning across sessions.
     #[serde(default)]
     pub memories: MemoriesConfig,
+
+    /// Tasks configuration for runtime work tracking.
+    #[serde(default)]
+    pub tasks: TasksConfig,
 }
 
 fn default_true() -> bool {
@@ -154,6 +158,8 @@ impl Default for RalphConfig {
             tui: TuiConfig::default(),
             // Memories
             memories: MemoriesConfig::default(),
+            // Tasks
+            tasks: TasksConfig::default(),
         }
     }
 }
@@ -785,7 +791,7 @@ pub struct MemoriesConfig {
 impl Default for MemoriesConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true, // Memories enabled by default
             inject: InjectMode::Auto,
             budget: 0,
             filter: MemoriesFilter::default(),
@@ -809,6 +815,35 @@ pub struct MemoriesFilter {
     /// Only include memories from the last N days (0 = no time limit).
     #[serde(default)]
     pub recent: u32,
+}
+
+/// Tasks configuration.
+///
+/// Controls the runtime task tracking system that allows Ralph to manage
+/// work items across iterations. Tasks are stored in `.agent/tasks.jsonl`.
+///
+/// When enabled, tasks replace scratchpad for loop completion verification.
+///
+/// Example configuration:
+/// ```yaml
+/// tasks:
+///   enabled: true
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TasksConfig {
+    /// Whether the tasks feature is enabled.
+    ///
+    /// When true, tasks are used for loop completion verification.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+impl Default for TasksConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true, // Tasks enabled by default
+        }
+    }
 }
 
 fn default_prefix_key() -> String {

@@ -130,16 +130,8 @@ hats:
       3. Publish `tasks.ready`
 
       ### Event Format
-      ```
-      <event topic="tasks.ready">
-      Implementation context initialized.
-
-      Input type: {pdd | single_task | description}
-      Task name: {task_name}
-      Tasks to implement: {count or "1" or "direct implementation"}
-
-      Ready for Builder to begin.
-      </event>
+      ```bash
+      ralph emit "tasks.ready" "input_type: {pdd|single_task|description}, task_name: {task_name}, tasks: {count or 1}"
       ```
 
       ### Constraints
@@ -189,29 +181,18 @@ hats:
       ### Event Format
 
       **After completing a task:**
-      ```
-      <event topic="task.complete">
-      Task: {task_name}
-      Status: complete
-      Tests: {pass/fail}
-      </event>
+      ```bash
+      ralph emit "task.complete" "task: {task_name}, tests: {pass/fail}"
       ```
 
       **After all tasks complete:**
-      ```
-      <event topic="implementation.ready">
-      All tasks complete.
-      Tests: pass
-      Lint: pass
-      Typecheck: pass
-      </event>
+      ```bash
+      ralph emit "implementation.ready" "tests: pass, lint: pass, typecheck: pass"
       ```
 
       **If blocked:**
-      ```
-      <event topic="build.blocked">
-      Reason: {why blocked}
-      </event>
+      ```bash
+      ralph emit "build.blocked" "reason: {why blocked}"
       ```
 
       ### Constraints
@@ -256,28 +237,13 @@ hats:
       ### Event Format
 
       **If validation passes:**
-      ```
-      <event topic="validation.passed">
-      All checks passed.
-
-      Automated: pass
-      YAGNI: pass
-      KISS: pass
-      E2E: pass
-      </event>
+      ```bash
+      ralph emit "validation.passed" "automated: pass, yagni: pass, kiss: pass, e2e: pass"
       ```
 
       **If validation fails:**
-      ```
-      <event topic="validation.failed">
-      Validation failed.
-
-      Issues:
-      - {issue 1}
-      - {issue 2}
-
-      Builder: fix these issues.
-      </event>
+      ```bash
+      ralph emit "validation.failed" "issues: [{issue 1}, {issue 2}]"
       ```
 
       ### Constraints
@@ -322,12 +288,8 @@ hats:
       4. Publish event
 
       ### Event Format
-
-      ```
-      <event topic="commit.complete">
-      Commit created: {commit hash}
-      Message: {commit subject}
-      </event>
+      ```bash
+      ralph emit "commit.complete" "commit: {short hash}, message: {commit subject}"
       ```
 
       ### Constraints

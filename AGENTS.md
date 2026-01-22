@@ -10,7 +10,7 @@
 
 3. **The Plan Is Disposable** — Regeneration costs one planning loop. Cheap. Never fight to save a plan.
 
-4. **Disk Is State, Git Is Memory** — `.agent/scratchpad.md` is the handoff mechanism. No sophisticated coordination needed.
+4. **Disk Is State, Git Is Memory** — Memories (`.agent/memories.md`) and Tasks (`.agent/tasks.jsonl`) are the handoff mechanisms. No sophisticated coordination needed.
 
 5. **Steer With Signals, Not Scripts** — The codebase is the instruction manual. When Ralph fails a specific way, add a sign for next time. The prompts you start with won't be the prompts you end with.
 
@@ -35,10 +35,24 @@
 - Create code tasks in `tasks/` using `.code-task.md` extension
 - Tasks are self-contained implementation units with acceptance criteria
 
-When `memories.enabled: true`:
+### Memories and Tasks (Default Mode)
+
+Memories and tasks are enabled by default. Both must be enabled/disabled together:
+- **Memories** (`.agent/memories.md`) — Persistent learning across sessions
+- **Tasks** (`.agent/tasks.jsonl`) — Runtime work tracking
+
+When enabled (default):
 - Scratchpad is disabled
 - Tasks replace scratchpad for completion verification
 - Loop terminates when no open tasks + consecutive LOOP_COMPLETE
+
+To disable (legacy scratchpad mode):
+```yaml
+memories:
+  enabled: false
+tasks:
+  enabled: false
+```
 
 ## Build & Test
 
@@ -120,7 +134,7 @@ Use the `/tui-validate` skill to validate Terminal UI rendering. This applies **
 ```bash
 # 1. Start TUI in tmux
 tmux new-session -d -s ralph-test -x 100 -y 30
-tmux send-keys -t ralph-test "cargo run --bin ralph -- run --tui -c ralph.yml -p 'your prompt'" Enter
+tmux send-keys -t ralph-test "cargo run --bin ralph -- run -c ralph.yml -p 'your prompt'" Enter
 
 # 2. Wait for TUI to render
 sleep 3

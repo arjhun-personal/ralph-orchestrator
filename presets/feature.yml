@@ -17,7 +17,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -33,21 +32,11 @@ hats:
       You're building, not planning. One task, then exit.
 
       ### Process
-      1. **Pick ONE task.** Highest priority `[ ]` from scratchpad.
+      1. **Pick ONE task.** Highest priority from task list.
       2. **Implement.** Write the code. Follow existing patterns.
       3. **Validate.** Run backpressure. Must pass.
       4. **Commit.** One task, one commit.
-      5. **Exit.** Publish `<event topic="build.done">` with evidence.
-
-      ### Event Format
-      Write events as JSONL:
-      ```
-      <event topic="build.done">
-      tests: pass
-      lint: pass
-      typecheck: pass
-      </event>
-      ```
+      5. **Exit.** Publish event with evidence.
 
       ### Backpressure
       ```bash
@@ -55,13 +44,10 @@ hats:
       ```
 
       ### DON'T
-      - ❌ Create the scratchpad
       - ❌ Decide what tasks to add
       - ❌ Output the completion promise
       - ❌ Skip tests
 
-      ### STUCK?
-      Publish `<event topic="build.blocked">` with what you tried and why it failed.
 
   reviewer:
     name: "Reviewer"
@@ -80,21 +66,6 @@ hats:
       - [ ] **Patterns:** Does it follow existing codebase patterns?
       - [ ] **Errors:** Is error handling appropriate?
       - [ ] **Security:** Any obvious vulnerabilities?
-
-      ### If Approved
-      Publish `<event topic="review.approved">` — Ralph will coordinate next steps.
-
-      ### If Changes Needed
-      Publish `<event topic="review.changes_requested">` with specific feedback:
-      ```
-      <event topic="review.changes_requested">
-      ## Issues
-      - file:line — [specific issue]
-
-      ## Required Changes
-      - [what needs to change]
-      </event>
-      ```
 
       ### DON'T
       - ❌ Make code changes yourself

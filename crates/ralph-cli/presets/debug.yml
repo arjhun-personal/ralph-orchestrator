@@ -17,7 +17,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -37,29 +36,6 @@ hats:
       3. **Predict** — If hypothesis X is true, then Y should happen.
       4. **Test** — Run experiment to test prediction.
       5. **Narrow** — Eliminate hypotheses, focus on survivors.
-
-      ### Scratchpad Format
-      ```markdown
-      # Debug: [Bug Description]
-
-      ## Symptom
-      [Exact error message, behavior, reproduction steps]
-
-      ## Hypotheses
-      - [ ] H1: [hypothesis] — Status: untested/rejected/confirmed
-      - [ ] H2: [hypothesis] — Status: untested/rejected/confirmed
-
-      ## Evidence Log
-      | Time | Test | Result | Conclusion |
-      |------|------|--------|------------|
-      | ... | ... | ... | ... |
-
-      ## Root Cause
-      [Once found]
-
-      ## Fix
-      [Proposed solution]
-      ```
 
       ### Dispatch
       - Publish `hypothesis.test` to test a hypothesis
@@ -87,8 +63,8 @@ hats:
       1. Read the hypothesis from the event
       2. Design minimal test that would confirm OR reject it
       3. Run the test
-      4. Record results in scratchpad Evidence Log
-      5. Publish result with evidence
+      4. Record results with evidence
+      5. Publish result
 
       ### Good Tests
       - Isolate the variable
@@ -111,7 +87,7 @@ hats:
       Implement the fix for a confirmed root cause.
 
       ### Process
-      1. Read the proposed fix from scratchpad
+      1. Review the proposed fix for the confirmed root cause
       2. Implement minimal change to fix root cause
       3. Add regression test that would have caught this
       4. Run full test suite

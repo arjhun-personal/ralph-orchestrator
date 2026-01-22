@@ -19,7 +19,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -48,16 +47,10 @@ hats:
       4. Publish your findings
 
       ### Event Format
-      ```
-      <event topic="correctness.done">
-      files_reviewed: [list of files]
-      issues:
-        - file: path/to/file.rs
-          line: 42
-          severity: major
-          issue: "Off-by-one in loop boundary"
-      approval: conditional  # or: approved, changes_requested
-      </event>
+      ```bash
+      ralph emit "correctness.done" --json '{"files_reviewed": ["file1.rs"], "issues": [], "approval": "approved"}'
+      # Or with issues:
+      ralph emit "correctness.done" --json '{"files_reviewed": ["path/to/file.rs"], "issues": [{"file": "path/to/file.rs", "line": 42, "severity": "major", "issue": "Off-by-one in loop boundary"}], "approval": "conditional"}'
       ```
 
       ### DON'T
@@ -91,18 +84,10 @@ hats:
       4. Publish findings with severity ratings
 
       ### Event Format
-      ```
-      <event topic="security.done">
-      files_reviewed: [list of files]
-      vulnerabilities:
-        - file: path/to/file.rs
-          line: 15
-          severity: critical
-          type: "SQL Injection"
-          description: "User input passed directly to query"
-          recommendation: "Use parameterized queries"
-      approval: conditional  # or: approved, changes_requested
-      </event>
+      ```bash
+      ralph emit "security.done" --json '{"files_reviewed": ["file1.rs"], "vulnerabilities": [], "approval": "approved"}'
+      # Or with vulnerabilities:
+      ralph emit "security.done" --json '{"files_reviewed": ["path/to/file.rs"], "vulnerabilities": [{"file": "path/to/file.rs", "line": 15, "severity": "critical", "type": "SQL Injection", "description": "User input passed directly to query", "recommendation": "Use parameterized queries"}], "approval": "conditional"}'
       ```
 
       ### DON'T
@@ -135,16 +120,10 @@ hats:
       4. Publish findings
 
       ### Event Format
-      ```
-      <event topic="architecture.done">
-      files_reviewed: [list of files]
-      concerns:
-        - type: "pattern_violation"
-          description: "Uses singleton where codebase uses DI"
-          severity: minor
-          suggestion: "Inject dependency instead"
-      approval: conditional  # or: approved, changes_requested
-      </event>
+      ```bash
+      ralph emit "architecture.done" --json '{"files_reviewed": ["file1.rs"], "concerns": [], "approval": "approved"}'
+      # Or with concerns:
+      ralph emit "architecture.done" --json '{"files_reviewed": ["file1.rs"], "concerns": [{"type": "pattern_violation", "description": "Uses singleton where codebase uses DI", "severity": "minor", "suggestion": "Inject dependency instead"}], "approval": "conditional"}'
       ```
 
       ### DON'T
@@ -177,24 +156,10 @@ hats:
       - No issues → APPROVE
 
       ### Event Format
-      ```
-      <event topic="review.complete">
-      verdict: APPROVE | REQUEST_CHANGES | COMMENT
-      summary: |
-        ## PR Review Summary
-
-        ### Critical Issues
-        - [list or "None"]
-
-        ### Required Changes
-        - [list or "None"]
-
-        ### Suggestions
-        - [list or "None"]
-
-        ### Overall Assessment
-        [1-2 sentence summary]
-      </event>
+      ```bash
+      ralph emit "review.complete" --json '{"verdict": "APPROVE", "summary": "No critical issues found. Code is clean and well-tested."}'
+      # Or for changes requested:
+      ralph emit "review.complete" --json '{"verdict": "REQUEST_CHANGES", "summary": "Critical: SQL injection in auth.rs:15. Required: Add input validation."}'
       ```
 
       After publishing, output LOOP_COMPLETE.

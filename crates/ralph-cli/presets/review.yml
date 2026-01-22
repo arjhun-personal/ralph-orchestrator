@@ -18,7 +18,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -39,7 +38,7 @@ hats:
       4. **Dispatch deep analysis.** For complex sections.
       5. **Synthesize feedback.** Compile final review.
 
-      ### Scratchpad Format
+      ### Review Output Format
       ```markdown
       # Code Review: [Scope]
 
@@ -91,7 +90,7 @@ hats:
       6. **Testability** — Is this code testable? Are there tests?
 
       ### Output
-      Add findings to scratchpad under the appropriate category.
+      Add findings to the review output under the appropriate category.
 
       ### DON'T
       - ❌ Modify code

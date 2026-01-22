@@ -34,10 +34,9 @@ cli:
   prompt_mode: "arg"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
-    - "Fresh context each iteration — scratchpad is memory"
+    - "Fresh context each iteration — save learnings to memories for next time"
     - "Backpressure is law — tests/typecheck/lint must pass"
     - "YAGNI ruthlessly — no speculative features"
     - "KISS always — simplest solution that works"
@@ -78,89 +77,20 @@ hats:
       1. Verify directory exists and has `tasks/` subdirectory
       2. List all `.code-task.md` files in `tasks/`
       3. Derive `task_name` from directory name (e.g., `specs/my-feature` → `my-feature`)
-      4. Write scratchpad with frontmatter:
-         ```markdown
-         ---
-         task_name: {task_name}
-         spec_dir: {prompt path}/
-         input_type: pdd
-         status: implementation
-         current_hat: planner
-         ---
-
-         ## Implementation Context
-
-         Input: PDD output directory at {path}
-         Tasks found: {count} code tasks
-         Design: {spec_dir}/design.md (if exists)
-
-         ## Task Queue
-         {list of pending .code-task.md files}
-         ```
-      5. Publish `tasks.ready`
+      4. Publish `tasks.ready` with context about task queue
 
       **For Single Code Task:**
       1. Verify file exists and is readable
       2. Derive `task_name` from filename (e.g., `add-verbose-flag`)
-      3. Write scratchpad:
-         ```markdown
-         ---
-         task_name: {task_name}
-         spec_dir: null
-         input_type: single_task
-         status: implementation
-         current_hat: planner
-         task_file: {prompt path}
-         ---
-
-         ## Implementation Context
-
-         Input: Single code task at {path}
-
-         ## Task Queue
-         - [ ] {task_file}
-         ```
-      4. Publish `tasks.ready`
+      3. Publish `tasks.ready`
 
       **For Rough Description:**
       1. Derive `task_name` from description (kebab-case, e.g., "Add verbose flag" → `add-verbose-flag`)
-      2. Write scratchpad:
-         ```markdown
-         ---
-         task_name: {task_name}
-         spec_dir: null
-         input_type: description
-         status: implementation
-         current_hat: planner
-         ---
-
-         ## Implementation Context
-
-         Input: Direct description
-         Description: {prompt}
-
-         ## Task Queue
-         - [ ] Implement: {prompt}
-         ```
-      3. Publish `tasks.ready`
-
-      ### Event Format
-      ```
-      <event topic="tasks.ready">
-      Implementation context initialized.
-
-      Input type: {pdd | single_task | description}
-      Task name: {task_name}
-      Tasks to implement: {count or "1" or "direct implementation"}
-
-      Ready for Builder to begin.
-      </event>
-      ```
+      2. Publish `tasks.ready`
 
       ### Constraints
       - You MUST NOT start implementing because implementation belongs to the Builder
       - You MUST verify paths exist before assuming they're valid
-      - You MUST write the scratchpad with proper frontmatter for downstream hats
       - You SHOULD fail gracefully if PDD directory is missing expected files
 
   builder:
@@ -175,37 +105,25 @@ hats:
       You write code following strict TDD: RED → GREEN → REFACTOR.
       Tests first, always. Implementation follows tests.
 
-      ### Storage Layout
-      Read from scratchpad frontmatter:
-      - `task_name`: Identifier for tracking
-      - `spec_dir`: Path to specs (may be null for single tasks/descriptions)
-      - `input_type`: pdd | single_task | description
-      - `task_file`: Direct path to task file (for single_task mode)
-
-      Track progress in scratchpad under `## Build Progress`.
-
-      If `spec_dir` exists, also reference:
-      - `{spec_dir}/design.md` — Architecture and component details
-      - `{spec_dir}/context.md` — Codebase patterns to follow
-
       ### Input Type Handling
 
-      **For PDD mode (`input_type: pdd`):**
+      **For PDD mode:**
       - Read task files from `{spec_dir}/tasks/`
+      - Reference `{spec_dir}/design.md` and `{spec_dir}/context.md` for patterns
       - Find next task with `status: pending` in frontmatter
       - Update task frontmatter: `status: in_progress`, `started: YYYY-MM-DD`
       - Implement using TDD
       - Update task frontmatter: `status: completed`, `completed: YYYY-MM-DD`
       - Publish `task.complete` (not `implementation.ready`) until all done
 
-      **For single task mode (`input_type: single_task`):**
-      - Read the task file from `task_file` path in scratchpad
+      **For single task mode:**
+      - Read the task file directly
       - Implement using TDD
       - Update task frontmatter when complete
       - Publish `implementation.ready` (only one task)
 
-      **For description mode (`input_type: description`):**
-      - Read the description from scratchpad
+      **For description mode:**
+      - Read the description from the prompt
       - Explore codebase to understand context
       - Write tests first, then implement
       - No task file to update
@@ -232,52 +150,8 @@ hats:
       2. Apply patterns from codebase context
       3. Run tests again — still green
 
-      ### Track Progress in Scratchpad
-      Update section "## Build Progress":
-      - [x] task-01-{title}: tests passing
-      - [x] task-02-{title}: tests passing
-      - [ ] task-03-{title}: CURRENT
-      - [ ] task-04-{title}: pending
-
       ### If Triggered by validation.failed
-      Read the Validator's feedback in scratchpad.
-      Fix the specific issues identified.
-
-      ### Event Formats
-      After completing ONE task (more tasks remain in PDD mode):
-      ```
-      <event topic="task.complete">
-      Task [task-NN-title] complete. Tests passing.
-
-      Completed: [task description]
-      Files modified: [list]
-      Tests added: [count]
-      Remaining tasks: [count]
-      </event>
-      ```
-
-      When ALL tasks are complete (or single task/description done):
-      ```
-      <event topic="implementation.ready">
-      Implementation complete. All tests passing.
-
-      Tasks completed: [count]
-      Files created/modified: [list]
-      Total tests: [count]
-      Ready for validation.
-      </event>
-      ```
-
-      If blocked and cannot proceed:
-      ```
-      <event topic="build.blocked">
-      Cannot proceed with implementation.
-
-      Blocker: [specific issue]
-      Attempted: [what you tried]
-      Need: [what would unblock]
-      </event>
-      ```
+      Review the Validator's feedback and fix the specific issues identified.
 
       ### Constraints
       - You MUST NOT implement multiple tasks at once in PDD mode
@@ -299,11 +173,6 @@ hats:
       Be thorough, be skeptical, verify everything yourself.
 
       ### Storage Layout
-      Read from scratchpad frontmatter:
-      - `task_name`: What was implemented
-      - `spec_dir`: Path to specs (may be null)
-      - `input_type`: How this was initiated
-
       If `spec_dir` exists, read from `{spec_dir}/`:
       - `plan.md` — E2E test scenario to execute manually
       - `design.md` — Requirements to validate against
@@ -369,39 +238,6 @@ hats:
 
       **FAIL** if ANY check fails.
 
-      ### Event Formats
-      If all validations pass:
-      ```
-      <event topic="validation.passed">
-      All validations passed. Implementation is complete.
-
-      Summary:
-      - Tests: [X] passing
-      - Build: clean
-      - Lint: clean
-      - Code quality: YAGNI ✓, KISS ✓, Idiomatic ✓
-      - E2E test: verified (or N/A)
-
-      Ready for Committer.
-      </event>
-      ```
-
-      If any validation fails:
-      ```
-      <event topic="validation.failed">
-      Validation failed. Returning to Builder.
-
-      Failed checks:
-      - [check name]: [specific failure]
-
-      Required fixes:
-      1. [specific action needed]
-
-      Evidence:
-      [paste relevant error output]
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT skip verification steps
       - You MUST NOT approve with "minor issues to fix later"
@@ -419,12 +255,6 @@ hats:
 
       You create a well-structured git commit after validation passes.
       Follow conventional commit format.
-
-      ### Storage Layout
-      Read from scratchpad frontmatter:
-      - `task_name`: For commit message context
-      - `spec_dir`: For referencing design (if exists)
-      - `input_type`: To understand what was implemented
 
       ### Pre-Commit Checklist
       Before committing, verify:
@@ -461,21 +291,6 @@ hats:
 
       Spec: specs/add-verbose-flag/design.md
       🤖 Assisted by ralph-orchestrator 
-      ```
-
-      ### Event Format
-      ```
-      <event topic="commit.complete">
-      Git commit created successfully.
-
-      Commit: [short hash]
-      Message: [first line of commit message]
-      Files: [count] files changed
-
-      Implementation complete.
-      </event>
-
-      LOOP_COMPLETE
       ```
 
       ### Constraints

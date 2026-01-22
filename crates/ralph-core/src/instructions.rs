@@ -123,7 +123,7 @@ impl InstructionBuilder {
         if !hat.publishes.is_empty() {
             let topics: Vec<&str> = hat.publishes.iter().map(|t| t.as_str()).collect();
             behaviors.push(format!(
-                "**IMPORTANT:** Every iteration MUST publish one of: `{}` or the loop will terminate.",
+                "You MUST publish one of: `{}` every iteration or the loop will terminate.",
                 topics.join("`, `")
             ));
         }
@@ -165,32 +165,40 @@ impl InstructionBuilder {
             (
                 format!("You publish to: {}", topics_list),
                 format!(
-                    "\n\n**You MUST publish one of these events:** {}\nFailure to publish will terminate the loop.",
+                    "\n\nYou MUST publish one of these events: {}\nYou MUST NOT end the iteration without publishing because this will terminate the loop.",
                     topics_backticked
                 ),
             )
         };
 
         format!(
-            r"You are {name}. Fresh context each iteration.
+            r"You are {name}. You have fresh context each iteration.
 
 ### 0. ORIENTATION
-Study the incoming event context.
-Don't assume work isn't done—verify first.
+You MUST study the incoming event context.
+You MUST NOT assume work isn't done — verify first.
 
 ### 1. EXECUTE
 {role_instructions}
-Only 1 subagent for build/tests.
+You MUST NOT use more than 1 subagent for build/tests.
 
-### 2. REPORT
-Publish result event with evidence.
+### 2. VERIFY
+You MUST run tests and verify implementation before reporting done.
+You MUST NOT report completion without evidence (test output, build success).
+You MUST NOT close tasks unless ALL conditions are met:
+- Implementation is actually complete (not partially done)
+- Tests pass (run them and verify output)
+- Build succeeds (if applicable)
+
+### 3. REPORT
+You MUST publish a result event with evidence.
 {publish_topics}{must_publish}
 
 ### GUARDRAILS
 {guardrails}
 
 ---
-INCOMING:
+You MUST handle these events:
 {events}",
             name = hat.name,
             role_instructions = role_instructions,
@@ -211,35 +219,42 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_hat_with_ghuntley_patterns() {
+    fn test_custom_hat_with_rfc2119_patterns() {
         let builder = default_builder("DONE");
         let hat = Hat::new("reviewer", "Code Reviewer")
             .with_instructions("Review PRs for quality and correctness.");
 
         let instructions = builder.build_custom_hat(&hat, "PR #123 ready for review");
 
-        // Custom role with ghuntley style identity
+        // Custom role with RFC2119 style identity
         assert!(instructions.contains("Code Reviewer"));
-        assert!(instructions.contains("Fresh context each iteration"));
+        assert!(instructions.contains("You have fresh context each iteration"));
 
-        // Numbered orientation phase
+        // Numbered orientation phase with RFC2119
         assert!(instructions.contains("### 0. ORIENTATION"));
-        assert!(instructions.contains("Study the incoming event context"));
-        assert!(instructions.contains("Don't assume work isn't done"));
+        assert!(instructions.contains("You MUST study the incoming event context"));
+        assert!(instructions.contains("You MUST NOT assume work isn't done"));
 
-        // Numbered execute phase
+        // Numbered execute phase with RFC2119
         assert!(instructions.contains("### 1. EXECUTE"));
         assert!(instructions.contains("Review PRs for quality"));
-        assert!(instructions.contains("Only 1 subagent for build/tests"));
+        assert!(instructions.contains("You MUST NOT use more than 1 subagent for build/tests"));
 
-        // Report phase
-        assert!(instructions.contains("### 2. REPORT"));
+        // Verify phase with RFC2119 (task completion verification)
+        assert!(instructions.contains("### 2. VERIFY"));
+        assert!(instructions.contains("You MUST run tests and verify implementation"));
+        assert!(instructions.contains("You MUST NOT close tasks unless"));
+
+        // Report phase with RFC2119
+        assert!(instructions.contains("### 3. REPORT"));
+        assert!(instructions.contains("You MUST publish a result event"));
 
         // Guardrails section with high numbers
         assert!(instructions.contains("### GUARDRAILS"));
         assert!(instructions.contains("999."));
 
-        // Event context is included
+        // Event context is included with RFC2119 directive
+        assert!(instructions.contains("You MUST handle these events"));
         assert!(instructions.contains("PR #123 ready for review"));
     }
 
@@ -275,14 +290,14 @@ mod tests {
 
         let instructions = builder.build_custom_hat(&hat, "PR #123 ready");
 
-        // Must-publish rule should be injected even with explicit instructions
+        // Must-publish rule should be injected even with explicit instructions (RFC2119)
         assert!(
             instructions.contains("You MUST publish one of these events"),
             "Must-publish rule should be injected for custom hats with publishes"
         );
         assert!(instructions.contains("`review.approved`"));
         assert!(instructions.contains("`review.changes_requested`"));
-        assert!(instructions.contains("Failure to publish will terminate the loop"));
+        assert!(instructions.contains("You MUST NOT end the iteration without publishing"));
     }
 
     #[test]
@@ -294,9 +309,11 @@ mod tests {
         let instructions = builder.build_custom_hat(&hat, "Observe this");
 
         // No must-publish rule when hat has no publishes
+        // Note: The prompt says "You MUST publish a result event" in the REPORT section,
+        // but the specific "You MUST publish one of these events:" list should not appear
         assert!(
-            !instructions.contains("You MUST publish"),
-            "Must-publish rule should NOT be injected when hat has no publishes"
+            !instructions.contains("You MUST publish one of these events"),
+            "Specific must-publish list should NOT be injected when hat has no publishes"
         );
     }
 

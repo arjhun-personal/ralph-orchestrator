@@ -69,7 +69,9 @@ See [AGENTS.md](AGENTS.md) for the full philosophy.
 - **Event-Driven Coordination** — Hats communicate through typed events with glob pattern matching
 - **Backpressure Enforcement** — Gates that reject incomplete work (tests, lint, typecheck)
 - **Presets Library** — 20+ pre-configured workflows for common development patterns
-- **Interactive TUI** — Real-time terminal UI for monitoring Ralph's activity (experimental)
+- **Interactive TUI** — Real-time terminal UI for monitoring Ralph's activity (enabled by default)
+- **Memories** — Persistent learning across sessions stored in `.agent/memories.md`
+- **Tasks** — Runtime work tracking stored in `.agent/tasks.jsonl`
 - **Session Recording** — Record and replay sessions for debugging and testing (experimental)
 
 ## Installation
@@ -195,17 +197,17 @@ ralph run -p "Add input validation to the user API endpoints"
 ### 3. Run Ralph
 
 ```bash
-# Autonomous mode (headless, default)
+# TUI mode (default) — real-time terminal UI for monitoring
 ralph run
 
 # With inline prompt
 ralph run -p "Implement the login endpoint with JWT authentication"
 
-# TUI mode (experimental)
-ralph run --tui
+# Headless mode (no TUI)
+ralph run --no-tui
 
 # Resume interrupted session
-ralph resume
+ralph run --continue
 
 # Dry run (show what would execute)
 ralph run --dry-run
@@ -303,6 +305,15 @@ core:
     - "Don't assume 'not implemented' - search first"
     - "Backpressure is law - tests/typecheck/lint must pass"
 
+# Memories — persistent learning across sessions (enabled by default)
+memories:
+  enabled: true                         # Set false to disable
+  inject: auto                          # auto, manual, or none
+
+# Tasks — runtime work tracking (enabled by default)
+tasks:
+  enabled: true                         # Set false to use scratchpad-only mode
+
 # Custom hats (omit to use default planner/builder)
 hats:
   my_hat:
@@ -396,9 +407,26 @@ View event history:
 ralph events
 ```
 
-### Scratchpad
+### Memories and Tasks
 
-All hats share `.agent/scratchpad.md` — persistent memory across iterations. This enables hats to build on previous work rather than starting fresh.
+Ralph uses two complementary systems for persistent state (both enabled by default):
+
+**Memories** (`.agent/memories.md`) — Accumulated wisdom across sessions:
+- Codebase patterns and conventions discovered
+- Architectural decisions and rationale
+- Recurring problem solutions (fixes)
+- Project-specific context
+
+**Tasks** (`.agent/tasks.jsonl`) — Runtime work tracking:
+- Create, list, and close tasks during orchestration
+- Track dependencies between tasks
+- Used for loop completion verification
+
+When memories and tasks are enabled, they replace the scratchpad for state management. Set `memories.enabled: false` and `tasks.enabled: false` to use the legacy scratchpad-only mode.
+
+### Scratchpad (Legacy Mode)
+
+When memories/tasks are disabled, all hats share `.agent/scratchpad.md` — persistent memory across iterations. This enables hats to build on previous work rather than starting fresh.
 
 The scratchpad is the primary mechanism for:
 - Task tracking (with `[ ]`, `[x]`, `[~]` markers)
@@ -427,6 +455,7 @@ tests: pass, lint: pass, typecheck: pass
 | `ralph init` | Initialize configuration file |
 | `ralph clean` | Clean up `.agent/` directory |
 | `ralph emit` | Emit an event to the event log |
+| `ralph tools` | Runtime tools for memories and tasks (agent-facing) |
 
 ### Global Options
 
@@ -445,11 +474,12 @@ tests: pass, lint: pass, typecheck: pass
 | `--max-iterations <N>` | Override max iterations |
 | `--completion-promise <TEXT>` | Override completion trigger |
 | `--dry-run` | Show what would execute |
-| `--tui` | Enable TUI mode (experimental) |
+| `--no-tui` | Disable TUI mode (TUI is enabled by default) |
 | `-a, --autonomous` | Force headless mode |
 | `--idle-timeout <SECS>` | TUI idle timeout (default: 30) |
 | `--record-session <FILE>` | Record session to JSONL |
 | `-q, --quiet` | Suppress output (for CI) |
+| `--continue` | Resume from existing scratchpad |
 
 ### `ralph init` Options
 
@@ -474,9 +504,29 @@ tests: pass, lint: pass, typecheck: pass
 | `<INPUT>` | Optional description text or path to PDD plan file |
 | `-b, --backend <BACKEND>` | Backend to use (overrides config and auto-detection) |
 
+### `ralph tools` Subcommands
+
+The `tools` command provides agent-facing utilities for runtime state management:
+
+```bash
+# Memory management (persistent learning)
+ralph tools memory add "content" -t pattern --tags tag1,tag2
+ralph tools memory search "query"
+ralph tools memory list
+ralph tools memory show <id>
+ralph tools memory delete <id>
+
+# Task management (runtime tracking)
+ralph tools task add "Title" -p 2              # Create task (priority 1-5)
+ralph tools task add "X" --blocked-by Y        # With dependency
+ralph tools task list                           # All tasks
+ralph tools task ready                          # Unblocked tasks only
+ralph tools task close <id>                     # Mark complete
+```
+
 ## Architecture
 
-Ralph is organized as a Cargo workspace with six crates:
+Ralph is organized as a Cargo workspace with seven crates:
 
 | Crate | Purpose |
 |-------|---------|
@@ -485,6 +535,7 @@ Ralph is organized as a Cargo workspace with six crates:
 | `ralph-adapters` | CLI backend integrations (Claude, Kiro, Gemini, etc.) |
 | `ralph-tui` | Terminal UI with ratatui |
 | `ralph-cli` | Binary entry point and CLI parsing |
+| `ralph-e2e` | End-to-end test harness for backend validation |
 | `ralph-bench` | Benchmarking harness (dev-only) |
 
 ## Building & Testing

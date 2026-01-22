@@ -5,6 +5,62 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 // ============================================================================
+// TaskSummary - Summary of a single task for TUI display
+// ============================================================================
+
+/// Summary of a task for TUI display.
+/// Contains only the fields needed for rendering.
+#[derive(Debug, Clone, Default)]
+pub struct TaskSummary {
+    /// Task identifier (e.g., "task-1737372000-a1b2").
+    pub id: String,
+    /// Task title/description.
+    pub title: String,
+    /// Task status (e.g., "open", "closed", "blocked").
+    pub status: String,
+}
+
+impl TaskSummary {
+    /// Creates a new task summary.
+    pub fn new(id: impl Into<String>, title: impl Into<String>, status: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            title: title.into(),
+            status: status.into(),
+        }
+    }
+}
+
+// ============================================================================
+// TaskCounts - Aggregate task statistics for TUI display
+// ============================================================================
+
+/// Aggregate task statistics for TUI display.
+#[derive(Debug, Clone, Default)]
+pub struct TaskCounts {
+    /// Total number of tasks.
+    pub total: usize,
+    /// Number of open tasks.
+    pub open: usize,
+    /// Number of closed tasks.
+    pub closed: usize,
+    /// Number of ready (unblocked) tasks.
+    pub ready: usize,
+}
+
+impl TaskCounts {
+    /// Creates new task counts.
+    pub fn new(total: usize, open: usize, closed: usize, ready: usize) -> Self {
+        Self {
+            total,
+            open,
+            closed,
+            ready,
+        }
+    }
+}
+
+// ============================================================================
 // SearchState - Search functionality for TUI content
 // ============================================================================
 
@@ -94,6 +150,16 @@ pub struct TuiState {
     // ========================================================================
     /// Whether the loop has completed (received loop.terminate event).
     pub loop_completed: bool,
+    /// Frozen elapsed time when loop completed (timer stops at this value).
+    pub final_iteration_elapsed: Option<Duration>,
+
+    // ========================================================================
+    // Task Tracking State
+    // ========================================================================
+    /// Aggregate task counts for display in TUI widgets.
+    pub task_counts: TaskCounts,
+    /// Currently active task (if any) for display in TUI widgets.
+    pub active_task: Option<TaskSummary>,
 }
 
 impl TuiState {
@@ -123,6 +189,10 @@ impl TuiState {
             search_state: SearchState::new(),
             // Completion state
             loop_completed: false,
+            final_iteration_elapsed: None,
+            // Task tracking state
+            task_counts: TaskCounts::default(),
+            active_task: None,
         }
     }
 
@@ -153,6 +223,10 @@ impl TuiState {
             search_state: SearchState::new(),
             // Completion state
             loop_completed: false,
+            final_iteration_elapsed: None,
+            // Task tracking state
+            task_counts: TaskCounts::default(),
+            active_task: None,
         }
     }
 
@@ -206,6 +280,8 @@ impl TuiState {
             "loop.terminate" => {
                 self.pending_hat = None;
                 self.loop_completed = true;
+                // Freeze the iteration timer at its current value
+                self.final_iteration_elapsed = self.iteration_started.map(|start| start.elapsed());
             }
             _ => {
                 // Unknown topic - don't change pending_hat
@@ -225,8 +301,12 @@ impl TuiState {
         self.loop_started.map(|start| start.elapsed())
     }
 
-    /// Time since iteration started.
+    /// Time since iteration started, or frozen value if loop completed.
     pub fn get_iteration_elapsed(&self) -> Option<Duration> {
+        // Return frozen elapsed time if loop has completed
+        if let Some(final_elapsed) = self.final_iteration_elapsed {
+            return Some(final_elapsed);
+        }
         self.iteration_started.map(|start| start.elapsed())
     }
 
@@ -239,6 +319,47 @@ impl TuiState {
     /// True if iteration changed since last check.
     pub fn iteration_changed(&self) -> bool {
         self.iteration != self.prev_iteration
+    }
+
+    // ========================================================================
+    // Task Tracking Methods
+    // ========================================================================
+
+    /// Returns a reference to the current task counts.
+    pub fn get_task_counts(&self) -> &TaskCounts {
+        &self.task_counts
+    }
+
+    /// Returns a reference to the active task, if any.
+    pub fn get_active_task(&self) -> Option<&TaskSummary> {
+        self.active_task.as_ref()
+    }
+
+    /// Updates the task counts.
+    pub fn set_task_counts(&mut self, counts: TaskCounts) {
+        self.task_counts = counts;
+    }
+
+    /// Sets the active task.
+    pub fn set_active_task(&mut self, task: Option<TaskSummary>) {
+        self.active_task = task;
+    }
+
+    /// Returns true if there are any open tasks.
+    pub fn has_open_tasks(&self) -> bool {
+        self.task_counts.open > 0
+    }
+
+    /// Returns a formatted string for task progress display (e.g., "3/5 tasks").
+    pub fn get_task_progress_display(&self) -> String {
+        if self.task_counts.total == 0 {
+            "No tasks".to_string()
+        } else {
+            format!(
+                "{}/{} tasks",
+                self.task_counts.closed, self.task_counts.total
+            )
+        }
     }
 
     // ========================================================================
@@ -281,6 +402,18 @@ impl TuiState {
         self.iterations
             .get(self.current_view)
             .map(|buffer| buffer.lines_handle())
+    }
+
+    /// Returns a shared handle to the latest iteration's lines buffer.
+    ///
+    /// This should be used when writing output from the currently executing
+    /// iteration, regardless of which iteration the user is viewing.
+    /// This prevents output from being written to the wrong iteration when
+    /// the user is reviewing an older iteration.
+    pub fn latest_iteration_lines_handle(
+        &self,
+    ) -> Option<std::sync::Arc<std::sync::Mutex<Vec<Line<'static>>>>> {
+        self.iterations.last().map(|buffer| buffer.lines_handle())
     }
 
     /// Navigates to the next iteration (if not at the last one).
@@ -975,6 +1108,37 @@ mod tests {
         );
     }
 
+    #[test]
+    fn loop_terminate_freezes_iteration_timer() {
+        // Given a running iteration with elapsed time
+        let mut state = TuiState::new();
+        let start_event = Event::new("build.task", "");
+        state.update(&start_event);
+
+        // Verify timer is running
+        assert!(state.iteration_started.is_some());
+        let elapsed_before = state.get_iteration_elapsed().unwrap();
+        assert!(elapsed_before.as_nanos() > 0);
+
+        // When loop.terminate is received
+        let terminate_event = Event::new("loop.terminate", "");
+        state.update(&terminate_event);
+
+        // Then the timer is frozen
+        assert!(state.loop_completed);
+        assert!(state.final_iteration_elapsed.is_some());
+
+        // The elapsed time should be frozen (not increasing)
+        let frozen_elapsed = state.get_iteration_elapsed().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let elapsed_after_sleep = state.get_iteration_elapsed().unwrap();
+
+        assert_eq!(
+            frozen_elapsed, elapsed_after_sleep,
+            "Timer should be frozen after loop.terminate"
+        );
+    }
+
     // ========================================================================
     // TuiState Iteration Management Tests
     // ========================================================================
@@ -1568,6 +1732,99 @@ mod tests {
             let buffer = state.current_iteration().unwrap();
             // Match at line 30, scroll should be adjusted
             assert!(buffer.scroll_offset <= 30, "scroll should show line 30");
+        }
+
+        #[test]
+        fn latest_iteration_lines_handle_returns_newest_iteration() {
+            // Given a user viewing iteration 1 while iteration 3 is executing
+            let mut state = TuiState::new();
+            state.start_new_iteration(); // iteration 1
+            state.start_new_iteration(); // iteration 2
+            state.start_new_iteration(); // iteration 3
+
+            // User navigates back to iteration 1
+            state.current_view = 0;
+            state.following_latest = false;
+
+            // When getting line handles
+            let current_handle = state.current_iteration_lines_handle();
+            let latest_handle = state.latest_iteration_lines_handle();
+
+            // Then current_iteration_lines_handle returns iteration 1's buffer
+            assert!(current_handle.is_some());
+            // And latest_iteration_lines_handle returns iteration 3's buffer
+            assert!(latest_handle.is_some());
+
+            // Write to latest and verify it doesn't affect current view
+            {
+                let latest = latest_handle.unwrap();
+                latest
+                    .lock()
+                    .unwrap()
+                    .push(Line::from("output from iteration 3"));
+            }
+
+            // Current view (iteration 1) should be empty
+            let current = state.current_iteration().unwrap();
+            assert_eq!(
+                current.lines.lock().unwrap().len(),
+                0,
+                "iteration 1 should have no lines"
+            );
+
+            // Latest (iteration 3) should have the output
+            let latest_buffer = state.iterations.last().unwrap();
+            assert_eq!(
+                latest_buffer.lines.lock().unwrap().len(),
+                1,
+                "iteration 3 should have the output"
+            );
+        }
+
+        #[test]
+        fn output_goes_to_correct_iteration_when_user_reviewing_history() {
+            // This reproduces the bug: user is on page 3 of 6, but active agent writes to page 3
+            let mut state = TuiState::new();
+
+            // Create 6 iterations
+            for _ in 0..6 {
+                state.start_new_iteration();
+            }
+
+            // User navigates to iteration 3 (index 2)
+            state.current_view = 2;
+            state.following_latest = false;
+
+            // New iteration starts (iteration 7)
+            state.start_new_iteration();
+
+            // Get handle for writing output - MUST use latest, not current
+            let lines_handle = state.latest_iteration_lines_handle();
+
+            // Write output
+            {
+                let handle = lines_handle.unwrap();
+                handle
+                    .lock()
+                    .unwrap()
+                    .push(Line::from("iteration 7 output"));
+            }
+
+            // Verify: iteration 3 (what user is viewing) should be unaffected
+            let iteration_3 = &state.iterations[2];
+            assert_eq!(
+                iteration_3.lines.lock().unwrap().len(),
+                0,
+                "iteration 3 (being viewed) should have no output"
+            );
+
+            // Verify: iteration 7 (latest) should have the output
+            let iteration_7 = state.iterations.last().unwrap();
+            assert_eq!(
+                iteration_7.lines.lock().unwrap().len(),
+                1,
+                "iteration 7 (latest) should have the output"
+            );
         }
     }
 }

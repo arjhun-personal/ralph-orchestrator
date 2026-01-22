@@ -1,6 +1,8 @@
-Study ralph orchestrator.
+prepare for a 2.2.0 releaae.
 
-Create a more complicated test scenario to ensure that memories+tasks work together, across multiple ralph loops that build on eachother. 
-Add it to the e2e test crate. 
+validate functionality, documentation is up to date, etc.
 
-The scenario should be a generic software engineering task, each loop adding another piece of functionality.
+IMPORTANT:
+you must validate with real manual tests.
+once everything is complete commit and pr. do not include ephemeral files.
+you must perform a comprehensive documentation review and update.

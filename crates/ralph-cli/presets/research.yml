@@ -19,7 +19,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -36,7 +35,7 @@ hats:
       ### Process
       1. **Scope the question.** What exactly are we trying to learn?
       2. **Search broadly.** Use grep, find, read files. Follow the trail.
-      3. **Document findings.** Update scratchpad with discoveries.
+      3. **Document findings.** Record discoveries as you go.
       4. **Identify gaps.** What's still unclear? Publish `research.followup` if needed.
 
       ### Scratchpad Format
@@ -77,11 +76,11 @@ hats:
 
       Review findings and create coherent summary.
 
-      1. Read all findings in scratchpad
+      1. Read all findings from research
       2. Identify patterns and connections
       3. Note contradictions or gaps
       4. If gaps exist, publish `research.followup`
-      5. If complete, update Summary section
+      5. If complete, provide Summary
 
       ### DON'T
       - ❌ Do new research (that's researcher's job)

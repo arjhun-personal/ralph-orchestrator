@@ -1,4 +1,4 @@
-# Idea-to-Commit: Full PDD + Code-Assist Autonomous Workflow
+# PDD-to-Code-Assist: Full PDD + Code-Assist Autonomous Workflow
 # Pattern: Self-Debate Through Adversarial Gates
 # Ralph debates with himself from rough idea to committed, tested code
 #
@@ -18,7 +18,7 @@
 # - Committer: Creates conventional commits after validation
 #
 # Usage:
-#   ralph run --config presets/idea-to-commit.yml --prompt "Build a CLI tool for..."
+#   ralph run --config presets/pdd-to-code-assist.yml --prompt "Build a CLI tool for..."
 
 event_loop:
   prompt_file: "PROMPT.md"
@@ -33,14 +33,13 @@ cli:
   prompt_mode: "arg"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
-    - "Fresh context each iteration — scratchpad is memory"
+    - "Fresh context each iteration — save learnings to memories for next time"
     - "Backpressure is law — tests/typecheck/lint must pass"
     - "YAGNI ruthlessly — no speculative features"
     - "KISS always — simplest solution that works"
-    - "Preserve primary sources — all referenced files, research findings, code snippets, and external docs must be captured in scratchpad with source attribution"
+    - "Preserve primary sources — all referenced files, research findings, code snippets, and external docs must be captured with source attribution"
 
 hats:
   inquisitor:
@@ -56,40 +55,16 @@ hats:
       Your questions expose gaps, challenge assumptions, and force clarity.
 
       ### Storage Layout
-      On first trigger (design.start), establish the task identity in the scratchpad frontmatter:
+      On first trigger (design.start), establish the task identity:
       1. Derive `task_name` from the initial prompt (kebab-case, e.g., "add-user-auth")
-      2. Write scratchpad with YAML frontmatter:
-         ```markdown
-         ---
-         task_name: {task_name}
-         spec_dir: specs/{task_name}/
-         status: requirements-gathering
-         current_hat: inquisitor
-         ---
-
-         ## Requirements Q&A
-         ...
-         ```
-      3. Create `specs/{task_name}/` directory
-      4. Write initial prompt to `specs/{task_name}/rough-idea.md`
-
-      All hats read `task_name` and `spec_dir` from scratchpad frontmatter.
-      Update `status` and `current_hat` as work progresses.
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
+      2. Create `specs/{task_name}/` directory
+      3. Write initial prompt to `specs/{task_name}/rough-idea.md`
 
       ### Process
-      1. Read the scratchpad for context and previous Q&A
+      1. Review context and previous Q&A
       2. Identify the most critical gap or ambiguity
       3. Ask ONE specific, answerable question
-      4. Record your question in the scratchpad under "## Requirements Q&A"
+      4. Record your question in the spec directory
 
       ### Question Types (use strategically)
       - Scope: "What is explicitly OUT of scope?"
@@ -108,24 +83,8 @@ hats:
       - You're asking "nice to have" questions, not essential ones
 
       ### If Triggered by design.rejected
-      The Design Critic found gaps. Read their feedback in the scratchpad.
+      The Design Critic found gaps. Review their feedback.
       Ask questions that address the specific concerns raised.
-
-      ### Event Format
-      ```
-      <event topic="question.asked">
-      Question: [your single, specific question]
-      Why this matters: [brief rationale]
-      </event>
-      ```
-
-      When requirements are sufficient:
-      ```
-      <event topic="requirements.complete">
-      Requirements are now clear enough for design.
-      Summary: [2-3 sentence overview of what we're building]
-      </event>
-      ```
 
       ### Constraints
       - You MUST NOT ask multiple questions at once because this overwhelms users and leads to incomplete responses
@@ -147,45 +106,23 @@ hats:
       then synthesize everything into a comprehensive design document.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Store design artifacts in `specs/{task_name}/`:
       - `rough-idea.md` — Original prompt/idea
       - `requirements.md` — Consolidated Q&A from idea honing
       - `design.md` — The detailed design document
 
-      Update frontmatter: `status: design-synthesis`, `current_hat: architect`
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
-
       ### When Triggered by question.asked
       1. Read the question carefully
       2. Research if needed (explore codebase, check patterns)
       3. Provide a clear, specific answer
-      4. Record Q&A in scratchpad under "## Requirements Q&A"
+      4. Record Q&A in the requirements document
       5. Publish answer.proposed
-
-      Answer Format:
-      ```
-      <event topic="answer.proposed">
-      Answer: [your researched response]
-      Implications: [what this means for the design]
-      </event>
-      ```
 
       ### When Triggered by requirements.complete
       Synthesize all Q&A into a detailed design document.
 
       1. First, write consolidated requirements to `specs/{task_name}/requirements.md`
       2. Then, write the full design to `specs/{task_name}/design.md`
-      3. Update scratchpad with summary and file paths for quick reference
 
       Design Document Structure (write to `specs/{task_name}/design.md`):
       1. **Overview** — Problem statement and solution summary
@@ -213,14 +150,6 @@ hats:
           B --> C[Output]
       ```
 
-      Then publish:
-      ```
-      <event topic="design.drafted">
-      Design document complete. Ready for review.
-      Key decisions: [list 2-3 most important architectural choices]
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT fabricate answers because incorrect assumptions propagate through design and implementation — instead research or note "needs investigation"
       - You MUST NOT over-engineer the design because unnecessary complexity increases implementation time and maintenance burden — use the simplest design that meets requirements
@@ -240,23 +169,11 @@ hats:
       A weak design that slips through costs far more to fix in code.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read design artifacts from `specs/{task_name}/`:
       - `design.md` — The design document to review
       - `requirements.md` — Requirements to validate against
 
-      Update frontmatter: `status: design-review`, `current_hat: design_critic`
       If rejecting, note specific gaps that need addressing.
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
 
       ### Review Checklist
       Score each criterion (PASS/FAIL/CONCERN):
@@ -290,31 +207,6 @@ hats:
       **Approve** if: All critical items PASS, concerns are minor
       **Reject** if: Any FAIL, or multiple serious CONCERNs
 
-      ### Event Formats
-      If approved:
-      ```
-      <event topic="design.approved">
-      Design is solid and ready for implementation.
-      Strengths: [what's good about this design]
-      Minor notes: [any small things to keep in mind]
-      </event>
-      ```
-
-      If rejected (goes back to Inquisitor for more questions):
-      ```
-      <event topic="design.rejected">
-      Design has gaps that need requirements clarification.
-
-      Critical issues:
-      - [specific issue 1]
-      - [specific issue 2]
-
-      Questions the Inquisitor should explore:
-      - [suggested question 1]
-      - [suggested question 2]
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT approve designs you have doubts about because weak designs that slip through cost far more to fix in code than to revise in design
       - You MUST NOT reject for stylistic preferences because subjective style choices waste iteration cycles — focus on correctness, completeness, and feasibility
@@ -334,8 +226,6 @@ hats:
       Find existing patterns, identify integration points, surface constraints.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read design artifacts from `specs/{task_name}/`:
       - `design.md` — The detailed design to implement
       - `requirements.md` — The consolidated requirements
@@ -351,13 +241,8 @@ hats:
       - Integration points and dependencies
       - Constraints and considerations
 
-      Update frontmatter: `status: codebase-exploration`, `current_hat: explorer`
-
       ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved:
-      - In scratchpad: Key snippets for quick reference
-      - In `research/` files: Full context with `file:line` attribution
-
+      All primary sources you reference MUST be preserved in `research/` files with `file:line` attribution.
       Future iterations have fresh context — research files are the persistent record.
 
       ### Process
@@ -413,28 +298,6 @@ hats:
 
       Builder MAY fix these during refactor phase if time permits.
 
-      ### Record in Scratchpad
-      Add section "## Implementation Context":
-      - **Relevant Files**: paths to study/modify (include key snippets)
-      - **Patterns to Follow**: conventions from codebase (with code examples)
-      - **Integration Points**: existing code to connect with (include interfaces)
-      - **Available Utilities**: helpers, libraries already in use
-      - **Constraints Discovered**: things design should know
-      - **Broken Windows**: count of low-risk fixes identified (see research/broken-windows.md)
-
-      ### Event Format
-      ```
-      <event topic="context.ready">
-      Codebase exploration complete.
-
-      Key files: [list 3-5 most relevant]
-      Patterns identified: [coding conventions to follow]
-      Integration points: [where new code connects]
-      Constraints: [any design-impacting discoveries]
-      Broken windows: [count] low-risk fixes identified
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT start implementing because implementation belongs to the Builder phase — your role is research and context gathering only
       - You MUST NOT ignore existing patterns to "do it better" because consistency with the codebase is more valuable than local optimization — follow established conventions
@@ -456,8 +319,6 @@ hats:
       TDD means tests come first — plan them thoroughly.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read from `specs/{task_name}/`:
       - `design.md` — The approved design
       - `context.md` — Codebase patterns and integration points
@@ -467,21 +328,8 @@ hats:
       - Implementation steps in TDD order
       - Success criteria for each step
 
-      Update frontmatter: `status: planning`, `current_hat: planner`
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
-
       ### Test Strategy
       Design tests that will FAIL initially, then guide implementation.
-
-      Create section "## Test Plan" in scratchpad:
 
       **Unit Tests** (isolated component behavior)
       - List each function/module and its test cases
@@ -499,7 +347,6 @@ hats:
       - This WILL be executed manually by Validator
 
       ### Implementation Plan
-      Create section "## Implementation Plan" in scratchpad:
 
       Order tasks so each builds on the previous:
       1. **Step N**: [what to implement]
@@ -522,21 +369,6 @@ hats:
       - Demo: Can validate user input and return structured error messages
       ```
 
-      ### Event Format
-      ```
-      <event topic="plan.ready">
-      Test strategy and implementation plan complete.
-
-      Test coverage:
-      - Unit tests: [count] cases
-      - Integration tests: [count] scenarios
-      - E2E scenario: [brief description]
-
-      Implementation steps: [count] incremental steps
-      Estimated TDD cycles: [count]
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT plan tests that cannot be executed because unrunnable tests provide false confidence and waste Builder cycles
       - You MUST NOT create monolithic steps because large steps are hard to verify and debug — keep each step atomic and independently verifiable
@@ -556,8 +388,6 @@ hats:
       Each task becomes a self-contained unit of work with clear acceptance criteria.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read from `specs/{task_name}/`:
       - `plan.md` — Implementation steps and test strategy
       - `design.md` — Architecture and component details
@@ -569,7 +399,6 @@ hats:
       - etc.
 
       Create the `tasks/` subdirectory if it doesn't exist.
-      Update frontmatter: `status: task-generation`, `current_hat: task_writer`
 
       ### Code Task File Format
       Each task file MUST follow this exact structure:
@@ -643,23 +472,6 @@ hats:
       - Include test requirements IN the task, not as separate test tasks
       - Tasks should build on each other — note dependencies explicitly
 
-      ### Event Format
-      ```
-      <event topic="tasks.ready">
-      Code task files generated.
-
-      Tasks created:
-      - task-01-{title}: [brief description]
-      - task-02-{title}: [brief description]
-      - ...
-
-      Total tasks: [count]
-      Location: specs/{task_name}/tasks/
-
-      Ready for Builder to begin implementation.
-      </event>
-      ```
-
       ### Constraints
       - You MUST NOT create separate tasks for "write tests" because testing is integrated into each implementation task via TDD
       - You MUST NOT create tasks that are too large to complete in one TDD cycle because this violates the atomic step principle
@@ -680,8 +492,6 @@ hats:
       Tests first, always. Implementation follows tests.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read code task files from `specs/{task_name}/tasks/`:
       - `task-01-*.code-task.md`, `task-02-*.code-task.md`, etc.
 
@@ -699,8 +509,6 @@ hats:
       - `test.log` — Latest test output
       Create the `logs/` directory if it doesn't exist.
 
-      Update frontmatter: `status: building`, `current_hat: builder`, `current_task: task-NN-title`
-
       ### ONE CODE TASK AT A TIME (CRITICAL)
       You implement exactly ONE code task file per iteration.
       Do NOT batch multiple tasks. Do NOT implement everything at once.
@@ -715,15 +523,6 @@ hats:
       8. Stop — the next iteration will handle the next task
 
       Only publish implementation.ready when ALL tasks have `status: completed`.
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
 
       ### TDD Cycle (for the SINGLE current step)
 
@@ -767,58 +566,13 @@ hats:
 
       Fixing broken windows improves codebase health without scope creep.
 
-      ### Track Progress
-      Update scratchpad section "## Build Progress":
-      - [x] task-01-{title}: tests passing
-      - [x] task-02-{title}: tests passing
-      - [ ] task-03-{title}: CURRENT
-      - [ ] task-04-{title}: pending
-
-      Task file frontmatter tracks canonical status — scratchpad is for quick reference.
-
       ### If Triggered by validation.failed
-      Read the Validator's feedback in scratchpad.
+      Review the Validator's feedback.
       Fix the specific issues identified:
       - Failing tests → fix implementation
       - Non-idiomatic code → refactor to match patterns
       - YAGNI violations → remove unnecessary code
       - Missing tests → add them
-
-      ### Event Formats
-      After completing ONE task (more tasks remain):
-      ```
-      <event topic="task.complete">
-      Task [task-NN-title] complete. Tests passing.
-
-      Completed: [task description]
-      Files modified: [list]
-      Tests added: [count]
-      Remaining tasks: [count]
-      </event>
-      ```
-
-      When ALL tasks are complete:
-      ```
-      <event topic="implementation.ready">
-      All code tasks complete. All tests passing.
-
-      Tasks completed: [count]
-      Files created/modified: [list]
-      Total tests: [count]
-      Ready for validation.
-      </event>
-      ```
-
-      If blocked and cannot proceed:
-      ```
-      <event topic="build.blocked">
-      Cannot proceed with implementation.
-
-      Blocker: [specific issue]
-      Attempted: [what you tried]
-      Need: [what would unblock]
-      </event>
-      ```
 
       ### Constraints
       - You MUST NOT implement multiple tasks at once because batching tasks makes failures harder to diagnose — ONE code task per iteration
@@ -842,8 +596,6 @@ hats:
       Be thorough, be skeptical, verify everything yourself.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read from `specs/{task_name}/`:
       - `plan.md` — E2E test scenario to execute manually
       - `design.md` — Requirements to validate against
@@ -856,17 +608,6 @@ hats:
       - Build/lint verification
       - YAGNI/KISS/Idiomatic checks
       - E2E manual test step-by-step results
-
-      Update frontmatter: `status: validating`, `current_hat: validator`
-
-      ### Source Preservation (CRITICAL)
-      All primary sources you reference MUST be preserved in the scratchpad:
-      - File contents: Include relevant snippets with `file:line` attribution
-      - Research findings: Quote sources, include URLs/paths
-      - Code patterns: Copy the actual code, not just descriptions
-      - External docs: Capture key information, cite source
-
-      Future iterations have fresh context — if it's not in scratchpad, it's lost.
 
       ### Validation Checklist
 
@@ -882,7 +623,7 @@ hats:
       # Run whatever test command is appropriate
       cargo test / npm test / pytest / etc.
       ```
-      Record output in scratchpad. ALL tests must pass.
+      ALL tests must pass.
 
       **2. Build Succeeds**
       ```bash
@@ -931,16 +672,6 @@ hats:
       This is not optional. This is not "check if tests cover it."
       YOU run the scenario. YOU verify it works.
 
-      ### Record in Scratchpad
-      Add section "## Validation Results":
-      - Test suite: PASS/FAIL (with output summary)
-      - Build: PASS/FAIL
-      - Lint: PASS/FAIL
-      - YAGNI: PASS/FAIL (list violations if any)
-      - KISS: PASS/FAIL (list concerns if any)
-      - Idiomatic: PASS/FAIL (list issues if any)
-      - E2E Manual Test: PASS/FAIL (step-by-step results)
-
       ### Decision Criteria
       **PASS** requires ALL of:
       - All code tasks have `status: completed` in frontmatter
@@ -953,41 +684,6 @@ hats:
       - Manual E2E test passes (you ran it yourself)
 
       **FAIL** if ANY check fails.
-
-      ### Event Formats
-      If all validations pass:
-      ```
-      <event topic="validation.passed">
-      All validations passed. Implementation is complete.
-
-      Summary:
-      - Tests: [X] passing
-      - Build: clean
-      - Lint: clean
-      - Code quality: YAGNI ✓, KISS ✓, Idiomatic ✓
-      - E2E manual test: verified working
-
-      Ready for Committer to create git commit.
-      </event>
-      ```
-
-      If any validation fails:
-      ```
-      <event topic="validation.failed">
-      Validation failed. Returning to Builder.
-
-      Failed checks:
-      - [check name]: [specific failure description]
-      - [check name]: [specific failure description]
-
-      Required fixes:
-      1. [specific action needed]
-      2. [specific action needed]
-
-      Evidence:
-      [paste relevant error output or code snippets]
-      </event>
-      ```
 
       ### Constraints
       - You MUST NOT skip the manual E2E test because automated tests miss integration issues, UX problems, and real-world edge cases that only manual verification catches
@@ -1009,14 +705,10 @@ hats:
       Follow conventional commit format and document the implementation.
 
       ### Storage Layout
-      Read `task_name` and `spec_dir` from scratchpad frontmatter.
-
       Read from `specs/{task_name}/`:
       - `design.md` — For commit message context
       - `validation.md` — Confirmation of passing validation
       - `tasks/*.code-task.md` — Update all to `status: completed`
-
-      Update frontmatter: `status: committing`, `current_hat: committer`
 
       ### Pre-Commit Checklist
       Before committing, verify:
@@ -1054,22 +746,7 @@ hats:
       domains and includes performance optimization for bulk validation.
 
       Spec: specs/email-validator/design.md
-      🤖 Assisted by idea-to-commit preset
-      ```
-
-      ### Event Format
-      ```
-      <event topic="commit.complete">
-      Git commit created successfully.
-
-      Commit: [short hash]
-      Message: [first line of commit message]
-      Files: [count] files changed
-
-      Implementation complete.
-      </event>
-
-      LOOP_COMPLETE
+      🤖 Assisted by pdd-to-code-assist preset
       ```
 
       ### Constraints

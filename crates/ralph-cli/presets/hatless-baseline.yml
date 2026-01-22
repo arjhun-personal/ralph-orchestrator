@@ -4,7 +4,7 @@
 # Use this as a baseline to distinguish core loop issues from hat-specific bugs.
 #
 # Behavior: Ralph works directly without delegating to specialized hats.
-# This validates: event loop, scratchpad, completion detection, basic tool use.
+# This validates: event loop, completion detection, basic tool use.
 #
 # Usage:
 #   ralph run --config presets/hatless-baseline.yml --prompt "Implement a fibonacci function"
@@ -20,7 +20,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 # NO HATS - Ralph works directly without delegation

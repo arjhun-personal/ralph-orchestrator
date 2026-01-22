@@ -16,7 +16,6 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
 
 hats:
@@ -37,14 +36,11 @@ hats:
       3. Write clear, concise content
       4. Include code examples where helpful
       5. Commit the changes
-      6. Publish `<event topic="write.done">`
+      6. Publish event
 
       ### Event Format
-      ```
-      <event topic="write.done">
-      section: [section name]
-      file: [path/to/doc.md]
-      </event>
+      ```bash
+      ralph emit "write.done" "section: [section name], file: [path/to/doc.md]"
       ```
 
       ### Style Guidelines
@@ -78,7 +74,11 @@ hats:
       - [ ] Grammar and spelling
 
       ### If Issues Found
-      Publish `<event topic="review.revision">` with specific feedback.
+      ```bash
+      ralph emit "review.revision" "specific feedback here"
+      ```
 
       ### If Approved
-      Publish `<event topic="review.done">`.
+      ```bash
+      ralph emit "review.done"
+      ```

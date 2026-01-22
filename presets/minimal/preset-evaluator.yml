@@ -21,7 +21,6 @@ cli:
 
 # Core behaviors
 core:
-  scratchpad: ".agent/preset-eval-scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
     - "Document ALL findings - both successes and failures"

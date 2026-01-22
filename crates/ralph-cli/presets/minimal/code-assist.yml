@@ -16,10 +16,9 @@ cli:
 
 # Core behaviors (always injected into prompts)
 core:
-  scratchpad: ".agent/scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
-    - "Fresh context each iteration - scratchpad is memory"
+    - "Fresh context each iteration - save learnings to memories for next time"
     - "Don't assume 'not implemented' - search first"
     - "Backpressure is law - tests/typecheck/lint must pass"
 
@@ -37,20 +36,15 @@ hats:
       This SOP defines a TDD-based workflow: Explore → Plan → Code → Commit
 
       ## Event Publishing (CRITICAL)
-      You MUST publish events using XML tags. Ralph parses these from your output.
+      You MUST publish events using `ralph emit`. Ralph parses these from JSONL.
 
       When task is complete with passing tests:
-      ```
-      <event topic="build.done">
-      tests: pass
-      Summary of what was implemented
-      </event>
+      ```bash
+      ralph emit "build.done" "tests: pass. Summary of what was implemented"
       ```
 
       When blocked and unable to proceed:
-      ```
-      <event topic="build.blocked">
-      Explanation of what's blocking progress
-      </event>
+      ```bash
+      ralph emit "build.blocked" "Explanation of what's blocking progress"
       ```
       If the plan has already been created, work on a single, highest priority single, atomic task.

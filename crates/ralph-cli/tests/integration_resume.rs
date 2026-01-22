@@ -66,6 +66,7 @@ fn test_continue_with_existing_scratchpad() -> Result<()> {
     let temp_path = temp_dir.path();
 
     // Create a basic config file with short timeout and fast backend
+    // Disable memories/tasks to test legacy scratchpad mode
     let config_content = r#"
 event_loop:
   prompt_file: "PROMPT.md"
@@ -79,6 +80,12 @@ cli:
 
 core:
   scratchpad: ".agent/scratchpad.md"
+
+memories:
+  enabled: false
+
+tasks:
+  enabled: false
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
@@ -101,10 +108,11 @@ Previous work completed on feature B.
 ";
     fs::write(agent_dir.join("scratchpad.md"), scratchpad_content)?;
 
-    // Run ralph run --continue
+    // Run ralph run --continue --no-tui (needed for tracing output to stdout)
     let output = Command::new(env!("CARGO_BIN_EXE_ralph"))
         .arg("run")
         .arg("--continue")
+        .arg("--no-tui")
         .arg("--config")
         .arg(temp_path.join("ralph.yml"))
         .current_dir(temp_path)
@@ -296,6 +304,7 @@ fn test_continue_logs_scratchpad_found() -> Result<()> {
     let temp_path = temp_dir.path();
 
     // Create config with short timeout and fast backend
+    // Disable memories/tasks to test legacy scratchpad mode
     let config_content = r#"
 event_loop:
   prompt_file: "PROMPT.md"
@@ -309,6 +318,12 @@ cli:
 
 core:
   scratchpad: ".agent/scratchpad.md"
+
+memories:
+  enabled: false
+
+tasks:
+  enabled: false
 "#;
 
     fs::write(temp_path.join("ralph.yml"), config_content)?;
@@ -331,10 +346,11 @@ This scratchpad contains UNIQUE_CONTENT_MARKER for testing.
 ";
     fs::write(agent_dir.join("scratchpad.md"), scratchpad_content)?;
 
-    // Run ralph run --continue
+    // Run ralph run --continue --no-tui (needed for tracing output to stdout)
     let output = Command::new(env!("CARGO_BIN_EXE_ralph"))
         .arg("run")
         .arg("--continue")
+        .arg("--no-tui")
         .arg("--config")
         .arg(temp_path.join("ralph.yml"))
         .current_dir(temp_path)
@@ -343,7 +359,7 @@ This scratchpad contains UNIQUE_CONTENT_MARKER for testing.
     let _stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    // Should log that it found the existing scratchpad (logged via tracing to stdout)
+    // Should log that it found the existing scratchpad (logged via tracing output)
     assert!(stdout.contains("Found existing scratchpad"));
 
     Ok(())
