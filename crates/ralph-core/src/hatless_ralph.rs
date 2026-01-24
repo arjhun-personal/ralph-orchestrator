@@ -4,8 +4,93 @@
 
 use crate::config::CoreConfig;
 use crate::hat_registry::HatRegistry;
+use crate::task_provider::TaskProvider;
 use ralph_proto::Topic;
 use std::path::Path;
+
+/// Instructions for using Claude Code's native task tools.
+///
+/// These instructions teach the agent to use TaskCreate, TaskUpdate, TaskList, and TaskGet
+/// instead of the `ralph tools task` CLI commands.
+const NATIVE_TASK_INSTRUCTIONS: &str = r#"### 0b. TASKS
+
+Use Claude Code's native task tools for runtime work tracking.
+
+**When to create tasks:**
+- Multi-step work (feature with subtasks)
+- Work that spans iterations
+- Work that can be delegated to specialized hats
+
+**When NOT to create tasks:**
+- Single simple changes you'll do immediately
+- Already tracked elsewhere (spec file, PR description)
+
+**Task Tools:**
+- `TaskCreate` - Create new task with subject and description
+- `TaskUpdate` - Update status: pending → in_progress → completed
+- `TaskList` - View all tasks and their status
+- `TaskGet` - Get full details for a specific task
+
+**Status Values:**
+- `pending` - Not started
+- `in_progress` - Currently working (set when you start a task)
+- `completed` - Done (set only after verification)
+
+**Task Dependencies:**
+- Use `addBlockedBy` to mark tasks that must complete first
+- Use `addBlocks` to mark tasks that depend on this one
+
+**CRITICAL: Task Completion Requirements**
+You MUST NOT mark a task as `completed` unless ALL conditions are met:
+1. Implementation is ACTUALLY complete (not "mostly done")
+2. Tests pass (or verified manually if no tests)
+3. Build succeeds (if applicable)
+4. Evidence exists (test output, git diff, logs)
+
+**Before LOOP_COMPLETE:**
+You MUST verify all tasks are complete by checking `TaskList`.
+Only signal LOOP_COMPLETE when no tasks have status `pending` or `in_progress`.
+
+"#;
+
+/// Instructions for using local task tracking via ralph CLI.
+///
+/// These instructions teach the agent to use `ralph tools task` commands
+/// and the `.agent/tasks.jsonl` file for task management.
+const LOCAL_TASK_INSTRUCTIONS: &str = r"### 0b. TASKS
+
+Runtime work tracking. For implementation planning, use code tasks (`tasks/*.code-task.md`).
+
+**When you SHOULD create tasks:**
+- Work has 2+ distinct steps that need tracking
+- You need to defer work (blocked, out of scope, lower priority)
+- Dependencies exist between pieces of work (use `--blocked-by`)
+
+**When you SHOULD NOT create tasks:**
+- Single-step work you'll do immediately
+- Already tracked elsewhere (spec file, PR description)
+
+**Commands:**
+```bash
+ralph tools task add 'Title' -p 2           # Create (priority 1-5, 1=highest)
+ralph tools task add 'X' --blocked-by Y     # With dependency
+ralph tools task list                        # All tasks
+ralph tools task ready                       # Unblocked tasks only
+ralph tools task close <id>                  # Mark complete (ONLY after verification)
+```
+
+You MUST NOT use echo/cat — use CLI tools only.
+
+**CRITICAL: Task Closure Requirements**
+You MUST NOT close a task unless ALL of these conditions are met:
+1. The implementation is actually complete (not partially done)
+2. Tests pass (run them and verify output)
+3. Build succeeds (if applicable)
+4. You have evidence of completion (command output, test results)
+
+You MUST close all tasks before LOOP_COMPLETE.
+
+";
 
 /// Hatless Ralph - the constant coordinator.
 pub struct HatlessRalph {
@@ -17,6 +102,8 @@ pub struct HatlessRalph {
     /// Whether to include scratchpad instructions in the prompt.
     /// When memories are enabled, scratchpad is excluded (mutually exclusive).
     include_scratchpad: bool,
+    /// Task provider for this session (native, local, or disabled).
+    task_provider: TaskProvider,
 }
 
 /// Hat topology for multi-hat mode prompt generation.
@@ -85,6 +172,7 @@ impl HatlessRalph {
             hat_topology,
             starting_event,
             include_scratchpad: true, // Default: include scratchpad
+            task_provider: TaskProvider::Local, // Default: local task tracking
         }
     }
 
@@ -94,6 +182,20 @@ impl HatlessRalph {
     pub fn with_scratchpad(mut self, include: bool) -> Self {
         self.include_scratchpad = include;
         self
+    }
+
+    /// Sets the task provider for this session.
+    ///
+    /// Controls whether native Claude Code task tools or local ralph CLI commands
+    /// are used for task management.
+    pub fn with_task_provider(mut self, provider: TaskProvider) -> Self {
+        self.task_provider = provider;
+        self
+    }
+
+    /// Returns the current task provider.
+    pub fn task_provider(&self) -> TaskProvider {
+        self.task_provider
     }
 
     /// Builds Ralph's prompt with filtered instructions for only active hats.
@@ -203,42 +305,12 @@ Task markers:
             ));
         } else {
             // When memories are enabled, include task tracking instructions
-            prompt.push_str(
-                "### 0b. TASKS
-
-Runtime work tracking. For implementation planning, use code tasks (`tasks/*.code-task.md`).
-
-**When you SHOULD create tasks:**
-- Work has 2+ distinct steps that need tracking
-- You need to defer work (blocked, out of scope, lower priority)
-- Dependencies exist between pieces of work (use `--blocked-by`)
-
-**When you SHOULD NOT create tasks:**
-- Single-step work you'll do immediately
-- Already tracked elsewhere (spec file, PR description)
-
-**Commands:**
-```bash
-ralph tools task add 'Title' -p 2           # Create (priority 1-5, 1=highest)
-ralph tools task add 'X' --blocked-by Y     # With dependency
-ralph tools task list                        # All tasks
-ralph tools task ready                       # Unblocked tasks only
-ralph tools task close <id>                  # Mark complete (ONLY after verification)
-```
-
-You MUST NOT use echo/cat — use CLI tools only.
-
-**CRITICAL: Task Closure Requirements**
-You MUST NOT close a task unless ALL of these conditions are met:
-1. The implementation is actually complete (not partially done)
-2. Tests pass (run them and verify output)
-3. Build succeeds (if applicable)
-4. You have evidence of completion (command output, test results)
-
-You MUST close all tasks before LOOP_COMPLETE.
-
-",
-            );
+            // Use native or local instructions based on task provider
+            match self.task_provider {
+                TaskProvider::Native => prompt.push_str(NATIVE_TASK_INSTRUCTIONS),
+                TaskProvider::Local => prompt.push_str(LOCAL_TASK_INSTRUCTIONS),
+                TaskProvider::Disabled => {} // No task instructions
+            }
         }
 
         // Add task breakdown guidance
@@ -354,7 +426,21 @@ You MUST NOT do implementation work — delegation is your only job.
                 )
             } else {
                 // Memories mode: no scratchpad reference
-                r"## WORKFLOW
+                // Adapt task commands based on provider
+                match self.task_provider {
+                    TaskProvider::Native => r"## WORKFLOW
+
+### 1. PLAN
+You MUST review memories and pending events to understand context.
+You SHOULD create tasks with `TaskCreate` to represent units of work.
+
+### 2. DELEGATE
+You MUST publish exactly ONE event to hand off ONE task to specialized hats.
+You MUST NOT do implementation work — delegation is your only job.
+
+"
+                    .to_string(),
+                    TaskProvider::Local => r"## WORKFLOW
 
 ### 1. PLAN
 You MUST review memories and pending events to understand context.
@@ -365,7 +451,19 @@ You MUST publish exactly ONE event to hand off ONE task to specialized hats.
 You MUST NOT do implementation work — delegation is your only job.
 
 "
-                .to_string()
+                    .to_string(),
+                    TaskProvider::Disabled => r"## WORKFLOW
+
+### 1. PLAN
+You MUST review memories and pending events to understand context.
+
+### 2. DELEGATE
+You MUST publish exactly ONE event to hand off work to specialized hats.
+You MUST NOT do implementation work — delegation is your only job.
+
+"
+                    .to_string(),
+                }
             }
         } else {
             // Solo mode: Ralph does everything
@@ -395,8 +493,37 @@ You MUST continue until all tasks are `[x]` or `[~]`.
                     scratchpad = self.core.scratchpad
                 )
             } else {
-                // Memories mode: no scratchpad reference, use tasks CLI
-                r"## WORKFLOW
+                // Memories mode: no scratchpad reference
+                // Adapt task commands based on provider
+                match self.task_provider {
+                    TaskProvider::Native => r"## WORKFLOW
+
+### 1. Study the prompt.
+You MUST study, explore, and research what needs to be done.
+You MAY use parallel subagents (up to 10) for searches.
+
+### 2. PLAN
+You MUST review memories for context.
+You SHOULD create tasks with `TaskCreate` for multi-step work.
+
+### 3. IMPLEMENT
+You MUST pick exactly ONE task from `TaskList` where status is `pending` or `in_progress`.
+You MUST NOT use more than 1 subagent for build/tests.
+
+### 4. VERIFY & COMMIT
+You MUST run tests and verify the implementation works before closing.
+You MUST NOT mark a task `completed` without evidence of completion (test output, build success).
+You MUST capture the why, not just the what.
+You MUST update the task status with `TaskUpdate` only AFTER verification passes.
+You SHOULD save learnings with `ralph tools memory add`.
+
+### 5. EXIT
+You MUST exit after completing ONE task.
+The next iteration will continue with fresh context.
+
+"
+                    .to_string(),
+                    TaskProvider::Local => r"## WORKFLOW
 
 ### 1. Study the prompt.
 You MUST study, explore, and research what needs to be done.
@@ -422,7 +549,32 @@ You MUST exit after completing ONE task.
 The next iteration will continue with fresh context.
 
 "
-                .to_string()
+                    .to_string(),
+                    TaskProvider::Disabled => r"## WORKFLOW
+
+### 1. Study the prompt.
+You MUST study, explore, and research what needs to be done.
+You MAY use parallel subagents (up to 10) for searches.
+
+### 2. PLAN
+You MUST review memories for context.
+
+### 3. IMPLEMENT
+You MUST work on the requested task.
+You MUST NOT use more than 1 subagent for build/tests.
+
+### 4. VERIFY & COMMIT
+You MUST run tests and verify the implementation works before completing.
+You MUST capture the why, not just the what.
+You SHOULD save learnings with `ralph tools memory add`.
+
+### 5. EXIT
+You MUST exit after completing your work.
+The next iteration will continue with fresh context.
+
+"
+                    .to_string(),
+                }
             }
         }
     }
@@ -1564,6 +1716,142 @@ hats:
         assert!(
             !prompt.contains("CRITICAL: Task Closure Requirements"),
             "Scratchpad mode should not have CRITICAL task closure section"
+        );
+    }
+
+    // === Task Provider Tests ===
+
+    #[test]
+    fn test_task_provider_default_is_local() {
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None);
+
+        assert_eq!(ralph.task_provider(), TaskProvider::Local);
+    }
+
+    #[test]
+    fn test_with_task_provider_native() {
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_task_provider(TaskProvider::Native);
+
+        assert_eq!(ralph.task_provider(), TaskProvider::Native);
+    }
+
+    #[test]
+    fn test_native_task_instructions_in_prompt() {
+        // When using native provider, prompt should include native task tools
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false) // Disable scratchpad to enable task section
+            .with_task_provider(TaskProvider::Native);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Should contain native task tool instructions
+        assert!(
+            prompt.contains("TaskCreate"),
+            "Native mode should include TaskCreate tool"
+        );
+        assert!(
+            prompt.contains("TaskUpdate"),
+            "Native mode should include TaskUpdate tool"
+        );
+        assert!(
+            prompt.contains("TaskList"),
+            "Native mode should include TaskList tool"
+        );
+        assert!(
+            prompt.contains("TaskGet"),
+            "Native mode should include TaskGet tool"
+        );
+        assert!(
+            prompt.contains("addBlockedBy"),
+            "Native mode should include task dependency instructions"
+        );
+
+        // Should NOT contain ralph CLI commands
+        assert!(
+            !prompt.contains("ralph tools task add"),
+            "Native mode should NOT include ralph CLI commands"
+        );
+    }
+
+    #[test]
+    fn test_local_task_instructions_in_prompt() {
+        // When using local provider, prompt should include ralph CLI commands
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false) // Disable scratchpad to enable task section
+            .with_task_provider(TaskProvider::Local);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Should contain ralph CLI commands
+        assert!(
+            prompt.contains("ralph tools task add"),
+            "Local mode should include ralph task add command"
+        );
+        assert!(
+            prompt.contains("ralph tools task list"),
+            "Local mode should include ralph task list command"
+        );
+        assert!(
+            prompt.contains("ralph tools task close"),
+            "Local mode should include ralph task close command"
+        );
+
+        // Should NOT contain native task tool names
+        assert!(
+            !prompt.contains("TaskCreate"),
+            "Local mode should NOT include TaskCreate tool"
+        );
+    }
+
+    #[test]
+    fn test_disabled_task_provider_no_instructions() {
+        // When tasks are disabled, no task instructions should appear
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false)
+            .with_task_provider(TaskProvider::Disabled);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        // Should NOT contain task section
+        assert!(
+            !prompt.contains("### 0b. TASKS"),
+            "Disabled mode should NOT include task section"
+        );
+        assert!(
+            !prompt.contains("TaskCreate"),
+            "Disabled mode should NOT include native tools"
+        );
+        assert!(
+            !prompt.contains("ralph tools task"),
+            "Disabled mode should NOT include ralph CLI"
+        );
+    }
+
+    #[test]
+    fn test_native_mode_loop_complete_verification() {
+        // Native mode should instruct agent to verify via TaskList
+        let config = RalphConfig::default();
+        let registry = HatRegistry::new();
+        let ralph = HatlessRalph::new("LOOP_COMPLETE", config.core.clone(), &registry, None)
+            .with_scratchpad(false)
+            .with_task_provider(TaskProvider::Native);
+
+        let prompt = ralph.build_prompt("", &[]);
+
+        assert!(
+            prompt.contains("verify all tasks are complete by checking `TaskList`"),
+            "Native mode should instruct agent to verify via TaskList before LOOP_COMPLETE"
         );
     }
 }

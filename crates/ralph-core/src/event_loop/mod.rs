@@ -15,6 +15,7 @@ use crate::hat_registry::HatRegistry;
 use crate::hatless_ralph::HatlessRalph;
 use crate::instructions::InstructionBuilder;
 use crate::memory_store::{MarkdownMemoryStore, format_memories_as_markdown, truncate_to_budget};
+use crate::task_provider::resolve_task_provider;
 use ralph_proto::{Event, EventBus, Hat, HatId};
 use std::time::Duration;
 use tracing::{debug, info, warn};
@@ -154,6 +155,14 @@ impl EventLoop {
             );
         }
 
+        // Resolve task provider based on config and backend
+        let task_provider = resolve_task_provider(&config.tasks, &config.cli.backend);
+        debug!(
+            provider = ?task_provider,
+            backend = %config.cli.backend,
+            "Task provider resolved"
+        );
+
         // When memories are enabled, scratchpad instructions are excluded (mutually exclusive)
         let ralph = HatlessRalph::new(
             config.event_loop.completion_promise.clone(),
@@ -161,7 +170,8 @@ impl EventLoop {
             &registry,
             config.event_loop.starting_event.clone(),
         )
-        .with_scratchpad(!config.memories.enabled);
+        .with_scratchpad(!config.memories.enabled)
+        .with_task_provider(task_provider);
 
         // Read events path from marker file, fall back to default if not present
         // The marker file is written by run_loop_impl() at run startup
@@ -1079,6 +1089,14 @@ impl EventLoop {
         use crate::task_store::TaskStore;
         use std::path::Path;
 
+        // When using native task tools, trust the agent for verification
+        // The prompt instructs the agent to verify via TaskList before LOOP_COMPLETE
+        if self.ralph.task_provider().trusts_agent() {
+            debug!("Native task provider: trusting agent for task completion verification");
+            return Ok(true);
+        }
+
+        // Local mode: check .agent/tasks.jsonl
         let tasks_path = Path::new(".agent").join("tasks.jsonl");
 
         // No tasks file = no pending tasks = complete

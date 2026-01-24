@@ -833,6 +833,7 @@ pub struct MemoriesFilter {
 /// ```yaml
 /// tasks:
 ///   enabled: true
+///   provider: "auto"  # "native" | "local" | "auto" (default)
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TasksConfig {
@@ -841,12 +842,25 @@ pub struct TasksConfig {
     /// When true, tasks are used for loop completion verification.
     #[serde(default = "default_true")]
     pub enabled: bool,
+
+    /// Task provider: "native", "local", or "auto" (default).
+    ///
+    /// - `"native"`: Use Claude Code's native task tools (TaskCreate, TaskUpdate, etc.)
+    /// - `"local"`: Use `ralph tools task` commands and `.agent/tasks.jsonl`
+    /// - `"auto"`: Auto-detect based on backend (Claude → native, others → local)
+    #[serde(default = "default_provider")]
+    pub provider: String,
+}
+
+fn default_provider() -> String {
+    "auto".to_string()
 }
 
 impl Default for TasksConfig {
     fn default() -> Self {
         Self {
             enabled: true, // Tasks enabled by default
+            provider: default_provider(),
         }
     }
 }
@@ -1735,5 +1749,47 @@ hats:
             reviewer.default_publishes,
             Some("review.complete".to_string())
         );
+    }
+
+    #[test]
+    fn test_tasks_provider_default() {
+        let config = RalphConfig::default();
+        assert!(config.tasks.enabled);
+        assert_eq!(config.tasks.provider, "auto");
+    }
+
+    #[test]
+    fn test_tasks_provider_native() {
+        let yaml = r#"
+tasks:
+  enabled: true
+  provider: "native"
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.tasks.enabled);
+        assert_eq!(config.tasks.provider, "native");
+    }
+
+    #[test]
+    fn test_tasks_provider_local() {
+        let yaml = r#"
+tasks:
+  enabled: true
+  provider: "local"
+"#;
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.tasks.enabled);
+        assert_eq!(config.tasks.provider, "local");
+    }
+
+    #[test]
+    fn test_tasks_provider_missing_defaults_to_auto() {
+        let yaml = r"
+tasks:
+  enabled: true
+";
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.tasks.enabled);
+        assert_eq!(config.tasks.provider, "auto");
     }
 }

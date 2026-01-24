@@ -28,6 +28,7 @@ mod session_recorder;
 mod summary_writer;
 pub mod task;
 pub mod task_definition;
+pub mod task_provider;
 pub mod task_store;
 pub mod testing;
 mod text;
@@ -37,7 +38,7 @@ pub mod workspace;
 pub use cli_capture::{CliCapture, CliCapturePair};
 pub use config::{
     CliConfig, CoreConfig, EventLoopConfig, EventMetadata, HatBackend, HatConfig, InjectMode,
-    MemoriesConfig, MemoriesFilter, RalphConfig,
+    MemoriesConfig, MemoriesFilter, RalphConfig, TasksConfig,
 };
 pub use diagnostics::DiagnosticsCollector;
 pub use event_logger::{EventHistory, EventLogger, EventRecord};
@@ -58,6 +59,7 @@ pub use task::{Task, TaskStatus};
 pub use task_definition::{
     TaskDefinition, TaskDefinitionError, TaskSetup, TaskSuite, Verification,
 };
+pub use task_provider::{TaskProvider, resolve_task_provider};
 pub use task_store::TaskStore;
 pub use text::truncate_with_ellipsis;
 pub use workspace::{

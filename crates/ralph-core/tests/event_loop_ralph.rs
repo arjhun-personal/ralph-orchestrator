@@ -217,6 +217,7 @@ event_loop:
 #[test]
 fn test_solo_mode_memories_task_verification_requirements() {
     // Test that solo mode with memories/tasks enabled includes task verification requirements
+    // Explicitly use local provider to test CLI-based instructions
     let yaml = r#"
 core:
   scratchpad: ".agent/scratchpad.md"
@@ -227,6 +228,7 @@ memories:
   enabled: true
 tasks:
   enabled: true
+  provider: local
 "#;
 
     let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();

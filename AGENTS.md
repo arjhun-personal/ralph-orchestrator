@@ -46,7 +46,31 @@ When enabled (default):
 - Tasks replace scratchpad for completion verification
 - Loop terminates when no open tasks + consecutive LOOP_COMPLETE
 
-To disable (legacy scratchpad mode):
+#### Task Provider Configuration
+
+When running with Claude Code as the backend, Ralph can use Claude Code's native task tools (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`) instead of the `ralph tools task` CLI commands:
+
+```yaml
+tasks:
+  enabled: true
+  provider: "auto"  # "native" | "local" | "auto" (default)
+```
+
+- `"native"`: Use Claude Code's native task tools
+- `"local"`: Use `ralph tools task` commands and `.agent/tasks.jsonl`
+- `"auto"`: Auto-detect based on backend (Claude → native, others → local)
+
+**When to use native mode:**
+- Running Ralph with Claude Code backend
+- Better integration with Claude Code's task tracking UI
+- Reduces CLI overhead in prompts
+
+**When to use local mode:**
+- Running Ralph with non-Claude backends (Kiro, Gemini, etc.)
+- Need explicit task file for external tooling/analysis
+- Consistent behavior across all backends
+
+To disable tasks and memories (legacy scratchpad mode):
 ```yaml
 memories:
   enabled: false

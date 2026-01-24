@@ -89,6 +89,42 @@ memories:
 
 Tasks track runtime work items during orchestration.
 
+### Task Provider
+
+Ralph supports two task providers that determine how tasks are managed:
+
+```yaml
+tasks:
+  enabled: true
+  provider: "auto"  # "native" | "local" | "auto" (default)
+```
+
+| Provider | Description |
+|----------|-------------|
+| `native` | Use Claude Code's built-in task tools (`TaskCreate`, `TaskUpdate`, `TaskList`) |
+| `local` | Use `ralph tools task` CLI commands and `.agent/tasks.jsonl` |
+| `auto` | Auto-detect: Claude backend → native, others → local |
+
+**When to use native mode:**
+- Running Ralph with Claude Code as the backend
+- Better integration with Claude Code's task tracking UI
+- Reduces CLI overhead in prompts
+
+**When to use local mode:**
+- Running Ralph with non-Claude backends (Kiro, Gemini, etc.)
+- Need explicit task file for external tooling/analysis
+- Consistent behavior across all backends
+
+### Multi-Session Task Sharing
+
+When using native mode with Claude Code, you can share tasks across sessions:
+
+```bash
+CLAUDE_CODE_TASK_LIST_ID=my-project ralph run -p "your prompt"
+```
+
+This allows multiple Ralph sessions to coordinate on the same task list.
+
 ### Creating Tasks
 
 ```bash
