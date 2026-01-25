@@ -439,14 +439,20 @@ fn retry_merge(args: RetryArgs) -> Result<()> {
         );
     }
 
+    // Get the merge-loop preset and write to config file
+    let preset = crate::presets::get_preset("merge-loop").context("merge-loop preset not found")?;
+
+    let config_path = cwd.join(".ralph/merge-loop-config.yml");
+    std::fs::write(&config_path, preset.content).context("Failed to write merge config file")?;
+
     // Spawn merge-ralph
     println!("Spawning merge-ralph for loop '{}'...", args.loop_id);
 
     let status = Command::new("ralph")
         .args([
             "run",
-            "--preset",
-            "builtin:merge-loop",
+            "-c",
+            ".ralph/merge-loop-config.yml",
             "-p",
             &format!(
                 "Merge loop {} from branch ralph/{}",

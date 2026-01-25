@@ -41,7 +41,7 @@ hats:
   merger:
     name: "Branch Merger"
     description: "Performs git merge with conflict resolution and test verification."
-    triggers: ["merge.start", "conflict.resolved", "tests.passed"]
+    triggers: ["merge.start", "tests.passed"]
     publishes: ["merge.done", "conflict.detected", "merge.failed"]
     default_publishes: "merge.done"
     instructions: |

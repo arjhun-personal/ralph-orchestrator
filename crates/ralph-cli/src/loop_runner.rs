@@ -11,14 +11,14 @@ use ralph_adapters::{
 };
 use ralph_core::{
     CompletionAction, EventLogger, EventLoop, EventParser, EventRecord, LoopCompletionHandler,
-    LoopContext, LoopHistory, LoopRegistry, RalphConfig, Record, SessionRecorder, SummaryWriter,
-    TerminationReason,
+    LoopContext, LoopHistory, LoopRegistry, MergeQueue, RalphConfig, Record, SessionRecorder,
+    SummaryWriter, TerminationReason,
 };
 use ralph_proto::{Event, HatId};
 use ralph_tui::Tui;
 use std::fs::{self, File};
 use std::io::{BufWriter, IsTerminal, stdin, stdout};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
@@ -350,6 +350,8 @@ pub async fn run_loop_impl(
                         if let Some(hist) = history {
                             let _ = hist.record_merge_queued();
                         }
+                        // Worktree loop exits cleanly; merge will be processed
+                        // when the primary loop completes and checks the queue
                     }
                     Ok(CompletionAction::ManualMerge {
                         loop_id,
@@ -365,6 +367,11 @@ pub async fn run_loop_impl(
                         warn!("Completion handler failed: {}", e);
                     }
                 }
+            }
+
+            // Handle merge queue processing for primary loop completion
+            if ctx.is_primary() && matches!(reason, TerminationReason::CompletionPromise) {
+                process_pending_merges(ctx.repo_root());
             }
 
             // Deregister from registry if terminated (not completed normally)
@@ -1029,6 +1036,88 @@ fn resolve_prompt_content(event_loop_config: &ralph_core::EventLoopConfig) -> Re
         "No prompt specified. Use -p \"text\" for inline prompt, -P path for file, \
          or create PROMPT.md in the current directory."
     )
+}
+
+/// Processes pending merges from the merge queue.
+///
+/// Called when the primary loop completes successfully. Spawns merge-ralph
+/// processes for each queued loop in FIFO order.
+fn process_pending_merges(repo_root: &Path) {
+    let queue = MergeQueue::new(repo_root);
+
+    // Get all pending merges
+    let pending = match queue.list_by_state(ralph_core::merge_queue::MergeState::Queued) {
+        Ok(entries) => entries,
+        Err(e) => {
+            warn!("Failed to read merge queue: {}", e);
+            return;
+        }
+    };
+
+    if pending.is_empty() {
+        debug!("No pending merges in queue");
+        return;
+    }
+
+    info!(
+        count = pending.len(),
+        "Processing pending merges from queue"
+    );
+
+    // Get the merge-loop preset content
+    let preset = match crate::presets::get_preset("merge-loop") {
+        Some(p) => p,
+        None => {
+            warn!("merge-loop preset not found, pending merges will remain queued");
+            return;
+        }
+    };
+
+    // Write the merge config once (shared by all merge loops)
+    let config_path = repo_root.join(".ralph/merge-loop-config.yml");
+    if let Err(e) = fs::write(&config_path, preset.content) {
+        warn!(
+            error = %e,
+            "Failed to write merge config, pending merges will remain queued"
+        );
+        return;
+    }
+
+    // Process each pending merge
+    for entry in pending {
+        let loop_id = &entry.loop_id;
+
+        info!(loop_id = %loop_id, "Spawning merge-ralph process");
+
+        match Command::new("ralph")
+            .current_dir(repo_root)
+            .args([
+                "run",
+                "-c",
+                ".ralph/merge-loop-config.yml",
+                "--no-tui",
+                "-p",
+                &format!("Merge loop {} from branch ralph/{}", loop_id, loop_id),
+            ])
+            .env("RALPH_MERGE_LOOP_ID", loop_id)
+            .spawn()
+        {
+            Ok(child) => {
+                info!(
+                    loop_id = %loop_id,
+                    pid = child.id(),
+                    "merge-ralph spawned successfully"
+                );
+            }
+            Err(e) => {
+                warn!(
+                    loop_id = %loop_id,
+                    error = %e,
+                    "Failed to spawn merge-ralph, loop will remain queued for manual retry"
+                );
+            }
+        }
+    }
 }
 
 #[cfg(test)]
