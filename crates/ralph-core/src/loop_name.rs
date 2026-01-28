@@ -108,6 +108,32 @@ impl LoopNameGenerator {
         generate_timestamp_id()
     }
 
+    /// Generate a memorable name (adjective-noun only, no keywords).
+    ///
+    /// Returns a name like "bright-maple" or "swift-falcon".
+    pub fn generate_memorable(&self) -> String {
+        self.generate_suffix()
+    }
+
+    /// Generate a unique memorable name, using `exists` to check for collisions.
+    ///
+    /// Tries up to 10 times with different suffixes before falling back
+    /// to timestamp format.
+    pub fn generate_memorable_unique(&self, exists: impl Fn(&str) -> bool) -> String {
+        // Try up to 10 times with different suffixes
+        for _ in 0..10 {
+            let name = self.generate_suffix();
+            if !exists(&name) {
+                return name;
+            }
+            // Small delay to get different nanosecond value
+            std::thread::sleep(std::time::Duration::from_micros(1));
+        }
+
+        // Fallback to timestamp format (very unlikely with 50*50 = 2500 combinations)
+        generate_timestamp_id()
+    }
+
     /// Extract keywords from a prompt.
     fn extract_keywords(&self, prompt: &str) -> Vec<String> {
         let words: Vec<&str> = prompt
@@ -440,5 +466,46 @@ mod tests {
         let config = LoopNamingConfig::default();
         assert_eq!(config.format, "human-readable");
         assert_eq!(config.max_length, 50);
+    }
+
+    #[test]
+    fn test_generate_memorable() {
+        let generator = LoopNameGenerator::new(LoopNamingConfig::default());
+
+        let name = generator.generate_memorable();
+
+        // Should be adjective-noun format (e.g., "bright-maple")
+        let parts: Vec<&str> = name.split('-').collect();
+        assert_eq!(parts.len(), 2, "Expected adjective-noun format: {}", name);
+
+        // Should be valid for git
+        assert!(name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'));
+    }
+
+    #[test]
+    fn test_generate_memorable_unique() {
+        let generator = LoopNameGenerator::new(LoopNamingConfig::default());
+
+        let mut generated = HashSet::new();
+
+        // First call should succeed
+        let name1 = generator.generate_memorable_unique(|n| generated.contains(n));
+        generated.insert(name1.clone());
+
+        // Verify format
+        let parts: Vec<&str> = name1.split('-').collect();
+        assert_eq!(parts.len(), 2, "Expected adjective-noun format: {}", name1);
+        assert!(name1.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'));
+    }
+
+    #[test]
+    fn test_generate_memorable_unique_falls_back_to_timestamp() {
+        let generator = LoopNameGenerator::new(LoopNamingConfig::default());
+
+        // Always say name exists to force fallback
+        let name = generator.generate_memorable_unique(|_| true);
+
+        // Should fall back to timestamp format
+        assert!(name.starts_with("ralph-"));
     }
 }

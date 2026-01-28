@@ -93,6 +93,26 @@ impl LoopEntry {
         }
     }
 
+    /// Creates a new loop entry with a specific ID.
+    ///
+    /// Use this when you need the loop ID to match other identifiers
+    /// (e.g., worktree name, branch name).
+    pub fn with_id(
+        id: impl Into<String>,
+        prompt: impl Into<String>,
+        worktree_path: Option<impl Into<String>>,
+        workspace: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            pid: process::id(),
+            started: Utc::now(),
+            prompt: prompt.into(),
+            worktree_path: worktree_path.map(Into::into),
+            workspace: workspace.into(),
+        }
+    }
+
     /// Generates a unique loop ID: loop-{timestamp}-{hex_suffix}
     fn generate_id() -> String {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -376,6 +396,21 @@ mod tests {
         let entry = LoopEntry::new("test", None::<String>);
         // Current process should be alive
         assert!(entry.is_alive());
+    }
+
+    #[test]
+    fn test_loop_entry_with_id() {
+        let entry = LoopEntry::with_id(
+            "bright-maple",
+            "test prompt",
+            Some("/path/to/worktree"),
+            "/workspace",
+        );
+        assert_eq!(entry.id, "bright-maple");
+        assert_eq!(entry.pid, process::id());
+        assert_eq!(entry.prompt, "test prompt");
+        assert_eq!(entry.worktree_path, Some("/path/to/worktree".to_string()));
+        assert_eq!(entry.workspace, "/workspace");
     }
 
     #[test]
