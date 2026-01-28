@@ -249,9 +249,96 @@ ralph emit "build.done" "tests: pass, lint: pass"
 ralph emit "review.done" --json '{"status": "approved", "issues": 0}'
 ```
 
+### ralph web
+
+Launch the web dashboard (backend + frontend).
+
+```bash
+ralph web [OPTIONS]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--backend-port <PORT>` | Backend server port (default: 3000) |
+| `--frontend-port <PORT>` | Frontend dev server port (default: 5173) |
+| `--workspace <PATH>` | Workspace root directory |
+
+**Examples:**
+
+```bash
+# Launch with defaults (backend:3000, frontend:5173)
+ralph web
+
+# Custom ports
+ralph web --backend-port 8080 --frontend-port 3001
+
+# Specify workspace
+ralph web --workspace /path/to/project
+```
+
+The dashboard provides:
+- Task management with real-time log streaming
+- Loop monitoring with merge/retry/discard actions
+- Visual hat collection builder (React Flow canvas)
+- Settings page for editing `ralph.yml`
+- Planning sessions with chat-style UI
+
+### ralph loops
+
+Manage parallel orchestration loops.
+
+```bash
+ralph loops <SUBCOMMAND>
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `list` | List all loops with status |
+| `logs <ID>` | View loop output |
+| `history <ID>` | View event history |
+| `diff <ID>` | Show changes from merge-base |
+| `attach <ID>` | Open shell in worktree |
+| `retry <ID>` | Re-run merge for failed loop |
+| `stop <ID>` | Stop a running loop |
+| `discard <ID>` | Abandon loop and cleanup |
+| `prune` | Clean up stale loops |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--follow` | Stream logs in real-time (with `logs`) |
+| `--json` | JSON output (with `list`) |
+| `--stat` | Summary only (with `diff`) |
+| `--force` | Force stop with SIGKILL (with `stop`) |
+| `-y` | Skip confirmation (with `discard`) |
+
+**Examples:**
+
+```bash
+# List all loops with JSON output
+ralph loops list --json
+
+# Stream logs from a loop
+ralph loops logs swift-peacock --follow
+
+# View changes in a worktree loop
+ralph loops diff clever-badger --stat
+
+# Force stop a running loop
+ralph loops stop calm-falcon --force
+
+# Clean up crashed/orphaned loops
+ralph loops prune
+```
+
 ### ralph clean
 
-Clean up `.agent/` directory.
+Clean up `.ralph/` directory.
 
 ```bash
 ralph clean [OPTIONS]

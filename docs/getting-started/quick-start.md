@@ -152,9 +152,43 @@ Build a markdown to HTML converter:
 - Add --watch mode
 ```
 
+## 5. Launch the Web Dashboard
+
+```bash
+# Start the web dashboard
+ralph web
+
+# Opens backend at http://localhost:3000, frontend at http://localhost:5173
+```
+
+The web dashboard provides:
+- Task management with real-time log streaming
+- Loop monitoring with merge/retry/discard actions
+- Visual hat collection builder
+- Settings editor for `ralph.yml`
+- Planning sessions with chat-style UI
+
+## 6. Run Parallel Loops
+
+Work on multiple tasks simultaneously:
+
+```bash
+# Terminal 1: Primary loop (acquires lock)
+ralph run -p "Add authentication"
+
+# Terminal 2: Worktree loop (auto-isolated)
+ralph run -p "Add logging"
+
+# Monitor all loops
+ralph loops
+```
+
+Worktree loops automatically merge when complete, with AI-assisted conflict resolution.
+
 ## Next Steps
 
 - Read [Your First Task](first-task.md) for a detailed walkthrough
 - Understand [Concepts](../concepts/index.md) like hats and events
 - Explore [Presets](../guide/presets.md) for common workflows
+- Learn about [Parallel Loops](../advanced/parallel-loops.md) for concurrent work
 - Learn about [Configuration](../guide/configuration.md) options

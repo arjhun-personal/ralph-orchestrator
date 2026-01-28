@@ -32,7 +32,8 @@ npm run test:server                          # Backend tests
 
 ```
 ralph-cli      → CLI entry point, commands (run, plan, task, loops, web)
-ralph-core     → Orchestration logic, event loop, hats, memories, tasks
+ralph-core     → Orchestration logic, event loop, hats, memories, tasks,
+                 planning sessions, chaos mode, loop naming
 ralph-adapters → Backend integrations (Claude, Kiro, Gemini, Codex, etc.)
 ralph-tui      → Terminal UI (ratatui-based)
 ralph-e2e      → End-to-end test framework
@@ -40,7 +41,10 @@ ralph-proto    → Protocol definitions
 ralph-bench    → Benchmarking
 
 backend/       → Web server (@ralph-web/server) - Fastify + tRPC + SQLite
+                 REST API at /api/v1, planning service, collection builder
 frontend/      → Web dashboard (@ralph-web/dashboard) - React + Vite + TailwindCSS
+                 Task management, loop monitoring, hat collection builder
+presets/       → Preset catalog (29 presets) with index.json
 ```
 
 ### Key Files
@@ -52,6 +56,8 @@ frontend/      → Web dashboard (@ralph-web/dashboard) - React + Vite + Tailwin
 | `.ralph/loop.lock` | Contains PID + prompt of primary loop |
 | `.ralph/loops.json` | Registry of all tracked loops |
 | `.ralph/merge-queue.jsonl` | Event-sourced merge queue |
+| `.ralph/planning-sessions/` | Planning session conversations and artifacts |
+| `.ralph/merge-steering.txt` | User steering input for merge-ralph |
 
 ### Code Locations
 
@@ -62,9 +68,15 @@ frontend/      → Web dashboard (@ralph-web/dashboard) - React + Vite + Tailwin
 - **Lock coordination**: `crates/ralph-core/src/worktree.rs`
 - **Loop registry**: `crates/ralph-core/src/loop_registry.rs`
 - **Merge queue**: `crates/ralph-core/src/merge_queue.rs`
-- **CLI commands**: `crates/ralph-cli/src/loops.rs`, `task_cli.rs`
+- **CLI commands**: `crates/ralph-cli/src/loops.rs`, `task_cli.rs`, `web.rs`
+- **Planning sessions**: `crates/ralph-core/src/planning_session.rs`
+- **Loop naming**: `crates/ralph-core/src/loop_name.rs`
+- **Chaos mode**: `crates/ralph-core/src/chaos_mode.rs`
 - **Web server**: `backend/ralph-web-server/src/` (tRPC routes in `api/`, runners in `runner/`)
+- **REST API**: `backend/ralph-web-server/src/api/rest.ts` (10 endpoints at `/api/v1`)
+- **Planning service**: `backend/ralph-web-server/src/services/PlanningService.ts`
 - **Web dashboard**: `frontend/ralph-web/src/` (React components in `components/`)
+- **Collection builder**: `frontend/ralph-web/src/components/builder/CollectionBuilder.tsx`
 
 ## The Ralph Tenets
 
@@ -142,6 +154,89 @@ ralph run -p "Add footer after </p>" --max-iterations 5
 # Monitor
 ralph loops
 ```
+
+## REST API
+
+The web server exposes a REST API at `/api/v1` for external consumers who don't want tRPC:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/health` | GET | Health check with version |
+| `/api/v1/tasks` | GET | List tasks (query: `status`, `includeArchived`) |
+| `/api/v1/tasks` | POST | Create task |
+| `/api/v1/tasks/:id` | GET | Get task by ID |
+| `/api/v1/tasks/:id` | PATCH | Update task |
+| `/api/v1/tasks/:id` | DELETE | Delete task (only `failed`/`closed`) |
+| `/api/v1/tasks/:id/run` | POST | Execute a task |
+| `/api/v1/hats` | GET | List hats with active status |
+| `/api/v1/hats/:key` | GET | Get hat by key |
+| `/api/v1/presets` | GET | List all presets |
+
+## Planning Sessions
+
+Interactive planning sessions with persistent conversation history:
+
+```bash
+ralph plan "Add user authentication"    # Start a planning session
+ralph plan --backend kiro "my idea"     # Use specific backend
+```
+
+Sessions are stored in `.ralph/planning-sessions/{session_id}/`:
+- `conversation.jsonl` — Chat history
+- `session.json` — Session metadata
+- `artifacts/` — Generated artifacts
+
+The web dashboard provides a chat-style UI for planning via the `planning.respond` tRPC endpoint.
+
+## Memorable Loop IDs
+
+Parallel loops use human-readable names (adjective-noun format) instead of timestamps:
+
+```
+fix-header-swift-peacock
+add-auth-clever-badger
+refactor-api-calm-falcon
+```
+
+Configure via:
+```yaml
+features:
+  loop_naming:
+    format: "human-readable"  # or "timestamp"
+    max_length: 50
+```
+
+## Chaos Mode
+
+Post-completion exploration for discovering improvements. Activates after `LOOP_COMPLETE`:
+
+```yaml
+features:
+  chaos_mode:
+    enabled: false              # Opt-in via --chaos flag
+    max_iterations: 5
+    cooldown_seconds: 30
+    research_focus:
+      - domain_best_practices
+      - codebase_patterns
+      - self_improvement
+    outputs:
+      - memories                # Default — safe exploration only
+      # - tasks
+      # - specs
+```
+
+Chaos mode terminates with `CHAOS_COMPLETE`.
+
+## Hat Collection Builder
+
+The web dashboard includes a visual hat collection builder at `/builder`:
+- Drag-and-drop hat nodes from a palette
+- Connect hats via event edges (publishes → triggers)
+- Edit node properties in a side panel
+- Export as YAML preset
+
+Components in `frontend/ralph-web/src/components/builder/`.
 
 ## Smoke Tests (Replay-Based)
 

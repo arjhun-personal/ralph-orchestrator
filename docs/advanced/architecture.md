@@ -4,18 +4,22 @@ Ralph's system architecture and how the pieces fit together.
 
 ## Overview
 
-Ralph is a Cargo workspace with seven crates, each with a specific responsibility:
+Ralph is a Cargo workspace with seven crates plus a full-stack web application:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      ralph-cli                          │
-│                  (Binary Entry Point)                   │
+│              (Binary Entry Point + Web)                 │
 ├─────────────┬─────────────┬─────────────┬──────────────┤
 │ ralph-core  │ralph-adapters│  ralph-tui  │ ralph-e2e   │
 │  (Engine)   │ (Backends)   │    (UI)     │  (Testing)  │
 ├─────────────┴─────────────┴─────────────┴──────────────┤
 │                     ralph-proto                         │
 │                  (Protocol Types)                       │
+├─────────────────────────────────────────────────────────┤
+│              Web Stack (Node.js / React)                │
+│  backend/ (Fastify + tRPC + SQLite + REST API)         │
+│  frontend/ (React + Vite + TailwindCSS + React Flow)   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -100,8 +104,12 @@ Binary entry point and CLI parsing.
 - `ralph init` — Initialize config
 - `ralph plan` — PDD planning
 - `ralph task` — Task generation
+- `ralph loops` — Manage parallel loops
+- `ralph web` — Launch web dashboard
 - `ralph events` — View history
+- `ralph emit` — Emit events
 - `ralph tools` — Memory/task management
+- `ralph clean` — Clean up state
 
 **Location:** `crates/ralph-cli/src/`
 
@@ -128,6 +136,32 @@ End-to-end testing framework.
 Benchmarking harness (development only).
 
 **Location:** `crates/ralph-bench/src/`
+
+### Web Stack
+
+The web dashboard is a full-stack Node.js/React application launched via `ralph web`.
+
+**Backend** (`backend/ralph-web-server/`):
+- Fastify HTTP server with tRPC router
+- SQLite database for task persistence
+- REST API at `/api/v1` with 10 endpoints (tasks, hats, presets, health)
+- WebSocket support for real-time log streaming
+- Planning service for interactive PDD sessions
+- Collection service for hat collection builder
+
+**Frontend** (`frontend/ralph-web/`):
+- React + Vite + TailwindCSS
+- Task detail views with real-time log streaming
+- Visual hat collection builder using React Flow (drag-and-drop canvas)
+- Loop monitoring with merge actions (merge, retry, discard, stop)
+- Settings page with `ralph.yml` config editor
+- Steering input for needs-review loops
+
+**Key frontend components:**
+- `TaskDetailPage` — Task view with thread, metadata, and actions
+- `CollectionBuilder` — Visual hat collection builder with React Flow
+- `LoopActions` — Status-aware action buttons for loop management
+- `SettingsPage` — Config editor for `ralph.yml`
 
 ## Data Flow
 
@@ -166,14 +200,26 @@ flowchart TD
 
 ### Files on Disk
 
-All persistent state lives in `.agent/`:
+All persistent state lives in `.ralph/`:
 
 ```
-.agent/
-├── memories.md         # Persistent learning
-├── tasks.jsonl         # Runtime work tracking
-├── event_history.jsonl # Event audit log
-└── scratchpad.md       # Legacy state (deprecated)
+.ralph/
+├── agent/
+│   ├── memories.md         # Persistent learning
+│   ├── tasks.jsonl         # Runtime work tracking
+│   └── scratchpad.md       # Working memory (objective-scoped)
+├── loop.lock               # Primary loop indicator (PID + prompt)
+├── loops.json              # Loop registry for parallel loops
+├── merge-queue.jsonl       # Event-sourced merge queue
+├── merge-steering.txt      # User steering input for merge-ralph
+├── events.jsonl            # Event audit log
+├── planning-sessions/      # PDD session conversations and artifacts
+│   └── {session_id}/
+│       ├── conversation.jsonl
+│       ├── session.json
+│       └── artifacts/
+├── specs/                  # Specification documents
+└── diagnostics/            # Diagnostic output (when enabled)
 ```
 
 ### Event Bus

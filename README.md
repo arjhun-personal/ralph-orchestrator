@@ -42,10 +42,12 @@ ralph init --backend claude
 
 # 2. Plan your feature (interactive PDD session)
 ralph plan "Add user authentication with JWT"
-# Creates: specs/user-authentication/requirements.md, design.md, implementation-plan.md
 
 # 3. Implement the feature
 ralph run -p "Implement the feature in specs/user-authentication/"
+
+# 4. Launch the web dashboard
+ralph web
 ```
 
 Ralph iterates until it outputs `LOOP_COMPLETE` or hits the iteration limit.
@@ -56,6 +58,23 @@ For simpler tasks, skip planning and run directly:
 ralph run -p "Add input validation to the /users endpoint"
 ```
 
+### Parallel Loops
+
+Run multiple tasks simultaneously with git worktree isolation:
+
+```bash
+# Terminal 1: Primary loop
+ralph run -p "Add authentication"
+
+# Terminal 2: Automatically spawns to worktree
+ralph run -p "Add logging"
+
+# Monitor all loops
+ralph loops
+```
+
+Worktree loops auto-merge when complete, with AI-assisted conflict resolution.
+
 ## What is Ralph?
 
 Ralph implements the [Ralph Wiggum technique](https://ghuntley.com/ralph/) — autonomous task completion through continuous iteration. It supports:
@@ -64,7 +83,12 @@ Ralph implements the [Ralph Wiggum technique](https://ghuntley.com/ralph/) — a
 - **Hat System** — Specialized personas coordinating through events
 - **Backpressure** — Gates that reject incomplete work (tests, lint, typecheck)
 - **Memories & Tasks** — Persistent learning and runtime work tracking
-- **31 Presets** — TDD, spec-driven, debugging, and more
+- **Web Dashboard** — Full-stack web UI for task management, loop monitoring, and hat collection building
+- **Parallel Loops** — Run multiple orchestration loops in parallel via git worktrees with auto-merge
+- **REST API** — 10 endpoints at `/api/v1` for external integration
+- **Planning Sessions** — Interactive PDD sessions with persistent conversation history
+- **29 Presets** — TDD, spec-driven, debugging, confession-loop, and more
+- **Chaos Mode** — Post-completion exploration for autonomous improvement discovery
 
 ## Documentation
 
@@ -75,6 +99,7 @@ Full documentation is available at **[mikeyobrien.github.io/ralph-orchestrator](
 - [Configuration](https://mikeyobrien.github.io/ralph-orchestrator/guide/configuration/)
 - [CLI Reference](https://mikeyobrien.github.io/ralph-orchestrator/guide/cli-reference/)
 - [Presets](https://mikeyobrien.github.io/ralph-orchestrator/guide/presets/)
+- [Parallel Loops](https://mikeyobrien.github.io/ralph-orchestrator/advanced/parallel-loops/)
 - [Concepts: Hats & Events](https://mikeyobrien.github.io/ralph-orchestrator/concepts/hats-and-events/)
 - [Architecture](https://mikeyobrien.github.io/ralph-orchestrator/advanced/architecture/)
 

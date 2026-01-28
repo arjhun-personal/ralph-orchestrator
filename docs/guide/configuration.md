@@ -256,12 +256,55 @@ core:
     - "Follow existing code patterns"
 ```
 
+### features
+
+Optional feature flags for advanced capabilities.
+
+#### Chaos Mode
+
+Post-completion exploration that activates after `LOOP_COMPLETE`:
+
+```yaml
+features:
+  chaos_mode:
+    enabled: false              # Opt-in (also via --chaos flag)
+    max_iterations: 5           # Exploration iterations
+    cooldown_seconds: 30        # Pause between iterations
+    research_focus:
+      - domain_best_practices
+      - codebase_patterns
+      - self_improvement
+    outputs:
+      - memories                # Safe default — only writes memories
+      # - tasks                 # Also generate tasks
+      # - specs                 # Also generate specs
+```
+
+Chaos mode terminates with `CHAOS_COMPLETE`.
+
+#### Memorable Loop IDs
+
+Human-readable names for parallel loops:
+
+```yaml
+features:
+  loop_naming:
+    format: "human-readable"    # "human-readable" or "timestamp"
+    max_length: 50
+```
+
+Generates names like `fix-header-swift-peacock` using keyword extraction from prompts combined with adjective-noun pairs.
+
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `RALPH_CONFIG` | Default config file path |
 | `RALPH_DIAGNOSTICS` | Enable diagnostics (`1`) |
+| `RALPH_WORKSPACE_ROOT` | Workspace root for web server |
+| `RALPH_MERGE_LOOP_ID` | Set by auto-merge to identify which loop to merge |
+| `RALPH_VERBOSE` | Verbose output mode (`1`) |
+| `RALPH_DEBUG_LOG` | Write debug logs to `.ralph/agent/ralph.log` (`1`) |
 | `NO_COLOR` | Disable color output |
 
 ## Next Steps

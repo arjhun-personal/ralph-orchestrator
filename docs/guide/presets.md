@@ -341,6 +341,10 @@ hats:
 
 ## Creating Your Own Presets
 
+### Presets Catalog
+
+Ralph ships with a presets catalog (`presets/index.json`) containing 29 presets across categories: development, documentation, research, review, infrastructure, and workflow. The web dashboard exposes these at `GET /api/v1/presets`.
+
 Presets are stored in `/presets/`. Create a new one:
 
 ```yaml

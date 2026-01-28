@@ -47,13 +47,29 @@ Ralph implements the [Ralph Wiggum technique](https://ghuntley.com/ralph/) — a
 
     Persistent learning across sessions and runtime work tracking
 
+-   :material-web: **Web Dashboard**
+
+    Full-stack web UI with task management, loop monitoring, and a visual hat collection builder
+
+-   :material-source-branch: **Parallel Loops**
+
+    Run multiple loops simultaneously via git worktrees with auto-merge and conflict resolution
+
+-   :material-api: **REST API**
+
+    10 endpoints at `/api/v1` for programmatic access to tasks, hats, and presets
+
 -   :material-monitor: **Interactive TUI**
 
     Real-time terminal UI for monitoring Ralph's activity
 
--   :material-cog: **31 Presets**
+-   :material-cog: **29 Presets**
 
     Pre-configured workflows for TDD, spec-driven development, debugging, and more
+
+-   :material-lightning-bolt: **Chaos Mode**
+
+    Post-completion exploration for autonomous improvement discovery
 
 </div>
 
