@@ -40,7 +40,12 @@ export function initializeTestDatabase(): void {
       execution_summary TEXT,
       exit_code INTEGER,
       duration_ms INTEGER,
-      archived_at INTEGER
+      archived_at INTEGER,
+      merge_loop_prompt TEXT,
+      preset TEXT,
+      current_iteration INTEGER,
+      max_iterations INTEGER,
+      loop_id TEXT
     )
   `);
 

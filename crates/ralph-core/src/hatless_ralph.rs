@@ -466,6 +466,7 @@ You MUST NOT do implementation work — delegation is your only job.
 
 ### 1. Study the prompt.
 You MUST study, explore, and research what needs to be done.
+You MAY use parallel subagents (up to 10) for searches.
 
 ### 2. PLAN
 You MUST update `{scratchpad}` with your understanding and plan.

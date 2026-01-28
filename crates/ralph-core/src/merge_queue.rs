@@ -240,26 +240,12 @@ impl MergeQueue {
     /// * `loop_id` - The loop identifier
     /// * `pid` - PID of the merge-ralph process
     pub fn mark_merging(&self, loop_id: &str, pid: u32) -> Result<(), MergeQueueError> {
-        // Verify loop is in queued or needs_review state
-        let entry = self.get_entry(loop_id)?;
-        match entry {
-            Some(e) if e.state == MergeState::Queued || e.state == MergeState::NeedsReview => {}
-            Some(e) => {
-                return Err(MergeQueueError::InvalidTransition(
-                    loop_id.to_string(),
-                    e.state,
-                    MergeState::Merging,
-                ));
-            }
-            None => return Err(MergeQueueError::NotFound(loop_id.to_string())),
-        }
-
-        let event = MergeEvent {
-            ts: Utc::now(),
-            loop_id: loop_id.to_string(),
-            event: MergeEventType::Merging { pid },
-        };
-        self.append_event(&event)
+        self.validate_and_append(
+            loop_id,
+            MergeState::Merging,
+            &[MergeState::Queued, MergeState::NeedsReview],
+            || MergeEventType::Merging { pid },
+        )
     }
 
     /// Marks a loop as successfully merged.
@@ -269,28 +255,11 @@ impl MergeQueue {
     /// * `loop_id` - The loop identifier
     /// * `commit` - The merge commit SHA
     pub fn mark_merged(&self, loop_id: &str, commit: &str) -> Result<(), MergeQueueError> {
-        // Verify loop is in merging state
-        let entry = self.get_entry(loop_id)?;
-        match entry {
-            Some(e) if e.state == MergeState::Merging => {}
-            Some(e) => {
-                return Err(MergeQueueError::InvalidTransition(
-                    loop_id.to_string(),
-                    e.state,
-                    MergeState::Merged,
-                ));
-            }
-            None => return Err(MergeQueueError::NotFound(loop_id.to_string())),
-        }
-
-        let event = MergeEvent {
-            ts: Utc::now(),
-            loop_id: loop_id.to_string(),
-            event: MergeEventType::Merged {
+        self.validate_and_append(loop_id, MergeState::Merged, &[MergeState::Merging], || {
+            MergeEventType::Merged {
                 commit: commit.to_string(),
-            },
-        };
-        self.append_event(&event)
+            }
+        })
     }
 
     /// Marks a loop as needing manual review.
@@ -300,28 +269,14 @@ impl MergeQueue {
     /// * `loop_id` - The loop identifier
     /// * `reason` - Reason for the failure
     pub fn mark_needs_review(&self, loop_id: &str, reason: &str) -> Result<(), MergeQueueError> {
-        // Verify loop is in merging state
-        let entry = self.get_entry(loop_id)?;
-        match entry {
-            Some(e) if e.state == MergeState::Merging => {}
-            Some(e) => {
-                return Err(MergeQueueError::InvalidTransition(
-                    loop_id.to_string(),
-                    e.state,
-                    MergeState::NeedsReview,
-                ));
-            }
-            None => return Err(MergeQueueError::NotFound(loop_id.to_string())),
-        }
-
-        let event = MergeEvent {
-            ts: Utc::now(),
-            loop_id: loop_id.to_string(),
-            event: MergeEventType::NeedsReview {
+        self.validate_and_append(
+            loop_id,
+            MergeState::NeedsReview,
+            &[MergeState::Merging],
+            || MergeEventType::NeedsReview {
                 reason: reason.to_string(),
             },
-        };
-        self.append_event(&event)
+        )
     }
 
     /// Marks a loop as discarded.
@@ -331,28 +286,14 @@ impl MergeQueue {
     /// * `loop_id` - The loop identifier
     /// * `reason` - Optional reason for discarding
     pub fn discard(&self, loop_id: &str, reason: Option<&str>) -> Result<(), MergeQueueError> {
-        // Can discard from queued or needs_review states
-        let entry = self.get_entry(loop_id)?;
-        match entry {
-            Some(e) if e.state == MergeState::Queued || e.state == MergeState::NeedsReview => {}
-            Some(e) => {
-                return Err(MergeQueueError::InvalidTransition(
-                    loop_id.to_string(),
-                    e.state,
-                    MergeState::Discarded,
-                ));
-            }
-            None => return Err(MergeQueueError::NotFound(loop_id.to_string())),
-        }
-
-        let event = MergeEvent {
-            ts: Utc::now(),
-            loop_id: loop_id.to_string(),
-            event: MergeEventType::Discarded {
+        self.validate_and_append(
+            loop_id,
+            MergeState::Discarded,
+            &[MergeState::Queued, MergeState::NeedsReview],
+            || MergeEventType::Discarded {
                 reason: reason.map(String::from),
             },
-        };
-        self.append_event(&event)
+        )
     }
 
     /// Gets the next pending loop ready for merge (FIFO order).
@@ -459,6 +400,67 @@ impl MergeQueue {
         let mut entries: Vec<_> = loop_states.into_values().collect();
         entries.sort_by(|a, b| a.queued_at.cmp(&b.queued_at));
         entries
+    }
+
+    /// Validates the current state of a loop and appends an event atomically.
+    ///
+    /// This method holds an exclusive lock for the entire read-validate-write
+    /// sequence, eliminating the TOCTOU race condition that would occur if
+    /// validation and append were done under separate locks.
+    fn validate_and_append<F>(
+        &self,
+        loop_id: &str,
+        target_state: MergeState,
+        valid_from: &[MergeState],
+        make_event: F,
+    ) -> Result<(), MergeQueueError>
+    where
+        F: FnOnce() -> MergeEventType,
+    {
+        self.with_exclusive_lock(|mut file| {
+            // Read all events under the same exclusive lock
+            file.seek(SeekFrom::Start(0))?;
+            let reader = BufReader::new(&file);
+            let mut events = Vec::new();
+            for (line_num, line) in reader.lines().enumerate() {
+                let line = line?;
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let event: MergeEvent = serde_json::from_str(&line).map_err(|e| {
+                    MergeQueueError::ParseError(format!("Line {}: {}", line_num + 1, e))
+                })?;
+                events.push(event);
+            }
+
+            // Derive state and validate
+            let entries = Self::derive_state(&events);
+            let entry = entries.into_iter().find(|e| e.loop_id == loop_id);
+            match entry {
+                Some(e) if valid_from.contains(&e.state) => {}
+                Some(e) => {
+                    return Err(MergeQueueError::InvalidTransition(
+                        loop_id.to_string(),
+                        e.state,
+                        target_state,
+                    ));
+                }
+                None => return Err(MergeQueueError::NotFound(loop_id.to_string())),
+            }
+
+            // Append event
+            file.seek(SeekFrom::End(0))?;
+            let event = MergeEvent {
+                ts: Utc::now(),
+                loop_id: loop_id.to_string(),
+                event: make_event(),
+            };
+            let json = serde_json::to_string(&event)
+                .map_err(|e| MergeQueueError::ParseError(e.to_string()))?;
+            writeln!(file, "{}", json)?;
+            file.sync_all()?;
+            Ok(())
+        })
     }
 
     /// Appends an event to the queue file.

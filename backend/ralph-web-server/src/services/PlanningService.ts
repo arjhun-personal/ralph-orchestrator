@@ -163,6 +163,7 @@ export class PlanningService {
   private readonly sessionsDir: string;
   private readonly defaultTimeoutSeconds: number;
   private readonly runningProcesses = new Map<string, ChildProcess>();
+  private readonly processTimeouts = new Map<string, NodeJS.Timeout>();
   private readonly eventPollers = new Map<string, NodeJS.Timeout>();
   private readonly processedEventTimestamps = new Map<string, Set<string>>();
 
@@ -171,8 +172,6 @@ export class PlanningService {
     this.ralphPath = options.ralphPath ?? "ralph";
     this.sessionsDir = path.join(this.workspaceRoot, ".ralph", "planning-sessions");
     this.defaultTimeoutSeconds = options.defaultTimeoutSeconds ?? 300;
-    // TODO: use defaultTimeoutSeconds for request timeout handling
-    void this.defaultTimeoutSeconds;
   }
 
   /**
@@ -345,6 +344,15 @@ export class PlanningService {
     // Track the process
     this.runningProcesses.set(sessionId, ralphProcess);
 
+    // Set timeout to kill the process if it runs too long
+    const timeout = setTimeout(() => {
+      console.log(`[PlanningService:${sessionId}] Session timed out after ${this.defaultTimeoutSeconds}s`);
+      ralphProcess.kill("SIGTERM");
+      this.processTimeouts.delete(sessionId);
+      this.updateSessionStatus(sessionId, SessionStatus.TimedOut);
+    }, this.defaultTimeoutSeconds * 1000);
+    this.processTimeouts.set(sessionId, timeout);
+
     // Initialize processed events tracking for this session
     this.processedEventTimestamps.set(sessionId, new Set());
 
@@ -366,6 +374,7 @@ export class PlanningService {
     ralphProcess.on("exit", (code, signal) => {
       console.log(`[PlanningService:${sessionId}] ralph exited: code=${code}, signal=${signal}`);
       this.runningProcesses.delete(sessionId);
+      this.clearProcessTimeout(sessionId);
       this.stopEventPolling(sessionId);
 
       // Mark session as completed or failed
@@ -376,6 +385,7 @@ export class PlanningService {
     ralphProcess.on("error", (err) => {
       console.error(`[PlanningService:${sessionId}] ralph error:`, err);
       this.runningProcesses.delete(sessionId);
+      this.clearProcessTimeout(sessionId);
       this.stopEventPolling(sessionId);
     });
   }
@@ -392,6 +402,17 @@ export class PlanningService {
 
     this.eventPollers.set(sessionId, poller);
     console.log(`[PlanningService:${sessionId}] Started event polling`);
+  }
+
+  /**
+   * Clear the process timeout for a session.
+   */
+  private clearProcessTimeout(sessionId: string): void {
+    const timeout = this.processTimeouts.get(sessionId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.processTimeouts.delete(sessionId);
+    }
   }
 
   /**

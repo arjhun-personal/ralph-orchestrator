@@ -25,7 +25,7 @@ import { PlanningService } from "../services/PlanningService";
 export interface ServerOptions {
   /** Port to listen on (default: 3000) */
   port?: number;
-  /** Host to bind to (default: '0.0.0.0') */
+  /** Host to bind to (default: '127.0.0.1') */
   host?: string;
   /** Optional database instance (creates one if not provided) */
   db?: BetterSQLite3Database<typeof schema>;
@@ -43,14 +43,21 @@ export interface ServerOptions {
  * Create and configure a Fastify server with TRPC
  */
 export async function createServer(options: ServerOptions = {}): Promise<FastifyInstance> {
-  const { port = 3000, host = "0.0.0.0", db = getDatabase(), logger = true, taskBridge, loopsManager, planningService } = options;
+  const { port = 3000, host = "127.0.0.1", db = getDatabase(), logger = true, taskBridge, loopsManager, planningService } = options;
 
   const server = Fastify({ logger });
 
-  // Register CORS
+  // Register CORS - restrict to localhost origins only
   await server.register(cors, {
-    origin: true, // Allow all origins in development
-    methods: ["GET", "POST", "OPTIONS"],
+    origin: (origin, cb) => {
+      // Allow requests with no origin (curl, server-to-server) and localhost
+      if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error("Not allowed by CORS"), false);
+      }
+    },
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   });
 
@@ -125,7 +132,7 @@ export async function createServer(options: ServerOptions = {}): Promise<Fastify
  * Start the server and listen on the specified port
  */
 export async function startServer(options: ServerOptions = {}): Promise<FastifyInstance> {
-  const { port = 3000, host = "0.0.0.0" } = options;
+  const { port = 3000, host = "127.0.0.1" } = options;
 
   const server = await createServer(options);
 

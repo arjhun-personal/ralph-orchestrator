@@ -350,12 +350,28 @@ export const taskRouter = router({
   }),
 
   /**
-   * Delete all tasks and task logs.
+   * Delete all tasks in terminal states and all task logs.
+   *
+   * Security: Skips tasks in non-terminal states (open, running, pending)
+   * to prevent orphaning running processes.
    */
   clearAll: publicProcedure.mutation(({ ctx }) => {
+    const allTasks = ctx.taskRepository.findAll(undefined, true);
+    const terminalStates = ["failed", "closed"];
+    let deletedTasks = 0;
+    let skippedTasks = 0;
+
+    for (const task of allTasks) {
+      if (terminalStates.includes(task.status)) {
+        ctx.taskRepository.delete(task.id);
+        deletedTasks++;
+      } else {
+        skippedTasks++;
+      }
+    }
+
     const deletedLogs = ctx.taskLogRepository.deleteAll();
-    const deletedTasks = ctx.taskRepository.deleteAll();
-    return { success: true, deletedTasks, deletedLogs };
+    return { success: true, deletedTasks, deletedLogs, skippedTasks };
   }),
 });
 

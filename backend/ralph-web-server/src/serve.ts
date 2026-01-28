@@ -18,7 +18,7 @@ import { ProcessSupervisor } from "./runner/ProcessSupervisor";
 import { FileOutputStreamer } from "./runner/FileOutputStreamer";
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const HOST = process.env.HOST || "0.0.0.0";
+const HOST = process.env.HOST || "127.0.0.1";
 
 // Resolve workspace root:
 // 1. RALPH_WORKSPACE_ROOT env var (explicit override)
