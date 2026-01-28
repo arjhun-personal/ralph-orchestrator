@@ -1,6 +1,6 @@
 //! Markdown parser for the memories file format.
 //!
-//! Parses `.agent/memories.md` into a vector of `Memory` structs.
+//! Parses `.ralph/agent/memories.md` into a vector of `Memory` structs.
 //! The format uses:
 //! - `## Section` headers to denote memory types
 //! - `### mem-{id}` headers for individual memories
@@ -31,7 +31,7 @@ static METADATA_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// Parse a memories markdown file into a vector of Memory structs.
 ///
 /// # Arguments
-/// * `markdown` - The contents of a `.agent/memories.md` file
+/// * `markdown` - The contents of a `.ralph/agent/memories.md` file
 ///
 /// # Returns
 /// A vector of parsed memories. Malformed memory blocks are skipped.

@@ -1,0 +1,11 @@
+/**
+ * Pages Barrel Export
+ *
+ * Re-exports all page components for cleaner imports.
+ */
+
+export { TasksPage } from "./TasksPage";
+export { HatsPage } from "./HatsPage";
+export { HistoryPage } from "./HistoryPage";
+export { PlanPage } from "./PlanPage";
+export { BuilderPage } from "./BuilderPage";

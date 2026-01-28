@@ -13,10 +13,10 @@
 #
 # Usage:
 #   # From PDD output directory:
-#   ralph run --config presets/code-assist.yml --prompt "specs/my-feature"
+#   ralph run --config presets/code-assist.yml --prompt ".ralph/specs/my-feature"
 #
 #   # From a single code task:
-#   ralph run --config presets/code-assist.yml --prompt "tasks/my-task.code-task.md"
+#   ralph run --config presets/code-assist.yml --prompt ".ralph/tasks/my-task.code-task.md"
 #
 #   # From a rough description:
 #   ralph run --config presets/code-assist.yml --prompt "Add a --verbose flag to the CLI"
@@ -34,10 +34,10 @@ cli:
   prompt_mode: "arg"
 
 core:
-  specs_dir: "./specs/"
+  specs_dir: ".ralph/specs/"
   guardrails:
     - "Fresh context each iteration — save learnings to memories for next time"
-    - "Backpressure is law — tests/typecheck/lint must pass"
+    - "Verification is mandatory — tests/typecheck/lint must pass"
     - "YAGNI ruthlessly — no speculative features"
     - "KISS always — simplest solution that works"
 

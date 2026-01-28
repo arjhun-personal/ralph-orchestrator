@@ -89,6 +89,8 @@ impl CliBackend {
                 "--verbose".to_string(),
                 "--output-format".to_string(),
                 "stream-json".to_string(),
+                "--disallowedTools".to_string(),
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet".to_string(),
             ],
             prompt_mode: PromptMode::Arg,
             prompt_flag: Some("-p".to_string()),
@@ -106,7 +108,11 @@ impl CliBackend {
     pub fn claude_interactive() -> Self {
         Self {
             command: "claude".to_string(),
-            args: vec!["--dangerously-skip-permissions".to_string()],
+            args: vec![
+                "--dangerously-skip-permissions".to_string(),
+                "--disallowedTools".to_string(),
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet".to_string(),
+            ],
             prompt_mode: PromptMode::Arg,
             prompt_flag: None,
             output_format: OutputFormat::Text,
@@ -550,6 +556,8 @@ mod tests {
                 "--verbose",
                 "--output-format",
                 "stream-json",
+                "--disallowedTools",
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
                 "-p",
                 "test prompt"
             ]
@@ -564,9 +572,17 @@ mod tests {
         let (cmd, args, stdin, _temp) = backend.build_command("test prompt", false);
 
         assert_eq!(cmd, "claude");
-        // Should have --dangerously-skip-permissions and prompt as positional arg
+        // Should have --dangerously-skip-permissions, --disallowedTools, and prompt as positional arg
         // No -p flag, no --output-format, no --verbose
-        assert_eq!(args, vec!["--dangerously-skip-permissions", "test prompt"]);
+        assert_eq!(
+            args,
+            vec![
+                "--dangerously-skip-permissions",
+                "--disallowedTools",
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
+                "test prompt"
+            ]
+        );
         assert!(stdin.is_none()); // Uses positional arg, not stdin
         assert_eq!(backend.output_format, OutputFormat::Text);
         assert_eq!(backend.prompt_flag, None);
@@ -746,6 +762,8 @@ mod tests {
                 "--verbose",
                 "--output-format",
                 "stream-json",
+                "--disallowedTools",
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
                 "-p",
                 "test prompt"
             ]
@@ -995,7 +1013,15 @@ mod tests {
 
         assert_eq!(cmd, "claude");
         // Should use positional arg (no -p flag)
-        assert_eq!(args, vec!["--dangerously-skip-permissions", "test prompt"]);
+        assert_eq!(
+            args,
+            vec![
+                "--dangerously-skip-permissions",
+                "--disallowedTools",
+                "TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
+                "test prompt"
+            ]
+        );
         assert!(stdin.is_none());
         assert_eq!(backend.prompt_flag, None);
     }

@@ -36,11 +36,13 @@
 //! }
 //! ```
 
+use crate::loop_lock::LoopLock;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /// A merge queue event recorded in the JSONL log.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -88,6 +90,33 @@ pub enum MergeEventType {
         /// Reason for discarding (optional).
         reason: Option<String>,
     },
+}
+
+/// State of the merge button for a loop.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MergeButtonState {
+    /// Merge button is active (can merge now).
+    Active,
+    /// Merge button is blocked with a reason.
+    Blocked { reason: String },
+}
+
+/// Decision about whether a merge needs user steering.
+#[derive(Debug, Clone)]
+pub struct SteeringDecision {
+    /// Whether user input is needed.
+    pub needs_input: bool,
+    /// Reason for needing input (or empty if not needed).
+    pub reason: String,
+    /// Options for the user to choose from.
+    pub options: Vec<MergeOption>,
+}
+
+/// An option for merge steering.
+#[derive(Debug, Clone)]
+pub struct MergeOption {
+    /// Label for this option.
+    pub label: String,
 }
 
 /// Current state of a loop in the merge queue.
@@ -528,6 +557,226 @@ impl MergeQueue {
     {
         Err(MergeQueueError::UnsupportedPlatform)
     }
+}
+
+/// Get the merge button state for a loop.
+///
+/// Determines whether the merge button should be active or blocked based on:
+/// - Whether the primary loop is running
+/// - Whether this loop is already being merged
+pub fn merge_button_state(
+    workspace: &Path,
+    loop_id: &str,
+) -> Result<MergeButtonState, MergeQueueError> {
+    let queue = MergeQueue::new(workspace);
+
+    // Check if this loop is already being merged
+    if let Some(entry) = queue.get_entry(loop_id)?
+        && entry.state == MergeState::Merging
+    {
+        return Ok(MergeButtonState::Blocked {
+            reason: "Merge already in progress".to_string(),
+        });
+    }
+
+    // Check if primary loop is running by checking:
+    // 1. Lock file exists
+    // 2. PID in the file is still alive
+    if let Ok(Some(metadata)) = LoopLock::read_existing(workspace) {
+        // Check if the PID is still running
+        if is_pid_alive(metadata.pid) {
+            return Ok(MergeButtonState::Blocked {
+                reason: format!("primary loop running: {}", metadata.prompt),
+            });
+        }
+    }
+
+    Ok(MergeButtonState::Active)
+}
+
+/// Check if a process with the given PID is still running.
+fn is_pid_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        use nix::sys::signal::kill;
+        use nix::unistd::Pid;
+        // Signal 0 (None) doesn't send any signal but checks if the process exists
+        kill(Pid::from_raw(pid as i32), None).is_ok()
+    }
+
+    #[cfg(not(unix))]
+    {
+        // On non-Unix, assume the process is alive if we can't check
+        true
+    }
+}
+
+/// Generate a smart merge summary from worktree commits.
+///
+/// Reads the commit history and generates a concise summary suitable for
+/// the merge commit message (single line, respects 72-char limit when combined
+/// with the loop ID prefix).
+pub fn smart_merge_summary(workspace: &Path, loop_id: &str) -> Result<String, MergeQueueError> {
+    let branch_name = format!("ralph/{}", loop_id);
+
+    // Get commit messages from the branch
+    let output = Command::new("git")
+        .args([
+            "log",
+            "--oneline",
+            "--no-walk=unsorted",
+            &format!("main..{}", branch_name),
+        ])
+        .current_dir(workspace)
+        .output()?;
+
+    let log_output = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = log_output.lines().collect();
+
+    // Extract the most meaningful commit message
+    let summary = if lines.is_empty() {
+        // Try getting any commit on the branch
+        let output = Command::new("git")
+            .args(["log", "-1", "--oneline", &branch_name])
+            .current_dir(workspace)
+            .output()?;
+
+        let msg = String::from_utf8_lossy(&output.stdout);
+        extract_summary_from_line(msg.trim())
+    } else {
+        // Use the most recent commit message
+        extract_summary_from_line(lines[0])
+    };
+
+    // Calculate max length: 72 - "merge(ralph): " (14) - " (loop {})" with loop_id
+    let prefix_len = 14; // "merge(ralph): "
+    let suffix_len = 8 + loop_id.len(); // " (loop " + loop_id + ")"
+    let max_summary_len = 72 - prefix_len - suffix_len;
+
+    // Truncate if needed
+    let summary = if summary.len() > max_summary_len {
+        format!("{}...", &summary[..max_summary_len.saturating_sub(3)])
+    } else {
+        summary
+    };
+
+    Ok(summary)
+}
+
+/// Extract summary from a git log --oneline line (removes commit hash prefix).
+fn extract_summary_from_line(line: &str) -> String {
+    // Format is "abc1234 commit message"
+    if let Some(idx) = line.find(' ') {
+        line[idx + 1..].to_string()
+    } else {
+        line.to_string()
+    }
+}
+
+/// Check if a merge needs user steering (e.g., due to conflicts).
+pub fn merge_needs_steering(
+    workspace: &Path,
+    loop_id: &str,
+) -> Result<SteeringDecision, MergeQueueError> {
+    let branch_name = format!("ralph/{}", loop_id);
+
+    // Check for potential conflicts by doing a dry-run merge
+    let output = Command::new("git")
+        .args(["merge-tree", "--write-tree", "main", &branch_name])
+        .current_dir(workspace)
+        .output()?;
+
+    // Check if merge-tree reports conflicts (non-zero exit or conflict markers in output)
+    let has_conflicts =
+        !output.status.success() || String::from_utf8_lossy(&output.stdout).contains("CONFLICT");
+
+    if has_conflicts {
+        // Also get list of conflicting files
+        let diff_output = Command::new("git")
+            .args(["diff", "--name-only", "main", &branch_name])
+            .current_dir(workspace)
+            .output()?;
+
+        let files = String::from_utf8_lossy(&diff_output.stdout);
+        let file_list: Vec<&str> = files.lines().take(3).collect();
+
+        let reason = if file_list.is_empty() {
+            "Potential conflict detected".to_string()
+        } else {
+            format!("Files modified on both branches: {}", file_list.join(", "))
+        };
+
+        Ok(SteeringDecision {
+            needs_input: true,
+            reason,
+            options: vec![
+                MergeOption {
+                    label: "Use ours (main)".to_string(),
+                },
+                MergeOption {
+                    label: "Use theirs (branch)".to_string(),
+                },
+                MergeOption {
+                    label: "Manual resolution".to_string(),
+                },
+            ],
+        })
+    } else {
+        Ok(SteeringDecision {
+            needs_input: false,
+            reason: String::new(),
+            options: vec![],
+        })
+    }
+}
+
+/// Generate an execution summary for a completed merge.
+///
+/// Describes what was merged including commit count and key changes.
+pub fn merge_execution_summary(workspace: &Path, loop_id: &str) -> Result<String, MergeQueueError> {
+    let branch_name = format!("ralph/{}", loop_id);
+
+    // Get commit count
+    let count_output = Command::new("git")
+        .args(["rev-list", "--count", &format!("main..{}", branch_name)])
+        .current_dir(workspace)
+        .output()?;
+
+    let commit_count = String::from_utf8_lossy(&count_output.stdout)
+        .trim()
+        .parse::<usize>()
+        .unwrap_or(0);
+
+    // Get file count
+    let files_output = Command::new("git")
+        .args(["diff", "--name-only", "main", &branch_name])
+        .current_dir(workspace)
+        .output()?;
+
+    let files = String::from_utf8_lossy(&files_output.stdout);
+    let file_count = files.lines().count();
+
+    // Get the most descriptive commit message
+    let log_output = Command::new("git")
+        .args(["log", "-1", "--format=%s", &branch_name])
+        .current_dir(workspace)
+        .output()?;
+
+    let last_commit = String::from_utf8_lossy(&log_output.stdout)
+        .trim()
+        .to_string();
+
+    // Build summary
+    let summary = format!(
+        "{} commit{}, {} file{} changed: {}",
+        commit_count,
+        if commit_count == 1 { "" } else { "s" },
+        file_count,
+        if file_count == 1 { "" } else { "s" },
+        last_commit
+    );
+
+    Ok(summary)
 }
 
 #[cfg(test)]

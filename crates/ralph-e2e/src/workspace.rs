@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 ///
 /// The WorkspaceManager creates and cleans up directories under a base path
 /// (typically `.e2e-tests/`). Each scenario gets its own subdirectory containing
-/// its ralph.yml, prompt files, and .agent/ directory.
+/// its ralph.yml, prompt files, and .ralph/agent/ directory.
 ///
 /// # Example
 ///
@@ -50,7 +50,7 @@ impl WorkspaceManager {
     /// Creates the directory structure:
     /// ```text
     /// {base_path}/{scenario_id}/
-    /// └── .agent/
+    /// └── .ralph/agent/
     /// ```
     ///
     /// Returns the path to the created workspace directory.

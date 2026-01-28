@@ -15,6 +15,8 @@ pub enum TaskStatus {
     InProgress,
     /// Complete
     Closed,
+    /// Failed/abandoned
+    Failed,
 }
 
 /// A task in the task tracking system.
@@ -163,6 +165,9 @@ mod tests {
         assert!(!task.is_ready(&[]));
 
         task.status = TaskStatus::InProgress;
+        assert!(!task.is_ready(&[]));
+
+        task.status = TaskStatus::Failed;
         assert!(!task.is_ready(&[]));
     }
 }

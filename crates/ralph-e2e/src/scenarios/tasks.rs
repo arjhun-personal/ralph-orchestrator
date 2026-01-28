@@ -6,7 +6,7 @@
 //! - Loop completion verification with tasks
 //! - Dependency tracking
 //!
-//! Tasks are stored in `.agent/tasks.jsonl` and provide structured
+//! Tasks are stored in `.ralph/agent/tasks.jsonl` and provide structured
 //! work item tracking when memories are enabled.
 //!
 //! All scenarios are backend-agnostic and support Claude, Kiro, and OpenCode.
@@ -38,7 +38,7 @@ impl AssertionExt for crate::models::Assertion {
 ///
 /// This scenario:
 /// - Uses `ralph task add` to create a task
-/// - Verifies the task is stored in `.agent/tasks.jsonl`
+/// - Verifies the task is stored in `.ralph/agent/tasks.jsonl`
 /// - Verifies the task ID format is correct (task-{timestamp}-{hex})
 ///
 /// # Example
@@ -157,7 +157,7 @@ IMPORTANT: You MUST actually execute the command using the Bash tool, not just d
         let duration = start.elapsed();
 
         // Check if tasks.jsonl was created
-        let tasks_path = executor.workspace().join(".agent/tasks.jsonl");
+        let tasks_path = executor.workspace().join(".ralph/agent/tasks.jsonl");
         let tasks_exist = tasks_path.exists();
         let tasks_content = if tasks_exist {
             std::fs::read_to_string(&tasks_path).unwrap_or_default()
@@ -210,7 +210,7 @@ impl TaskAddScenario {
     /// Asserts that the tasks.jsonl file was created.
     fn task_file_created(&self, exists: bool) -> crate::models::Assertion {
         AssertionBuilder::new("Task file created")
-            .expected(".agent/tasks.jsonl file exists")
+            .expected(".ralph/agent/tasks.jsonl file exists")
             .actual(if exists {
                 "File created successfully".to_string()
             } else {
@@ -376,7 +376,7 @@ IMPORTANT: Execute each command using the Bash tool."#;
         let duration = start.elapsed();
 
         // Check tasks.jsonl content
-        let tasks_path = executor.workspace().join(".agent/tasks.jsonl");
+        let tasks_path = executor.workspace().join(".ralph/agent/tasks.jsonl");
         let tasks_content = if tasks_path.exists() {
             std::fs::read_to_string(&tasks_path).unwrap_or_default()
         } else {
@@ -754,7 +754,7 @@ Execute each command using the Bash tool."#;
         let duration = start.elapsed();
 
         // Check tasks.jsonl content
-        let tasks_path = executor.workspace().join(".agent/tasks.jsonl");
+        let tasks_path = executor.workspace().join(".ralph/agent/tasks.jsonl");
         let tasks_content = if tasks_path.exists() {
             std::fs::read_to_string(&tasks_path).unwrap_or_default()
         } else {

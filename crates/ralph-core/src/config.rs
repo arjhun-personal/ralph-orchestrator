@@ -598,7 +598,7 @@ pub struct CoreConfig {
     #[serde(default = "default_guardrails")]
     pub guardrails: Vec<String>,
 
-    /// Root directory for workspace-relative paths (.agent/, memories, etc.).
+    /// Root directory for workspace-relative paths (.ralph/, specs, etc.).
     ///
     /// All relative paths (scratchpad, specs_dir, memories) are resolved relative
     /// to this directory. Defaults to the current working directory.
@@ -609,11 +609,11 @@ pub struct CoreConfig {
 }
 
 fn default_scratchpad() -> String {
-    ".agent/scratchpad.md".to_string()
+    ".ralph/agent/scratchpad.md".to_string()
 }
 
 fn default_specs_dir() -> String {
-    "./specs/".to_string()
+    ".ralph/specs/".to_string()
 }
 
 fn default_guardrails() -> Vec<String> {
@@ -764,7 +764,7 @@ impl std::fmt::Display for InjectMode {
 /// Memories configuration.
 ///
 /// Controls the persistent learning system that allows Ralph to accumulate
-/// wisdom across sessions. Memories are stored in `.agent/memories.md`.
+/// wisdom across sessions. Memories are stored in `.ralph/agent/memories.md`.
 ///
 /// When enabled, the memories skill is automatically injected to teach
 /// agents how to create and search memories (skill injection is implicit).
@@ -831,7 +831,7 @@ pub struct MemoriesFilter {
 /// Tasks configuration.
 ///
 /// Controls the runtime task tracking system that allows Ralph to manage
-/// work items across iterations. Tasks are stored in `.agent/tasks.jsonl`.
+/// work items across iterations. Tasks are stored in `.ralph/agent/tasks.jsonl`.
 ///
 /// When enabled, tasks replace scratchpad for loop completion verification.
 ///
@@ -863,6 +863,7 @@ impl Default for TasksConfig {
 /// ```yaml
 /// features:
 ///   parallel: true  # Enable parallel loops via git worktrees
+///   auto_merge: false  # Auto-merge worktree branches on completion
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeaturesConfig {
@@ -872,12 +873,21 @@ pub struct FeaturesConfig {
     /// a parallel loop in a git worktree. When false, Ralph errors instead.
     #[serde(default = "default_true")]
     pub parallel: bool,
+
+    /// Whether to automatically merge worktree branches on completion.
+    ///
+    /// When false (default), completed worktree loops queue for manual merge.
+    /// When true, Ralph automatically merges the worktree branch into the
+    /// main branch after a parallel loop completes.
+    #[serde(default)]
+    pub auto_merge: bool,
 }
 
 impl Default for FeaturesConfig {
     fn default() -> Self {
         Self {
-            parallel: true, // Parallel loops enabled by default
+            parallel: true,    // Parallel loops enabled by default
+            auto_merge: false, // Auto-merge disabled by default for safety
         }
     }
 }
@@ -1413,8 +1423,8 @@ hats:
     #[test]
     fn test_core_config_defaults() {
         let config = RalphConfig::default();
-        assert_eq!(config.core.scratchpad, ".agent/scratchpad.md");
-        assert_eq!(config.core.specs_dir, "./specs/");
+        assert_eq!(config.core.scratchpad, ".ralph/agent/scratchpad.md");
+        assert_eq!(config.core.specs_dir, ".ralph/specs/");
         // Default guardrails per spec
         assert_eq!(config.core.guardrails.len(), 3);
         assert!(config.core.guardrails[0].contains("Fresh context"));
@@ -1440,7 +1450,7 @@ core:
     fn test_core_config_custom_guardrails() {
         let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs/"
   guardrails:
     - "Custom rule one"
@@ -1842,5 +1852,57 @@ hats:
             reviewer.default_publishes,
             Some("review.complete".to_string())
         );
+    }
+
+    #[test]
+    fn test_features_config_auto_merge_defaults_to_false() {
+        // Per spec: auto_merge should default to false for safety
+        // This prevents automatic merging of parallel loop branches
+        let config = RalphConfig::default();
+        assert!(
+            !config.features.auto_merge,
+            "auto_merge should default to false"
+        );
+    }
+
+    #[test]
+    fn test_features_config_auto_merge_from_yaml() {
+        // Users can opt into auto_merge via config
+        let yaml = r"
+features:
+  auto_merge: true
+";
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            config.features.auto_merge,
+            "auto_merge should be true when configured"
+        );
+    }
+
+    #[test]
+    fn test_features_config_auto_merge_false_from_yaml() {
+        // Explicit false should work too
+        let yaml = r"
+features:
+  auto_merge: false
+";
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            !config.features.auto_merge,
+            "auto_merge should be false when explicitly configured"
+        );
+    }
+
+    #[test]
+    fn test_features_config_preserves_parallel_when_adding_auto_merge() {
+        // Ensure adding auto_merge doesn't break existing parallel feature
+        let yaml = r"
+features:
+  parallel: false
+  auto_merge: true
+";
+        let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(!config.features.parallel, "parallel should be false");
+        assert!(config.features.auto_merge, "auto_merge should be true");
     }
 }

@@ -70,7 +70,7 @@ impl CleanupPolicy {
 ///
 /// The workspace is created in a temporary directory with:
 /// - Its own `.git` directory (isolated from main repo)
-/// - A fresh `.agent/scratchpad.md`
+/// - A fresh `.ralph/agent/scratchpad.md`
 /// - Copied setup files from the task definition
 #[derive(Debug)]
 pub struct TaskWorkspace {
@@ -113,8 +113,8 @@ impl TaskWorkspace {
         // Create workspace directory
         fs::create_dir_all(&path)?;
 
-        // Create .agent directory with empty scratchpad
-        let agent_dir = path.join(".agent");
+        // Create .ralph/agent directory with empty scratchpad
+        let agent_dir = path.join(".ralph").join("agent");
         fs::create_dir_all(&agent_dir)?;
         fs::write(agent_dir.join("scratchpad.md"), "")?;
 
@@ -647,8 +647,8 @@ mod tests {
 
         assert!(workspace.path().exists());
         assert!(workspace.path().join(".git").exists());
-        assert!(workspace.path().join(".agent").exists());
-        assert!(workspace.path().join(".agent/scratchpad.md").exists());
+        assert!(workspace.path().join(".ralph/agent").exists());
+        assert!(workspace.path().join(".ralph/agent/scratchpad.md").exists());
         assert_eq!(workspace.task_name(), "hello-world");
     }
 

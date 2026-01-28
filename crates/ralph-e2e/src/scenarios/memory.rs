@@ -6,7 +6,7 @@
 //! - Auto-injection of memories into prompts
 //! - Persistence across runs
 //!
-//! The memory system stores learnings in `.agent/memories.md` and can
+//! The memory system stores learnings in `.ralph/agent/memories.md` and can
 //! automatically inject relevant memories into agent prompts.
 //!
 //! All scenarios in this module are backend-agnostic and support Claude, Kiro,
@@ -39,7 +39,7 @@ impl AssertionExt for crate::models::Assertion {
 ///
 /// This scenario:
 /// - Uses `ralph tools memory add` to create a memory entry
-/// - Verifies the memory is stored in `.agent/memories.md`
+/// - Verifies the memory is stored in `.ralph/agent/memories.md`
 /// - Verifies the memory ID format is correct
 ///
 /// # Example
@@ -92,10 +92,10 @@ impl TestScenario for MemoryAddScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        // Create the .agent directory
-        let agent_dir = workspace.join(".agent");
+        // Create the .ralph/agent directory
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         // Create a minimal ralph.yml (memory commands don't need orchestration)
@@ -161,7 +161,7 @@ IMPORTANT: You MUST actually execute the command using the Bash tool, not just d
         let duration = start.elapsed();
 
         // Check if memories.md was created
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_exist = memories_path.exists();
         let memories_content = if memories_exist {
             std::fs::read_to_string(&memories_path).unwrap_or_default()
@@ -214,7 +214,7 @@ impl MemoryAddScenario {
     /// Asserts that the memories.md file was created.
     fn memory_file_created(&self, exists: bool) -> crate::models::Assertion {
         AssertionBuilder::new("Memory file created")
-            .expected(".agent/memories.md file exists")
+            .expected(".ralph/agent/memories.md file exists")
             .actual(if exists {
                 "File created successfully".to_string()
             } else {
@@ -258,7 +258,7 @@ impl MemoryAddScenario {
 /// Test scenario that verifies memories can be searched.
 ///
 /// This scenario:
-/// - Pre-populates `.agent/memories.md` with test data
+/// - Pre-populates `.ralph/agent/memories.md` with test data
 /// - Uses `ralph tools memory search` to find entries
 /// - Verifies search results are correct
 ///
@@ -313,9 +313,9 @@ impl TestScenario for MemorySearchScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         // Pre-populate memories.md with searchable test data
@@ -365,7 +365,7 @@ memories:
 
         let prompt = r#"You are testing Ralph's memory search functionality.
 
-Pre-existing memories are in .agent/memories.md with these entries:
+Pre-existing memories are in .ralph/agent/memories.md with these entries:
 - A pattern about JWT authentication
 - A pattern about database connection pooling
 - A fix about docker ECONNREFUSED
@@ -479,7 +479,7 @@ impl MemorySearchScenario {
 /// Test scenario that verifies memories are auto-injected into prompts.
 ///
 /// This scenario:
-/// - Pre-populates `.agent/memories.md` with test data
+/// - Pre-populates `.ralph/agent/memories.md` with test data
 /// - Configures `inject: auto` in ralph.yml
 /// - Verifies the agent can see/use the injected memories
 ///
@@ -533,9 +533,9 @@ impl TestScenario for MemoryInjectionScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         // Pre-populate memories.md with a distinctive memory
@@ -725,7 +725,8 @@ impl MemoryPersistenceScenario {
     pub fn new() -> Self {
         Self {
             id: "memory-persistence".to_string(),
-            description: "Verifies memories persist in .agent/memories.md across runs".to_string(),
+            description: "Verifies memories persist in .ralph/agent/memories.md across runs"
+                .to_string(),
             tier: "Tier 6: Memory System".to_string(),
         }
     }
@@ -756,9 +757,9 @@ impl TestScenario for MemoryPersistenceScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         let config_content = format!(
@@ -822,7 +823,7 @@ IMPORTANT: You MUST actually execute the command using the Bash tool."#;
         let duration = start.elapsed();
 
         // Check if memory persisted to disk
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_exist = memories_path.exists();
         let memories_content = if memories_exist {
             std::fs::read_to_string(&memories_path).unwrap_or_default()
@@ -859,7 +860,7 @@ impl MemoryPersistenceScenario {
         let has_content = !content.trim().is_empty();
 
         AssertionBuilder::new("Memory persisted to disk")
-            .expected(".agent/memories.md exists with content")
+            .expected(".ralph/agent/memories.md exists with content")
             .actual(if exists && has_content {
                 format!("File exists with {} bytes", content.len())
             } else if exists {
@@ -926,7 +927,7 @@ fn truncate(s: &str, max_len: usize) -> String {
 /// Chaos test: Verifies memory system handles corrupted memory files gracefully.
 ///
 /// This scenario:
-/// - Pre-populates `.agent/memories.md` with malformed content
+/// - Pre-populates `.ralph/agent/memories.md` with malformed content
 /// - Verifies Ralph doesn't crash when reading corrupted memories
 /// - Checks that memory operations still work (add new memories)
 ///
@@ -980,9 +981,9 @@ impl TestScenario for MemoryCorruptedFileScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         // Pre-populate memories.md with malformed/corrupted content
@@ -1078,7 +1079,7 @@ IMPORTANT: Use the Bash tool to execute the command."#;
         let duration = start.elapsed();
 
         // Read memories file after execution
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_content = std::fs::read_to_string(&memories_path).unwrap_or_default();
 
         let assertions = vec![
@@ -1146,7 +1147,7 @@ impl MemoryCorruptedFileScenario {
 /// Chaos test: Verifies memory system handles empty/missing memory file gracefully.
 ///
 /// This scenario:
-/// - Starts with no `.agent/memories.md` file
+/// - Starts with no `.ralph/agent/memories.md` file
 /// - Verifies memory add creates the file correctly
 /// - Checks that auto-injection doesn't crash on missing file
 ///
@@ -1200,9 +1201,9 @@ impl TestScenario for MemoryMissingFileScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         // DO NOT create memories.md - that's the point of this test
@@ -1262,7 +1263,7 @@ IMPORTANT: Use the Bash tool to execute the command."#;
         let duration = start.elapsed();
 
         // Check if memories.md was created
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_exist = memories_path.exists();
         let memories_content = if memories_exist {
             std::fs::read_to_string(&memories_path).unwrap_or_default()
@@ -1398,9 +1399,9 @@ impl TestScenario for MemoryRapidWriteScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         let config_content = format!(
@@ -1460,7 +1461,7 @@ IMPORTANT: Use the Bash tool to execute each command."#;
         let duration = start.elapsed();
 
         // Read memories file
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_content = std::fs::read_to_string(&memories_path).unwrap_or_default();
 
         let assertions = vec![
@@ -1587,9 +1588,9 @@ impl TestScenario for MemoryLargeContentScenario {
     }
 
     fn setup(&self, workspace: &Path, backend: Backend) -> Result<ScenarioConfig, ScenarioError> {
-        let agent_dir = workspace.join(".agent");
+        let agent_dir = workspace.join(".ralph").join("agent");
         std::fs::create_dir_all(&agent_dir).map_err(|e| {
-            ScenarioError::SetupError(format!("failed to create .agent directory: {}", e))
+            ScenarioError::SetupError(format!("failed to create .ralph/agent directory: {}", e))
         })?;
 
         let config_content = format!(
@@ -1648,7 +1649,7 @@ IMPORTANT: Use the Bash tool to execute the command."#;
         let duration = start.elapsed();
 
         // Read memories file
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_content = std::fs::read_to_string(&memories_path).unwrap_or_default();
 
         let assertions = vec![
@@ -1801,7 +1802,10 @@ mod tests {
             "Should have claude backend"
         );
 
-        assert!(workspace.join(".agent").exists(), ".agent should exist");
+        assert!(
+            workspace.join(".ralph").join("agent").exists(),
+            ".ralph/agent should exist"
+        );
         assert_eq!(config.max_iterations, 1);
         assert_eq!(config.timeout, Backend::Claude.default_timeout());
 
@@ -1913,7 +1917,7 @@ mod tests {
         let scenario = MemorySearchScenario::new();
         let _config = scenario.setup(&workspace, Backend::Claude).unwrap();
 
-        let memories_path = workspace.join(".agent/memories.md");
+        let memories_path = workspace.join(".ralph/agent/memories.md");
         assert!(memories_path.exists(), "memories.md should exist");
 
         let content = fs::read_to_string(&memories_path).unwrap();
@@ -1992,7 +1996,7 @@ mod tests {
             "Should have claude backend"
         );
 
-        let memories_path = workspace.join(".agent/memories.md");
+        let memories_path = workspace.join(".ralph/agent/memories.md");
         let mem_content = fs::read_to_string(&memories_path).unwrap();
         assert!(
             mem_content.contains("PURPLE_ELEPHANT_42"),

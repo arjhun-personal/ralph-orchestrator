@@ -177,17 +177,24 @@ impl EventLoop {
             );
         }
 
-        // When memories are enabled, scratchpad instructions are excluded (mutually exclusive)
+        // When memories are enabled, add tasks CLI instructions alongside scratchpad
         let ralph = HatlessRalph::new(
             config.event_loop.completion_promise.clone(),
             config.core.clone(),
             &registry,
             config.event_loop.starting_event.clone(),
         )
-        .with_scratchpad(!config.memories.enabled);
+        .with_memories_enabled(config.memories.enabled);
 
-        // Use LoopContext for events path resolution
-        let events_path = context.events_path();
+        // Read timestamped events path from marker file, fall back to default
+        // The marker file contains a relative path like ".ralph/events-20260127-123456.jsonl"
+        // which we resolve relative to the workspace root
+        let events_path = std::fs::read_to_string(context.current_events_marker())
+            .map(|s| {
+                let relative = s.trim();
+                context.workspace().join(relative)
+            })
+            .unwrap_or_else(|_| context.events_path());
         let event_reader = EventReader::new(&events_path);
 
         Self {
@@ -238,14 +245,14 @@ impl EventLoop {
             );
         }
 
-        // When memories are enabled, scratchpad instructions are excluded (mutually exclusive)
+        // When memories are enabled, add tasks CLI instructions alongside scratchpad
         let ralph = HatlessRalph::new(
             config.event_loop.completion_promise.clone(),
             config.core.clone(),
             &registry,
             config.event_loop.starting_event.clone(),
         )
-        .with_scratchpad(!config.memories.enabled);
+        .with_memories_enabled(config.memories.enabled);
 
         // Read events path from marker file, fall back to default if not present
         // The marker file is written by run_loop_impl() at run startup
@@ -277,7 +284,7 @@ impl EventLoop {
         self.loop_context
             .as_ref()
             .map(|ctx| ctx.tasks_path())
-            .unwrap_or_else(|| PathBuf::from(".agent/tasks.jsonl"))
+            .unwrap_or_else(|| PathBuf::from(".ralph/agent/tasks.jsonl"))
     }
 
     /// Returns the scratchpad path based on loop context or config.
@@ -605,7 +612,7 @@ impl EventLoop {
     /// Prepends memories and usage skill to the prompt if auto-injection is enabled.
     ///
     /// Per spec: When `memories.inject: auto` is configured, memories are loaded
-    /// from `.agent/memories.md` and prepended to every prompt.
+    /// from `.ralph/agent/memories.md` and prepended to every prompt.
     fn prepend_memories(&self, prompt: String) -> String {
         let memories_config = &self.config.memories;
 
@@ -626,7 +633,7 @@ impl EventLoop {
         // Load memories from the store using workspace root for path resolution
         let workspace_root = &self.config.core.workspace_root;
         let store = MarkdownMemoryStore::with_default_path(workspace_root);
-        let memories_path = workspace_root.join(".agent/memories.md");
+        let memories_path = workspace_root.join(".ralph/agent/memories.md");
 
         info!(
             "Looking for memories at: {:?} (exists: {})",
@@ -849,6 +856,14 @@ impl EventLoop {
 
             self.bus.publish(default_event);
         }
+    }
+
+    /// Returns a mutable reference to the event bus for direct event publishing.
+    ///
+    /// This is primarily used for planning sessions to inject user responses
+    /// as events into the orchestration loop.
+    pub fn bus(&mut self) -> &mut EventBus {
+        &mut self.bus
     }
 
     /// Processes output from a hat execution.
@@ -1130,16 +1145,9 @@ impl EventLoop {
                 },
             );
 
-            let recipients = self.bus.publish(event);
-
-            // Per spec: "Unknown topic → Log warning, event dropped"
-            if recipients.is_empty() {
-                warn!(
-                    topic = %topic,
-                    source = %hat_id.as_str(),
-                    "Event has no subscribers - will be dropped. Check hat triggers configuration."
-                );
-            }
+            self.bus.publish(event);
+            // Note: Orphan event detection happens in loop_runner.rs::log_events_from_output()
+            // which logs to events.jsonl and emits event.orphaned for events with no subscriber
         }
 
         // Check termination conditions
@@ -1305,6 +1313,192 @@ impl EventLoop {
 
         event
     }
+
+    // -------------------------------------------------------------------------
+    // Human-in-the-loop planning support
+    // -------------------------------------------------------------------------
+
+    /// Check if any event is a `user.prompt` event.
+    ///
+    /// Returns the first user prompt event found, or None.
+    pub fn check_for_user_prompt(&self, events: &[Event]) -> Option<UserPrompt> {
+        events
+            .iter()
+            .find(|e| e.topic.as_str() == "user.prompt")
+            .map(|e| UserPrompt {
+                id: Self::extract_prompt_id(&e.payload),
+                text: e.payload.clone(),
+            })
+    }
+
+    /// Extract a prompt ID from the event payload.
+    ///
+    /// Supports both XML attribute format: `<event topic="user.prompt" id="q1">...</event>`
+    /// and JSON format in payload.
+    fn extract_prompt_id(payload: &str) -> String {
+        // Try to extract id attribute from XML-like format first
+        if let Some(start) = payload.find("id=\"")
+            && let Some(end) = payload[start + 4..].find('"')
+        {
+            return payload[start + 4..start + 4 + end].to_string();
+        }
+
+        // Fallback: generate a simple ID based on timestamp
+        format!("q{}", Self::generate_prompt_id())
+    }
+
+    /// Generate a simple unique ID for prompts.
+    /// Uses timestamp-based generation since uuid crate isn't available.
+    fn generate_prompt_id() -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        format!("{:x}", nanos % 0xFFFF_FFFF)
+    }
+}
+
+/// A user prompt that requires human input.
+///
+/// Created when the agent emits a `user.prompt` event during planning.
+#[derive(Debug, Clone)]
+pub struct UserPrompt {
+    /// Unique identifier for this prompt (e.g., "q1", "q2")
+    pub id: String,
+    /// The prompt/question text
+    pub text: String,
+}
+
+/// Error that can occur while waiting for user response.
+#[derive(Debug, thiserror::Error)]
+pub enum UserPromptError {
+    #[error("Timeout waiting for user response")]
+    Timeout,
+
+    #[error("Interrupted while waiting for user response")]
+    Interrupted,
+
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+/// Wait for a user response to a specific prompt (async version).
+///
+/// This function polls the conversation file for a matching response entry.
+/// It's designed to be called from async code when a user.prompt event is detected.
+///
+/// # Arguments
+///
+/// * `conversation_path` - Path to the conversation JSONL file
+/// * `prompt_id` - The ID of the prompt we're waiting for
+/// * `timeout_secs` - Maximum time to wait in seconds
+/// * `interrupt_rx` - Optional channel to check for interruption
+///
+/// # Returns
+///
+/// The user's response text if found within the timeout period.
+#[allow(dead_code)]
+pub async fn wait_for_user_response_async(
+    conversation_path: &std::path::Path,
+    prompt_id: &str,
+    timeout_secs: u64,
+    mut interrupt_rx: Option<&mut tokio::sync::watch::Receiver<bool>>,
+) -> Result<String, UserPromptError> {
+    use tokio::time::{Duration, sleep, timeout};
+
+    let poll_interval = Duration::from_millis(100);
+
+    let result = timeout(Duration::from_secs(timeout_secs), async {
+        loop {
+            // Check for interruption
+            if let Some(rx) = &mut interrupt_rx
+                && *rx.borrow()
+            {
+                return Err(UserPromptError::Interrupted);
+            }
+
+            // Poll for response
+            if let Some(response) = find_response_in_file(conversation_path, prompt_id)? {
+                return Ok(response);
+            }
+
+            // Wait before next poll
+            sleep(poll_interval).await;
+        }
+    })
+    .await;
+
+    match result {
+        Ok(r) => r,
+        Err(_) => Err(UserPromptError::Timeout),
+    }
+}
+
+/// Wait for a user response to a specific prompt (sync version).
+///
+/// This function polls the conversation file for a matching response entry.
+/// It's designed to be called from the CLI layer when a user.prompt event is detected.
+///
+/// # Arguments
+///
+/// * `conversation_path` - Path to the conversation JSONL file
+/// * `prompt_id` - The ID of the prompt we're waiting for
+/// * `timeout_secs` - Maximum time to wait in seconds
+///
+/// # Returns
+///
+/// The user's response text if found within the timeout period.
+#[allow(dead_code)]
+pub fn wait_for_user_response(
+    conversation_path: &std::path::Path,
+    prompt_id: &str,
+    timeout_secs: u64,
+) -> Result<String, UserPromptError> {
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    let deadline = Instant::now() + Duration::from_secs(timeout_secs);
+    let poll_interval = Duration::from_millis(100);
+
+    loop {
+        // Check for timeout
+        if Instant::now() >= deadline {
+            return Err(UserPromptError::Timeout);
+        }
+
+        // Poll for response
+        if let Some(response) = find_response_in_file(conversation_path, prompt_id)? {
+            return Ok(response);
+        }
+
+        // Wait before next poll
+        thread::sleep(poll_interval);
+    }
+}
+
+/// Search for a response to a specific prompt in the conversation file.
+#[allow(dead_code)]
+fn find_response_in_file(
+    conversation_path: &std::path::Path,
+    prompt_id: &str,
+) -> Result<Option<String>, UserPromptError> {
+    if !conversation_path.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(conversation_path)?;
+
+    for line in content.lines() {
+        if let Ok(entry) = serde_json::from_str::<crate::planning_session::ConversationEntry>(line)
+            && entry.entry_type == crate::planning_session::ConversationType::UserResponse
+            && entry.id == prompt_id
+        {
+            return Ok(Some(entry.text));
+        }
+    }
+
+    Ok(None)
 }
 
 /// Formats a duration as human-readable string.

@@ -1382,3 +1382,69 @@ hats:
         "Should return ralph when no pending events"
     );
 }
+
+#[test]
+fn test_check_for_user_prompt_detects_user_prompt_event() {
+    // Create EventLoop
+    let config: RalphConfig = serde_yaml::from_str("hats: {}").unwrap();
+    let event_loop = EventLoop::new(config);
+
+    // Create events with a user.prompt event
+    // The id is embedded in the XML payload
+    let events = vec![
+        Event::new("build.task", "Some task"),
+        Event::new(
+            "user.prompt",
+            r#"<event topic="user.prompt" id="q1">What is the feature name?</event>"#,
+        ),
+        Event::new("other.event", "Other"),
+    ];
+
+    // Check for user prompt
+    let user_prompt = event_loop.check_for_user_prompt(&events);
+
+    assert!(user_prompt.is_some(), "Should detect user.prompt event");
+    assert_eq!(user_prompt.unwrap().id, "q1");
+}
+
+#[test]
+fn test_check_for_user_prompt_returns_none_when_no_user_prompt() {
+    // Create EventLoop
+    let config: RalphConfig = serde_yaml::from_str("hats: {}").unwrap();
+    let event_loop = EventLoop::new(config);
+
+    // Create events WITHOUT a user.prompt event
+    let events = vec![
+        Event::new("build.task", "Some task"),
+        Event::new("build.done", "Task completed"),
+    ];
+
+    // Check for user prompt
+    let user_prompt = event_loop.check_for_user_prompt(&events);
+
+    assert!(
+        user_prompt.is_none(),
+        "Should not detect user.prompt when not present"
+    );
+}
+
+#[test]
+fn test_extract_prompt_id_from_xml_format() {
+    // Create EventLoop
+    let config: RalphConfig = serde_yaml::from_str("hats: {}").unwrap();
+    let event_loop = EventLoop::new(config);
+
+    // Create event with XML attribute format
+    let event = Event::new(
+        "user.prompt",
+        r#"<event topic="user.prompt" id="q42">What's the deadline?</event>"#,
+    );
+    let events = vec![event];
+
+    let user_prompt = event_loop.check_for_user_prompt(&events).unwrap();
+    assert_eq!(user_prompt.id, "q42");
+}
+
+// Note: Orphan event detection is now handled in loop_runner.rs::log_events_from_output()
+// which logs to events.jsonl. The `event.orphaned` system event appears in the events file
+// when an event has no subscriber hat, making it visible via `ralph events`.

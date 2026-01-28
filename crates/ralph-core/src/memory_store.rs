@@ -1,7 +1,7 @@
 //! Markdown-based memory storage.
 //!
 //! Provides `MarkdownMemoryStore` for reading, writing, and managing
-//! memories in the `.agent/memories.md` file format.
+//! memories in the `.ralph/agent/memories.md` file format.
 //!
 //! # Multi-loop Safety
 //!
@@ -23,11 +23,11 @@ use crate::memory::{Memory, MemoryType};
 use crate::memory_parser::parse_memories;
 
 /// Default path for the memories file relative to the workspace root.
-pub const DEFAULT_MEMORIES_PATH: &str = ".agent/memories.md";
+pub const DEFAULT_MEMORIES_PATH: &str = ".ralph/agent/memories.md";
 
 /// A store for managing memories in markdown format.
 ///
-/// This store uses a single markdown file (`.agent/memories.md`) to persist
+/// This store uses a single markdown file (`.ralph/agent/memories.md`) to persist
 /// memories. The file format is human-readable and version-control friendly.
 ///
 /// # Multi-loop Safety
@@ -43,7 +43,7 @@ pub struct MarkdownMemoryStore {
 impl MarkdownMemoryStore {
     /// Creates a new store at the given path.
     ///
-    /// The path should point to a `.md` file (typically `.agent/memories.md`).
+    /// The path should point to a `.md` file (typically `.ralph/agent/memories.md`).
     /// The file does not need to exist - it will be created when first written to.
     #[must_use]
     pub fn new(path: impl AsRef<Path>) -> Self {
@@ -52,7 +52,7 @@ impl MarkdownMemoryStore {
         }
     }
 
-    /// Creates a store with the default path (`.agent/memories.md`) under the given root.
+    /// Creates a store with the default path (`.ralph/agent/memories.md`) under the given root.
     #[must_use]
     pub fn with_default_path(root: impl AsRef<Path>) -> Self {
         Self::new(root.as_ref().join(DEFAULT_MEMORIES_PATH))

@@ -1,0 +1,34 @@
+{
+  "name": "ralph-orchestrator",
+  "version": "2.3.0",
+  "private": true,
+  "description": "AI agent orchestrator with web dashboard",
+  "workspaces": [
+    "backend/*",
+    "frontend/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:server": "npm run build -w @ralph-web/server",
+    "build:web": "npm run build -w @ralph-web/dashboard",
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev -w @ralph-web/server",
+    "dev:web": "npm run dev -w @ralph-web/dashboard",
+    "start": "npm run start -w @ralph-web/server",
+    "test": "npm run test --workspaces --if-present",
+    "test:server": "npm run test -w @ralph-web/server",
+    "clean": "npm run clean --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestrator",
+    "ralph"
+  ],
+  "author": "",
+  "license": "MIT"
+}

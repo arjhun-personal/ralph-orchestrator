@@ -1,6 +1,6 @@
 //! Persistent task storage with JSONL format.
 //!
-//! TaskStore provides load/save operations for the .agent/tasks.jsonl file,
+//! TaskStore provides load/save operations for the .ralph/agent/tasks.jsonl file,
 //! with convenience methods for querying and updating tasks.
 //!
 //! # Multi-loop Safety
@@ -178,6 +178,16 @@ impl TaskStore {
     pub fn close(&mut self, id: &str) -> Option<&Task> {
         if let Some(task) = self.get_mut(id) {
             task.status = TaskStatus::Closed;
+            task.closed = Some(chrono::Utc::now().to_rfc3339());
+            return self.get(id);
+        }
+        None
+    }
+
+    /// Fails a task by ID and returns a reference to it.
+    pub fn fail(&mut self, id: &str) -> Option<&Task> {
+        if let Some(task) = self.get_mut(id) {
+            task.status = TaskStatus::Failed;
             task.closed = Some(chrono::Utc::now().to_rfc3339());
             return self.get(id);
         }

@@ -5,7 +5,7 @@
 # or interfering with E2E test workspaces.
 #
 # Usage:
-#   ralph run -c ralph.e2e.yml -p "specs/e2e-test-fixes.spec.md"
+#   ralph run -c ralph.e2e.yml -p ".ralph/specs/e2e-test-fixes.spec.md"
 
 event_loop:
   prompt_file: "PROMPT.md"
@@ -20,11 +20,11 @@ cli:
   prompt_mode: "arg"
 
 core:
-  scratchpad: ".agent/e2e-scratchpad.md"  # Isolated from main scratchpad
-  specs_dir: "./specs/"
+  scratchpad: ".ralph/agent/e2e-scratchpad.md"  # Isolated from main scratchpad
+  specs_dir: ".ralph/specs/"
   guardrails:
     - "Fresh context each iteration — scratchpad is memory"
-    - "Backpressure is law — tests/typecheck/lint must pass"
+    - "Verification is mandatory — tests/typecheck/lint must pass"
     - "YAGNI ruthlessly — no speculative features"
     - "KISS always — simplest solution that works"
 
@@ -45,13 +45,13 @@ hats:
       Analyze the prompt to determine input type:
 
       **Type 1: PDD Output Directory**
-      - Prompt looks like a path: `specs/my-feature` or `specs/my-feature/`
-      - Directory contains `tasks/` subdirectory with `.code-task.md` files
+      - Prompt looks like a path: `.ralph/specs/my-feature` or `.ralph/specs/my-feature/`
+      - Directory contains `.ralph/tasks/` subdirectory with `.code-task.md` files
       - May also have `design.md`, `plan.md`, `context.md`
 
       **Type 2: Single Code Task File**
       - Prompt is a path ending in `.code-task.md`
-      - Example: `tasks/add-verbose-flag.code-task.md`
+      - Example: `.ralph/tasks/add-verbose-flag.code-task.md`
 
       **Type 3: Rough Description**
       - Prompt is plain text describing what to implement
@@ -60,9 +60,9 @@ hats:
       ### Process by Input Type
 
       **For PDD Directory:**
-      1. Verify directory exists and has `tasks/` subdirectory
-      2. List all `.code-task.md` files in `tasks/`
-      3. Derive `task_name` from directory name (e.g., `specs/my-feature` → `my-feature`)
+      1. Verify directory exists and has `.ralph/tasks/` subdirectory
+      2. List all `.code-task.md` files in `.ralph/tasks/`
+      3. Derive `task_name` from directory name (e.g., `.ralph/specs/my-feature` → `my-feature`)
       4. Write scratchpad with frontmatter:
          ```markdown
          ---

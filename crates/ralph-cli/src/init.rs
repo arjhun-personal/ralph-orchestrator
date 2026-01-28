@@ -54,8 +54,8 @@ event_loop:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # core:
-#   scratchpad: ".agent/scratchpad.md"
-#   specs_dir: "./specs/"
+#   scratchpad: ".ralph/agent/scratchpad.md"
+#   specs_dir: ".ralph/specs/"
 
 # Custom hats for multi-agent workflows:
 # hats:

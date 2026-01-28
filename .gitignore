@@ -42,9 +42,19 @@ env/
 # Node.js
 node_modules/
 package-lock.json
+*.tsbuildinfo
+test-results/
+
+# Web dashboard ephemeral (nested .ralph/.agent in subprojects)
+backend/**/.ralph/
+backend/**/.agent/
+frontend/**/.ralph/
+frontend/**/.agent/
+frontend/**/dist/
+backend/**/dist/
+backend/**/target/
 
 # Ralph specific
-.ralph/
 .sop/
 .logs/
 prompts/
@@ -85,6 +95,15 @@ PROMPT.md
 !bench/tasks/**/PROMPT.md
 .tmp-ralph-claude-code
 
-.agent/
-!.agent/memories.md
-!.agent/tasks.jsonl
+# Ralph orchestrator state
+# All state now consolidated under .ralph/
+.ralph/
+
+# Track git-friendly content (negations must follow the ignore)
+!.ralph/specs/
+!.ralph/specs/**
+!.ralph/tasks/
+!.ralph/tasks/**
+!.ralph/agent/
+!.ralph/agent/memories.md
+!.ralph/agent/tasks.jsonl

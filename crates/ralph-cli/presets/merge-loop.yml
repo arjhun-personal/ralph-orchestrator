@@ -68,12 +68,31 @@ hats:
       git log main..ralph/{loop_id} --oneline
       ```
 
-      ### Step 3: Attempt Merge
+      ### Step 3: Generate Commit Message
+
+      Create a conventional commit message using this format:
+      ```
+      merge(ralph): <summary> (loop <id>)
+      ```
+
+      Steps to generate the summary:
+      1. Review the changes: `git diff --stat main...ralph/{loop_id}`
+      2. Review the commits: `git log main..ralph/{loop_id} --oneline`
+      3. Write a single-line summary of what the loop accomplished
+      4. Truncate to keep total subject line ≤ 72 characters
+
+      Example messages:
+      - `merge(ralph): add user auth module (loop ralph-20250124-a3f2)`
+      - `merge(ralph): fix memory leak in worker (loop ralph-20250124-b5c9)`
+
+      ### Step 4: Attempt Merge
 
       ```bash
       git checkout main
-      git merge ralph/{loop_id} --no-edit
+      git merge ralph/{loop_id} --no-ff -m "merge(ralph): <summary> (loop {loop_id})"
       ```
+
+      Use `--no-ff` to create an explicit merge commit with your message.
 
       ### If Merge Succeeds (No Conflicts)
 
@@ -145,9 +164,12 @@ hats:
          ```
 
       4. **After all conflicts resolved:**
+         Create a conventional commit message (same format as merge):
          ```bash
-         git commit --no-edit
+         git commit -m "merge(ralph): <summary> (loop {loop_id})"
          ```
+
+         Use the same summary you would have used for the merge.
 
       5. **Publish `conflict.resolved`** to trigger test verification
 

@@ -1,6 +1,6 @@
 //! Summary file generation for loop termination.
 //!
-//! Per spec: "On termination, the orchestrator writes `.agent/summary.md`"
+//! Per spec: "On termination, the orchestrator writes `.ralph/agent/summary.md`"
 //! with status, iterations, duration, task list, events summary, and commit info.
 
 use crate::event_logger::EventHistory;
@@ -46,7 +46,7 @@ pub struct SummaryWriter {
 
 impl Default for SummaryWriter {
     fn default() -> Self {
-        Self::new(".agent/summary.md")
+        Self::new(".ralph/agent/summary.md")
     }
 }
 

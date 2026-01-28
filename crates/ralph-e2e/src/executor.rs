@@ -2,7 +2,7 @@
 //!
 //! This module provides functionality to execute `ralph run` with test configurations
 //! and capture all output including stdout, stderr, exit code, and artifacts from
-//! the `.agent/` directory.
+//! the `.ralph/agent/` directory.
 //!
 //! # Example
 //!

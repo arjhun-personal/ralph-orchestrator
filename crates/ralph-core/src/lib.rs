@@ -30,6 +30,7 @@ mod memory;
 pub mod memory_parser;
 mod memory_store;
 pub mod merge_queue;
+pub mod planning_session;
 mod session_player;
 mod session_recorder;
 mod summary_writer;
@@ -49,7 +50,7 @@ pub use config::{
 };
 pub use diagnostics::DiagnosticsCollector;
 pub use event_logger::{EventHistory, EventLogger, EventRecord};
-pub use event_loop::{EventLoop, LoopState, TerminationReason};
+pub use event_loop::{EventLoop, LoopState, TerminationReason, UserPrompt, UserPromptError};
 pub use event_parser::EventParser;
 pub use event_reader::{Event, EventReader, MalformedLine, ParseResult};
 pub use file_lock::{FileLock, LockGuard as FileLockGuard, LockedFile};
@@ -66,7 +67,13 @@ pub use memory_store::{
     DEFAULT_MEMORIES_PATH, MarkdownMemoryStore, format_memories_as_markdown, truncate_to_budget,
 };
 pub use merge_queue::{
-    MergeEntry, MergeEvent, MergeEventType, MergeQueue, MergeQueueError, MergeState,
+    MergeButtonState, MergeEntry, MergeEvent, MergeEventType, MergeOption, MergeQueue,
+    MergeQueueError, MergeState, SteeringDecision, merge_button_state, merge_execution_summary,
+    merge_needs_steering, smart_merge_summary,
+};
+pub use planning_session::{
+    ConversationEntry, ConversationType, PlanningSession, PlanningSessionError, SessionMetadata,
+    SessionStatus,
 };
 pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
 pub use session_recorder::{Record, SessionRecorder};

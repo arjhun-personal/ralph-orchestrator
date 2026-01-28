@@ -1,7 +1,7 @@
 //! File locking for shared resources in multi-loop scenarios.
 //!
 //! Provides fine-grained file locking using `flock()` for concurrent access
-//! to shared resources like `.agent/tasks.jsonl` and `.agent/memories.md`.
+//! to shared resources like `.ralph/agent/tasks.jsonl` and `.ralph/agent/memories.md`.
 //! This enables multiple Ralph loops (in worktrees) to safely read and write
 //! shared state files.
 //!

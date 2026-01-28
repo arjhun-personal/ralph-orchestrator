@@ -51,12 +51,12 @@ hats:
       ### Process
       1. Pick one task from `ralph tools task ready`.
       2. Implement the change.
-      3. Run backpressure (tests/lints/builds).
+      3. Run verification (tests/lints/builds).
       4. Record what you did as a memory with evidence.
       5. Close the task: `ralph tools task close <id>`.
       ### Don't
       - Do not output the completion promise.
-      - Do not skip backpressure.
+      - Do not skip verification.
       - Do not close tasks without running tests.
 
       ### Event Format

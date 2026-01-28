@@ -197,7 +197,7 @@ Begin with Phase 1."#;
         let duration = start.elapsed();
 
         // Read files to check state after execution
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_exist = memories_path.exists();
         let memories_content = if memories_exist {
             std::fs::read_to_string(&memories_path).unwrap_or_default()
@@ -205,7 +205,7 @@ Begin with Phase 1."#;
             String::new()
         };
 
-        let tasks_path = executor.workspace().join(".agent/tasks.jsonl");
+        let tasks_path = executor.workspace().join(".ralph/agent/tasks.jsonl");
         let tasks_exist = tasks_path.exists();
         let tasks_content = if tasks_exist {
             std::fs::read_to_string(&tasks_path).unwrap_or_default()
@@ -257,7 +257,7 @@ impl IncrementalFeatureScenario {
     fn memories_created(&self, exists: bool, content: &str) -> crate::models::Assertion {
         let has_content = !content.trim().is_empty();
         AssertionBuilder::new("Memories file created")
-            .expected(".agent/memories.md exists with content")
+            .expected(".ralph/agent/memories.md exists with content")
             .actual(if exists && has_content {
                 format!("File exists with {} bytes", content.len())
             } else if exists {
@@ -299,7 +299,7 @@ impl IncrementalFeatureScenario {
         let task_count = content.matches("task-").count();
 
         AssertionBuilder::new("Tasks file created")
-            .expected(".agent/tasks.jsonl exists with tasks")
+            .expected(".ralph/agent/tasks.jsonl exists with tasks")
             .actual(if exists && has_content {
                 format!("File exists with {} task entries", task_count / 2) // ID appears in id and title
             } else if exists {
@@ -590,10 +590,10 @@ IMPORTANT: Use Bash for ralph commands and Write/Edit for files."#;
         let duration = start.elapsed();
 
         // Check final state after all phases
-        let memories_path = executor.workspace().join(".agent/memories.md");
+        let memories_path = executor.workspace().join(".ralph/agent/memories.md");
         let memories_content = std::fs::read_to_string(&memories_path).unwrap_or_default();
 
-        let tasks_path = executor.workspace().join(".agent/tasks.jsonl");
+        let tasks_path = executor.workspace().join(".ralph/agent/tasks.jsonl");
         let tasks_content = std::fs::read_to_string(&tasks_path).unwrap_or_default();
 
         let calc_path = executor.workspace().join("src/calc.py");

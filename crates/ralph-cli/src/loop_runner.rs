@@ -37,10 +37,13 @@ pub(crate) struct ExecutionOutcome {
 
 /// Core loop implementation supporting both fresh start and continue modes.
 ///
-/// `resume`: If true, publishes `task.resume` instead of `task.start`,
-/// signaling the planner to read existing scratchpad rather than doing fresh gap analysis.
+/// # Arguments
 ///
-/// `record_session`: If provided, records all events to the specified JSONL file for replay testing.
+/// * `resume` - If true, publishes `task.resume` instead of `task.start`,
+///   signaling the planner to read existing scratchpad rather than doing fresh gap analysis.
+/// * `record_session` - If provided, records all events to the specified JSONL file for replay testing.
+/// * `auto_merge_override` - Explicit auto-merge setting. If `Some(false)`, disables auto-merge
+///   (equivalent to `--no-auto-merge`). If `None`, uses `config.features.auto_merge`.
 pub async fn run_loop_impl(
     config: RalphConfig,
     color_mode: ColorMode,
@@ -50,6 +53,7 @@ pub async fn run_loop_impl(
     record_session: Option<PathBuf>,
     loop_context: Option<LoopContext>,
     custom_args: Vec<String>,
+    auto_merge_override: Option<bool>,
 ) -> Result<TerminationReason> {
     // Set up process group leadership per spec
     // "The orchestrator must run as a process group leader"
@@ -92,22 +96,30 @@ pub async fn run_loop_impl(
     // 5. Default PROMPT.md
     let prompt_content = resolve_prompt_content(&config.event_loop)?;
 
+    // Create or use provided loop context for path resolution
+    // This ensures events are written to the correct location for worktree loops
+    let ctx = loop_context
+        .clone()
+        .unwrap_or_else(|| LoopContext::primary(config.core.workspace_root.clone()));
+
     // For fresh runs (not resume), generate a unique timestamped events file
     // This prevents stale events from previous runs polluting new runs (issue #82)
     // The marker file `.ralph/current-events` coordinates path between Ralph and agents
     if !resume {
         let run_id = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
-        let events_path = format!(".ralph/events-{}.jsonl", run_id);
+        // Use relative path in marker file for portability across agents
+        // The actual file is at ctx.ralph_dir()/events-{run_id}.jsonl
+        let relative_events_path = format!(".ralph/events-{}.jsonl", run_id);
 
-        fs::create_dir_all(".ralph").context("Failed to create .ralph directory")?;
-        fs::write(".ralph/current-events", &events_path)
-            .context("Failed to write .ralph/current-events marker file")?;
+        fs::create_dir_all(ctx.ralph_dir()).context("Failed to create .ralph directory")?;
+        fs::write(ctx.current_events_marker(), &relative_events_path)
+            .context("Failed to write current-events marker file")?;
 
-        debug!("Created events file for this run: {}", events_path);
+        debug!("Created events file for this run: {}", relative_events_path);
     }
 
-    // Initialize event loop
-    let mut event_loop = EventLoop::new(config.clone());
+    // Initialize event loop with context for proper path resolution
+    let mut event_loop = EventLoop::with_context(config.clone(), ctx.clone());
 
     // For resume mode, we initialize with a different event topic
     // This tells the planner to read existing scratchpad rather than creating a new one
@@ -143,8 +155,8 @@ pub async fn run_loop_impl(
             None
         };
 
-    // Initialize event logger for debugging
-    let mut event_logger = EventLogger::default_path();
+    // Initialize event logger for debugging (uses context for path resolution)
+    let mut event_logger = EventLogger::from_context(&ctx);
 
     // Log initial event (use configured starting_event or default to task.start/task.resume)
     let default_start_topic = if resume { "task.resume" } else { "task.start" };
@@ -294,8 +306,36 @@ pub async fn run_loop_impl(
         warn!("Failed to record loop start in history: {}", e);
     }
 
-    // Auto-merge setting (default: true; can be overridden by config later)
-    let auto_merge = true;
+    // Auto-merge setting: CLI override > config > default (false for safety)
+    let auto_merge = auto_merge_override.unwrap_or(config.features.auto_merge);
+
+    // Detect merge loop on startup via RALPH_MERGE_LOOP_ID env var
+    // Per spec: If set, mark entry as "merging" with current PID
+    let merge_loop_id: Option<String> = std::env::var("RALPH_MERGE_LOOP_ID").ok();
+    if let Some(ref loop_id) = merge_loop_id {
+        let repo_root = loop_context
+            .as_ref()
+            .map(|ctx| ctx.repo_root().to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+        let queue = MergeQueue::new(&repo_root);
+        let pid = std::process::id();
+
+        match queue.mark_merging(loop_id, pid) {
+            Ok(()) => {
+                info!(loop_id = %loop_id, pid = pid, "Merge loop started, marked as merging");
+            }
+            Err(ralph_core::MergeQueueError::NotFound(_)) => {
+                warn!(loop_id = %loop_id, "Merge loop started but no queue entry found");
+            }
+            Err(ralph_core::MergeQueueError::InvalidTransition(_, from, _)) => {
+                // Entry is already merging/merged/discarded, skip update
+                debug!(loop_id = %loop_id, state = ?from, "Merge queue entry already in terminal state, skipping");
+            }
+            Err(e) => {
+                warn!(loop_id = %loop_id, error = %e, "Failed to mark merge loop as merging");
+            }
+        }
+    }
 
     // Helper closure to handle termination (writes summary, prints status, records history)
     let handle_termination = |reason: &TerminationReason,
@@ -345,9 +385,78 @@ pub async fn run_loop_impl(
             }
         }
 
+        // Handle merge queue state transitions for merge loops
+        // Per spec: CompletionPromise → merged, other → needs-review
+        if let Some(ref loop_id) = merge_loop_id {
+            let repo_root = context
+                .as_ref()
+                .map(|ctx| ctx.repo_root().to_path_buf())
+                .unwrap_or_else(|| PathBuf::from("."));
+            let queue = MergeQueue::new(&repo_root);
+
+            if matches!(reason, TerminationReason::CompletionPromise) {
+                // Get commit SHA from git rev-parse HEAD
+                let commit = Command::new("git")
+                    .args(["rev-parse", "HEAD"])
+                    .output()
+                    .ok()
+                    .and_then(|output| {
+                        if output.status.success() {
+                            String::from_utf8(output.stdout)
+                                .ok()
+                                .map(|s| s.trim().to_string())
+                        } else {
+                            None
+                        }
+                    });
+
+                match commit {
+                    Some(sha) => {
+                        if let Err(e) = queue.mark_merged(loop_id, &sha) {
+                            warn!(loop_id = %loop_id, error = %e, "Failed to mark merge as completed");
+                        } else {
+                            info!(loop_id = %loop_id, commit = %sha, "Merge completed successfully");
+                        }
+                    }
+                    None => {
+                        // Per spec: "If commit SHA cannot be resolved, mark as needs-review"
+                        if let Err(e) =
+                            queue.mark_needs_review(loop_id, "merge complete but commit not found")
+                        {
+                            warn!(loop_id = %loop_id, error = %e, "Failed to mark merge as needs-review");
+                        } else {
+                            warn!(loop_id = %loop_id, "Merge completed but could not resolve commit SHA");
+                        }
+                    }
+                }
+            } else {
+                // Any non-CompletionPromise termination → needs-review
+                let reason_str = match reason {
+                    TerminationReason::MaxIterations => "max iterations reached",
+                    TerminationReason::MaxRuntime => "max runtime exceeded",
+                    TerminationReason::MaxCost => "max cost exceeded",
+                    TerminationReason::ConsecutiveFailures => "consecutive failures",
+                    TerminationReason::LoopThrashing => "loop thrashing detected",
+                    TerminationReason::ValidationFailure => "validation failure",
+                    TerminationReason::Stopped => "manually stopped",
+                    TerminationReason::Interrupted => "interrupted by signal",
+                    TerminationReason::CompletionPromise => unreachable!(),
+                };
+                if let Err(e) = queue.mark_needs_review(loop_id, reason_str) {
+                    warn!(loop_id = %loop_id, error = %e, "Failed to mark merge as needs-review");
+                } else {
+                    info!(loop_id = %loop_id, reason = reason_str, "Merge marked as needs-review");
+                }
+            }
+        }
+
         // Handle completion for worktree loops (auto-merge or manual)
+        // Per spec: merge loops do NOT enqueue themselves, even if run in worktree context
         if let Some(ctx) = context {
-            if !ctx.is_primary() && matches!(reason, TerminationReason::CompletionPromise) {
+            if merge_loop_id.is_none()
+                && !ctx.is_primary()
+                && matches!(reason, TerminationReason::CompletionPromise)
+            {
                 let handler = LoopCompletionHandler::new(auto_merge);
                 match handler.handle_completion(ctx, prompt) {
                     Ok(CompletionAction::None) => {
@@ -818,6 +927,11 @@ pub async fn run_loop_impl(
             return Ok(reason);
         }
 
+        // Check for planning session user responses (if in planning mode)
+        if let Err(e) = check_planning_session_responses(&mut event_loop) {
+            warn!(error = %e, "Failed to check planning session responses");
+        }
+
         // Read events from JSONL that agent may have written
         if let Err(e) = event_loop.process_events_from_jsonl() {
             warn!(error = %e, "Failed to read events from JSONL");
@@ -1010,6 +1124,9 @@ async fn execute_pty(
 }
 
 /// Logs events parsed from output to the event history file.
+///
+/// When an event has no subscriber (orphan), also logs an `event.orphaned`
+/// system event to help Ralph understand the misconfiguration.
 fn log_events_from_output(
     logger: &mut EventLogger,
     iteration: u32,
@@ -1028,7 +1145,42 @@ fn log_events_from_output(
         if let Some(triggered_hat) = triggered {
             debug!("Published {} -> triggers {}", event.topic, triggered_hat);
         } else {
-            debug!("Published {} -> no hat triggered", event.topic);
+            debug!(
+                "Published {} -> no hat triggered (orphan event)",
+                event.topic
+            );
+
+            // Emit event.orphaned system event so Ralph sees the problem
+            // Collect valid events (all hat subscriptions except wildcards)
+            let valid_events: Vec<String> = registry
+                .all()
+                .flat_map(|hat| hat.subscriptions.iter())
+                .map(|t| t.as_str().to_string())
+                .filter(|t| t != "*")
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect();
+
+            warn!(
+                topic = %event.topic,
+                source = %hat_id.as_str(),
+                valid_events = ?valid_events,
+                "Event has no subscriber - logging event.orphaned"
+            );
+
+            let orphan_event = Event::new(
+                "event.orphaned",
+                format!(
+                    "Event '{}' has no subscriber hat. Valid events to publish: {:?}",
+                    event.topic, valid_events
+                ),
+            )
+            .with_source(hat_id.clone());
+
+            let orphan_record = EventRecord::new(iteration, "loop", &orphan_event, None::<&HatId>);
+            if let Err(e) = logger.log(&orphan_record) {
+                warn!("Failed to log event.orphaned: {}", e);
+            }
         }
 
         let record = EventRecord::new(iteration, hat_id.to_string(), &event, triggered);
@@ -1116,6 +1268,99 @@ fn resolve_prompt_content(event_loop_config: &ralph_core::EventLoopConfig) -> Re
     )
 }
 
+/// Checks for planning session user responses and publishes them as events.
+///
+/// When running in planning mode (RALPH_PLANNING_SESSION_ID is set),
+/// this function reads the conversation file for new user responses and
+/// publishes them as `user.response` events to the event loop.
+fn check_planning_session_responses(event_loop: &mut EventLoop) -> Result<()> {
+    // Get the planning session ID from environment
+    let session_id = match std::env::var("RALPH_PLANNING_SESSION_ID") {
+        Ok(id) => id,
+        Err(_) => return Ok(()), // Not in planning mode
+    };
+
+    // Get loop context to find the conversation file path
+    let ctx = match event_loop.loop_context() {
+        Some(ctx) => ctx,
+        None => return Ok(()), // No context, can't find conversation file
+    };
+
+    let conversation_path = ctx.planning_conversation_path(&session_id);
+
+    // Read conversation entries and look for new responses
+    // We track which response IDs we've already processed to avoid duplicates
+
+    // Track processed response IDs (static to persist across iterations)
+    static PROCESSED_RESPONSES: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+    let conversation_content = match fs::read_to_string(&conversation_path) {
+        Ok(content) => content,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()), // File doesn't exist yet
+        Err(e) => {
+            warn!(
+                session_id = %session_id,
+                error = %e,
+                "Failed to read planning conversation file"
+            );
+            return Ok(());
+        }
+    };
+
+    let mut processed = PROCESSED_RESPONSES.lock().unwrap();
+
+    for line in conversation_content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Parse the conversation entry
+        let entry: ralph_core::planning_session::ConversationEntry =
+            match serde_json::from_str(line) {
+                Ok(entry) => entry,
+                Err(e) => {
+                    warn!(
+                        session_id = %session_id,
+                        line = %line,
+                        error = %e,
+                        "Failed to parse conversation entry"
+                    );
+                    continue;
+                }
+            };
+
+        // Only process user_response entries
+        if entry.entry_type != ralph_core::planning_session::ConversationType::UserResponse {
+            continue;
+        }
+
+        // Check if we've already processed this response
+        let response_key = format!("{}:{}", entry.id, entry.ts);
+        if processed.contains(&response_key) {
+            continue;
+        }
+
+        // Publish as user.response event
+        let event = Event::new(
+            "user.response",
+            format!("[id: {}] {}", entry.id, entry.text),
+        );
+        event_loop.bus().publish(event.clone());
+
+        info!(
+            session_id = %session_id,
+            response_id = %entry.id,
+            "Published user response from planning session"
+        );
+
+        // Mark as processed
+        processed.push(response_key);
+    }
+
+    Ok(())
+}
+
 /// Processes pending merges from the merge queue.
 ///
 /// Called when the primary loop completes successfully. Spawns merge-ralph
@@ -1173,6 +1418,7 @@ fn process_pending_merges(repo_root: &Path) {
                 "run",
                 "-c",
                 ".ralph/merge-loop-config.yml",
+                "--exclusive",
                 "--no-tui",
                 "-p",
                 &format!("Merge loop {} from branch ralph/{}", loop_id, loop_id),
@@ -1196,6 +1442,13 @@ fn process_pending_merges(repo_root: &Path) {
             }
         }
     }
+}
+
+/// Public wrapper for CLI invocation of process_pending_merges.
+///
+/// Called by `ralph loops process` command to process the merge queue.
+pub fn process_pending_merges_cli(repo_root: &Path) {
+    process_pending_merges(repo_root);
 }
 
 #[cfg(test)]

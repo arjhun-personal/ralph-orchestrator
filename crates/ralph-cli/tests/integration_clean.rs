@@ -6,7 +6,7 @@ use tempfile::TempDir;
 /// Integration tests for clean command acceptance criteria.
 ///
 /// Tests the `ralph clean` command which removes Ralph-generated artifacts
-/// from the `.agent/` directory.
+/// from the `.ralph/agent/` directory.
 
 #[test]
 fn test_clean_basic_success() -> Result<()> {
@@ -16,12 +16,12 @@ fn test_clean_basic_success() -> Result<()> {
     // Create config file
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    // Create .agent directory with files
-    let agent_dir = temp_path.join(".agent");
+    // Create .ralph/agent directory with files
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("scratchpad.md"), "test content")?;
     fs::write(agent_dir.join("events.jsonl"), "{}")?;
@@ -43,7 +43,10 @@ core:
     assert!(output.status.success(), "Command should succeed");
 
     // Directory should be deleted
-    assert!(!agent_dir.exists(), ".agent directory should be deleted");
+    assert!(
+        !agent_dir.exists(),
+        ".ralph/agent directory should be deleted"
+    );
 
     // Output should contain success message
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -101,12 +104,12 @@ fn test_clean_dry_run() -> Result<()> {
     // Create config
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    // Create .agent directory with files
-    let agent_dir = temp_path.join(".agent");
+    // Create .ralph/agent directory with files
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("scratchpad.md"), "test")?;
     fs::write(agent_dir.join("events.jsonl"), "{}")?;
@@ -126,7 +129,7 @@ core:
     // Directory should still exist
     assert!(
         agent_dir.exists(),
-        ".agent directory should still exist after dry-run"
+        ".ralph/agent directory should still exist after dry-run"
     );
     assert!(agent_dir.join("scratchpad.md").exists());
 
@@ -148,12 +151,12 @@ fn test_clean_missing_directory() -> Result<()> {
     // Create config
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    // Don't create .agent directory
-    let agent_dir = temp_path.join(".agent");
+    // Don't create .ralph/agent directory
+    let agent_dir = temp_path.join(".ralph/agent");
     assert!(!agent_dir.exists());
 
     // Run ralph clean
@@ -187,14 +190,14 @@ fn test_clean_color_output_never() -> Result<()> {
     let temp_dir = TempDir::new()?;
     let temp_path = temp_dir.path();
 
-    // Create config and .agent directory
+    // Create config and .ralph/agent directory
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    let agent_dir = temp_path.join(".agent");
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("scratchpad.md"), "test")?;
 
@@ -225,14 +228,14 @@ fn test_clean_color_output_always() -> Result<()> {
     let temp_dir = TempDir::new()?;
     let temp_path = temp_dir.path();
 
-    // Create config and .agent directory
+    // Create config and .ralph/agent directory
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    let agent_dir = temp_path.join(".agent");
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("scratchpad.md"), "test")?;
 
@@ -269,12 +272,12 @@ fn test_clean_permission_error() -> Result<()> {
     // Create config
     let config_content = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
-    // Create .agent directory with files
-    let agent_dir = temp_path.join(".agent");
+    // Create .ralph/agent directory with files
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("scratchpad.md"), "test")?;
 

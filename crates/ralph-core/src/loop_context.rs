@@ -9,6 +9,29 @@
 //! - **Primary loop**: Runs in the main workspace, paths resolve to standard locations
 //! - **Worktree loop**: Runs in a git worktree, paths resolve to worktree-local locations
 //! - **Shared memories**: Memories are symlinked in worktrees, pointing to main workspace
+//! - **Shared specs/tasks**: Specs and code tasks are symlinked in worktrees
+//!
+//! # Directory Structure
+//!
+//! All Ralph state is consolidated under `.ralph/`:
+//! ```text
+//! .ralph/
+//! ├── agent/                    # Agent state (memories, tasks, scratchpad)
+//! │   ├── memories.md           # Symlinked in worktrees
+//! │   ├── tasks.jsonl           # Isolated per worktree
+//! │   ├── scratchpad.md         # Isolated per worktree
+//! │   └── context.md            # Worktree metadata (worktrees only)
+//! ├── specs/                    # Specification files (symlinked in worktrees)
+//! ├── tasks/                    # Code task files (symlinked in worktrees)
+//! ├── loop.lock
+//! ├── loops.json
+//! ├── merge-queue.jsonl
+//! ├── events.jsonl
+//! ├── current-events
+//! ├── history.jsonl
+//! ├── diagnostics/
+//! └── planning-sessions/
+//! ```
 //!
 //! # Example
 //!
@@ -19,7 +42,7 @@
 //! // Primary loop runs in current directory
 //! let primary = LoopContext::primary(PathBuf::from("/project"));
 //! assert_eq!(primary.events_path().to_string_lossy(), "/project/.ralph/events.jsonl");
-//! assert_eq!(primary.tasks_path().to_string_lossy(), "/project/.agent/tasks.jsonl");
+//! assert_eq!(primary.tasks_path().to_string_lossy(), "/project/.ralph/agent/tasks.jsonl");
 //!
 //! // Worktree loop runs in isolated directory
 //! let worktree = LoopContext::worktree(
@@ -72,13 +95,13 @@ impl LoopContext {
     /// Creates context for a worktree-based loop.
     ///
     /// Worktree loops run in isolated git worktrees with their own
-    /// `.ralph/` and `.agent/` directories, but share memories via symlink.
+    /// `.ralph/` directory, but share memories, specs, and code tasks via symlink.
     ///
     /// # Arguments
     ///
     /// * `loop_id` - Unique identifier for this loop (e.g., "loop-1234-abcd")
     /// * `worktree_path` - Path to the worktree directory
-    /// * `repo_root` - Path to the main repository root (for memory symlink)
+    /// * `repo_root` - Path to the main repository root (for symlinks)
     pub fn worktree(
         loop_id: impl Into<String>,
         worktree_path: PathBuf,
@@ -130,9 +153,11 @@ impl LoopContext {
         self.workspace.join(".ralph")
     }
 
-    /// Path to the `.agent/` directory for this loop.
+    /// Path to the `.ralph/agent/` directory for this loop.
+    ///
+    /// This directory contains agent state: memories, tasks, scratchpad, etc.
     pub fn agent_dir(&self) -> PathBuf {
-        self.workspace.join(".agent")
+        self.ralph_dir().join("agent")
     }
 
     /// Path to the events JSONL file.
@@ -175,7 +200,49 @@ impl LoopContext {
     ///
     /// Used to create symlinks in worktree loops.
     pub fn main_memories_path(&self) -> PathBuf {
-        self.repo_root.join(".agent").join("memories.md")
+        self.repo_root
+            .join(".ralph")
+            .join("agent")
+            .join("memories.md")
+    }
+
+    /// Path to the context markdown file.
+    ///
+    /// This file contains worktree metadata (loop ID, workspace, branch, etc.)
+    /// and is only created in worktree loops.
+    pub fn context_path(&self) -> PathBuf {
+        self.agent_dir().join("context.md")
+    }
+
+    /// Path to the specs directory for this loop.
+    ///
+    /// For primary loops, this is the actual specs directory.
+    /// For worktree loops, this is a symlink to the main repo's specs.
+    pub fn specs_dir(&self) -> PathBuf {
+        self.ralph_dir().join("specs")
+    }
+
+    /// Path to the code tasks directory for this loop.
+    ///
+    /// For primary loops, this is the actual code tasks directory.
+    /// For worktree loops, this is a symlink to the main repo's code tasks.
+    /// Note: This is different from tasks_path() which is for runtime task tracking.
+    pub fn code_tasks_dir(&self) -> PathBuf {
+        self.ralph_dir().join("tasks")
+    }
+
+    /// Path to the main repository's specs directory.
+    ///
+    /// Used to create symlinks in worktree loops.
+    pub fn main_specs_dir(&self) -> PathBuf {
+        self.repo_root.join(".ralph").join("specs")
+    }
+
+    /// Path to the main repository's code tasks directory.
+    ///
+    /// Used to create symlinks in worktree loops.
+    pub fn main_code_tasks_dir(&self) -> PathBuf {
+        self.repo_root.join(".ralph").join("tasks")
     }
 
     /// Path to the summary markdown file.
@@ -219,6 +286,49 @@ impl LoopContext {
         self.repo_root.join(".ralph").join("loops.json")
     }
 
+    /// Path to the planning sessions directory.
+    ///
+    /// Contains all planning session subdirectories.
+    pub fn planning_sessions_dir(&self) -> PathBuf {
+        self.ralph_dir().join("planning-sessions")
+    }
+
+    /// Path to a specific planning session directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The session ID (e.g., "20260127-143022-a7f2")
+    pub fn planning_session_dir(&self, id: &str) -> PathBuf {
+        self.planning_sessions_dir().join(id)
+    }
+
+    /// Path to the conversation file for a planning session.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The session ID
+    pub fn planning_conversation_path(&self, id: &str) -> PathBuf {
+        self.planning_session_dir(id).join("conversation.jsonl")
+    }
+
+    /// Path to the session metadata file for a planning session.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The session ID
+    pub fn planning_session_metadata_path(&self, id: &str) -> PathBuf {
+        self.planning_session_dir(id).join("session.json")
+    }
+
+    /// Path to the artifacts directory for a planning session.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The session ID
+    pub fn planning_artifacts_dir(&self, id: &str) -> PathBuf {
+        self.planning_session_dir(id).join("artifacts")
+    }
+
     // -------------------------------------------------------------------------
     // Directory management
     // -------------------------------------------------------------------------
@@ -228,15 +338,27 @@ impl LoopContext {
         std::fs::create_dir_all(self.ralph_dir())
     }
 
-    /// Ensures the `.agent/` directory exists.
+    /// Ensures the `.ralph/agent/` directory exists.
     pub fn ensure_agent_dir(&self) -> std::io::Result<()> {
         std::fs::create_dir_all(self.agent_dir())
     }
 
-    /// Ensures both `.ralph/` and `.agent/` directories exist.
+    /// Ensures the `.ralph/specs/` directory exists.
+    pub fn ensure_specs_dir(&self) -> std::io::Result<()> {
+        std::fs::create_dir_all(self.specs_dir())
+    }
+
+    /// Ensures the `.ralph/tasks/` directory exists.
+    pub fn ensure_code_tasks_dir(&self) -> std::io::Result<()> {
+        std::fs::create_dir_all(self.code_tasks_dir())
+    }
+
+    /// Ensures all required directories exist.
     pub fn ensure_directories(&self) -> std::io::Result<()> {
         self.ensure_ralph_dir()?;
-        self.ensure_agent_dir()
+        self.ensure_agent_dir()?;
+        // Note: specs_dir and code_tasks_dir are optional (may be symlinks in worktrees)
+        Ok(())
     }
 
     /// Creates the memory symlink in a worktree pointing to main repo.
@@ -278,6 +400,173 @@ impl LoopContext {
         // (worktree mode not supported)
         Ok(false)
     }
+
+    /// Creates the specs symlink in a worktree pointing to main repo.
+    ///
+    /// This allows worktree loops to access specs from the main repo,
+    /// even when they are untracked (not committed to git).
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(true)` - Symlink was created
+    /// - `Ok(false)` - Already exists or is primary loop
+    /// - `Err(_)` - Symlink creation failed
+    #[cfg(unix)]
+    pub fn setup_specs_symlink(&self) -> std::io::Result<bool> {
+        if self.is_primary {
+            return Ok(false);
+        }
+
+        let specs_path = self.specs_dir();
+        let main_specs = self.main_specs_dir();
+
+        // Skip if already exists (symlink or directory)
+        if specs_path.exists() || specs_path.is_symlink() {
+            return Ok(false);
+        }
+
+        // Ensure parent directory exists
+        self.ensure_ralph_dir()?;
+
+        // Create symlink
+        std::os::unix::fs::symlink(&main_specs, &specs_path)?;
+        Ok(true)
+    }
+
+    /// Creates the specs symlink in a worktree (non-Unix stub).
+    #[cfg(not(unix))]
+    pub fn setup_specs_symlink(&self) -> std::io::Result<bool> {
+        Ok(false)
+    }
+
+    /// Creates the code tasks symlink in a worktree pointing to main repo.
+    ///
+    /// This allows worktree loops to access code task files from the main repo,
+    /// even when they are untracked (not committed to git).
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(true)` - Symlink was created
+    /// - `Ok(false)` - Already exists or is primary loop
+    /// - `Err(_)` - Symlink creation failed
+    #[cfg(unix)]
+    pub fn setup_code_tasks_symlink(&self) -> std::io::Result<bool> {
+        if self.is_primary {
+            return Ok(false);
+        }
+
+        let tasks_path = self.code_tasks_dir();
+        let main_tasks = self.main_code_tasks_dir();
+
+        // Skip if already exists (symlink or directory)
+        if tasks_path.exists() || tasks_path.is_symlink() {
+            return Ok(false);
+        }
+
+        // Ensure parent directory exists
+        self.ensure_ralph_dir()?;
+
+        // Create symlink
+        std::os::unix::fs::symlink(&main_tasks, &tasks_path)?;
+        Ok(true)
+    }
+
+    /// Creates the code tasks symlink in a worktree (non-Unix stub).
+    #[cfg(not(unix))]
+    pub fn setup_code_tasks_symlink(&self) -> std::io::Result<bool> {
+        Ok(false)
+    }
+
+    /// Generates a context.md file in the worktree with metadata.
+    ///
+    /// This file tells the agent it's running in a worktree and provides
+    /// information about the worktree context (loop ID, workspace, branch, etc.)
+    ///
+    /// # Arguments
+    ///
+    /// * `branch` - The git branch name for this worktree
+    /// * `prompt` - The prompt that started this loop
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(true)` - Context file was created
+    /// - `Ok(false)` - Already exists or is primary loop
+    /// - `Err(_)` - File creation failed
+    pub fn generate_context_file(&self, branch: &str, prompt: &str) -> std::io::Result<bool> {
+        if self.is_primary {
+            return Ok(false);
+        }
+
+        let context_path = self.context_path();
+
+        // Skip if already exists
+        if context_path.exists() {
+            return Ok(false);
+        }
+
+        // Ensure parent directory exists
+        self.ensure_agent_dir()?;
+
+        let loop_id = self.loop_id().unwrap_or("unknown");
+        let created = chrono::Utc::now().to_rfc3339();
+
+        // Truncate prompt for readability
+        let prompt_preview = if prompt.len() > 200 {
+            format!("{}...", &prompt[..200])
+        } else {
+            prompt.to_string()
+        };
+
+        let content = format!(
+            r#"# Worktree Context
+
+- **Loop ID**: {}
+- **Workspace**: {}
+- **Main Repo**: {}
+- **Branch**: {}
+- **Created**: {}
+- **Prompt**: "{}"
+
+## Notes
+
+This is a worktree-based parallel loop. The following resources are symlinked
+to the main repository:
+
+- `.ralph/agent/memories.md` → shared memories
+- `.ralph/specs/` → shared specifications
+- `.ralph/tasks/` → shared code task files
+
+Local state (scratchpad, runtime tasks, events) is isolated to this worktree.
+"#,
+            loop_id,
+            self.workspace.display(),
+            self.repo_root.display(),
+            branch,
+            created,
+            prompt_preview
+        );
+
+        std::fs::write(&context_path, content)?;
+        Ok(true)
+    }
+
+    /// Sets up all worktree symlinks (memories, specs, code tasks).
+    ///
+    /// Convenience method that calls all setup_*_symlink methods.
+    /// Only relevant for worktree loops - no-op for primary loops.
+    #[cfg(unix)]
+    pub fn setup_worktree_symlinks(&self) -> std::io::Result<()> {
+        self.setup_memory_symlink()?;
+        self.setup_specs_symlink()?;
+        self.setup_code_tasks_symlink()?;
+        Ok(())
+    }
+
+    /// Sets up all worktree symlinks (non-Unix stub).
+    #[cfg(not(unix))]
+    pub fn setup_worktree_symlinks(&self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -317,27 +606,29 @@ mod tests {
         let ctx = LoopContext::primary(PathBuf::from("/project"));
 
         assert_eq!(ctx.ralph_dir(), PathBuf::from("/project/.ralph"));
-        assert_eq!(ctx.agent_dir(), PathBuf::from("/project/.agent"));
+        assert_eq!(ctx.agent_dir(), PathBuf::from("/project/.ralph/agent"));
         assert_eq!(
             ctx.events_path(),
             PathBuf::from("/project/.ralph/events.jsonl")
         );
         assert_eq!(
             ctx.tasks_path(),
-            PathBuf::from("/project/.agent/tasks.jsonl")
+            PathBuf::from("/project/.ralph/agent/tasks.jsonl")
         );
         assert_eq!(
             ctx.scratchpad_path(),
-            PathBuf::from("/project/.agent/scratchpad.md")
+            PathBuf::from("/project/.ralph/agent/scratchpad.md")
         );
         assert_eq!(
             ctx.memories_path(),
-            PathBuf::from("/project/.agent/memories.md")
+            PathBuf::from("/project/.ralph/agent/memories.md")
         );
         assert_eq!(
             ctx.summary_path(),
-            PathBuf::from("/project/.agent/summary.md")
+            PathBuf::from("/project/.ralph/agent/summary.md")
         );
+        assert_eq!(ctx.specs_dir(), PathBuf::from("/project/.ralph/specs"));
+        assert_eq!(ctx.code_tasks_dir(), PathBuf::from("/project/.ralph/tasks"));
         assert_eq!(
             ctx.diagnostics_dir(),
             PathBuf::from("/project/.ralph/diagnostics")
@@ -362,28 +653,47 @@ mod tests {
             PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph")
         );
         assert_eq!(
+            ctx.agent_dir(),
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/agent")
+        );
+        assert_eq!(
             ctx.events_path(),
             PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/events.jsonl")
         );
         assert_eq!(
             ctx.tasks_path(),
-            PathBuf::from("/project/.worktrees/loop-1234-abcd/.agent/tasks.jsonl")
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/agent/tasks.jsonl")
         );
         assert_eq!(
             ctx.scratchpad_path(),
-            PathBuf::from("/project/.worktrees/loop-1234-abcd/.agent/scratchpad.md")
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/agent/scratchpad.md")
         );
 
         // Memories path is in worktree (symlink to main repo)
         assert_eq!(
             ctx.memories_path(),
-            PathBuf::from("/project/.worktrees/loop-1234-abcd/.agent/memories.md")
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/agent/memories.md")
         );
 
         // Main memories path is in repo root
         assert_eq!(
             ctx.main_memories_path(),
-            PathBuf::from("/project/.agent/memories.md")
+            PathBuf::from("/project/.ralph/agent/memories.md")
+        );
+
+        // Specs and code tasks paths (symlinks to main repo)
+        assert_eq!(
+            ctx.specs_dir(),
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/specs")
+        );
+        assert_eq!(
+            ctx.code_tasks_dir(),
+            PathBuf::from("/project/.worktrees/loop-1234-abcd/.ralph/tasks")
+        );
+        assert_eq!(ctx.main_specs_dir(), PathBuf::from("/project/.ralph/specs"));
+        assert_eq!(
+            ctx.main_code_tasks_dir(),
+            PathBuf::from("/project/.ralph/tasks")
         );
 
         // Shared resources resolve to main repo
@@ -436,9 +746,9 @@ mod tests {
         let repo_root = temp.path().to_path_buf();
         let worktree_path = repo_root.join(".worktrees/loop-1234");
 
-        // Create the main memories file
-        std::fs::create_dir_all(repo_root.join(".agent")).unwrap();
-        std::fs::write(repo_root.join(".agent/memories.md"), "# Memories\n").unwrap();
+        // Create the main memories file under .ralph/agent/
+        std::fs::create_dir_all(repo_root.join(".ralph/agent")).unwrap();
+        std::fs::write(repo_root.join(".ralph/agent/memories.md"), "# Memories\n").unwrap();
 
         let ctx = LoopContext::worktree("loop-1234", worktree_path.clone(), repo_root.clone());
 
@@ -467,5 +777,197 @@ mod tests {
             ctx.current_events_marker(),
             PathBuf::from("/project/.ralph/current-events")
         );
+    }
+
+    #[test]
+    fn test_planning_sessions_paths() {
+        let ctx = LoopContext::primary(PathBuf::from("/project"));
+
+        assert_eq!(
+            ctx.planning_sessions_dir(),
+            PathBuf::from("/project/.ralph/planning-sessions")
+        );
+    }
+
+    #[test]
+    fn test_planning_session_paths() {
+        let ctx = LoopContext::primary(PathBuf::from("/project"));
+        let session_id = "20260127-143022-a7f2";
+
+        assert_eq!(
+            ctx.planning_session_dir(session_id),
+            PathBuf::from("/project/.ralph/planning-sessions/20260127-143022-a7f2")
+        );
+        assert_eq!(
+            ctx.planning_conversation_path(session_id),
+            PathBuf::from(
+                "/project/.ralph/planning-sessions/20260127-143022-a7f2/conversation.jsonl"
+            )
+        );
+        assert_eq!(
+            ctx.planning_session_metadata_path(session_id),
+            PathBuf::from("/project/.ralph/planning-sessions/20260127-143022-a7f2/session.json")
+        );
+        assert_eq!(
+            ctx.planning_artifacts_dir(session_id),
+            PathBuf::from("/project/.ralph/planning-sessions/20260127-143022-a7f2/artifacts")
+        );
+    }
+
+    #[test]
+    fn test_planning_session_directory_creation() {
+        let temp = TempDir::new().unwrap();
+        let ctx = LoopContext::primary(temp.path().to_path_buf());
+        let session_id = "test-session";
+
+        // Create session directory
+        std::fs::create_dir_all(ctx.planning_session_dir(session_id)).unwrap();
+
+        // Verify directory exists
+        assert!(ctx.planning_session_dir(session_id).exists());
+        assert!(ctx.planning_sessions_dir().exists());
+    }
+
+    #[test]
+    fn test_context_path() {
+        let ctx = LoopContext::primary(PathBuf::from("/project"));
+        assert_eq!(
+            ctx.context_path(),
+            PathBuf::from("/project/.ralph/agent/context.md")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_specs_symlink_worktree() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        let worktree_path = repo_root.join(".worktrees/loop-1234");
+
+        // Create the main specs directory
+        std::fs::create_dir_all(repo_root.join(".ralph/specs")).unwrap();
+        std::fs::write(repo_root.join(".ralph/specs/test.spec.md"), "# Test Spec\n").unwrap();
+
+        let ctx = LoopContext::worktree("loop-1234", worktree_path.clone(), repo_root.clone());
+
+        // Ensure .ralph dir exists
+        ctx.ensure_ralph_dir().unwrap();
+
+        // Create symlink
+        let created = ctx.setup_specs_symlink().unwrap();
+        assert!(created);
+
+        // Verify symlink exists and points to main specs
+        let specs = ctx.specs_dir();
+        assert!(specs.is_symlink());
+        assert_eq!(std::fs::read_link(&specs).unwrap(), ctx.main_specs_dir());
+
+        // Second call is a no-op
+        let created_again = ctx.setup_specs_symlink().unwrap();
+        assert!(!created_again);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_code_tasks_symlink_worktree() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        let worktree_path = repo_root.join(".worktrees/loop-1234");
+
+        // Create the main code tasks directory
+        std::fs::create_dir_all(repo_root.join(".ralph/tasks")).unwrap();
+        std::fs::write(
+            repo_root.join(".ralph/tasks/test.code-task.md"),
+            "# Test Task\n",
+        )
+        .unwrap();
+
+        let ctx = LoopContext::worktree("loop-1234", worktree_path.clone(), repo_root.clone());
+
+        // Ensure .ralph dir exists
+        ctx.ensure_ralph_dir().unwrap();
+
+        // Create symlink
+        let created = ctx.setup_code_tasks_symlink().unwrap();
+        assert!(created);
+
+        // Verify symlink exists and points to main code tasks
+        let tasks = ctx.code_tasks_dir();
+        assert!(tasks.is_symlink());
+        assert_eq!(
+            std::fs::read_link(&tasks).unwrap(),
+            ctx.main_code_tasks_dir()
+        );
+
+        // Second call is a no-op
+        let created_again = ctx.setup_code_tasks_symlink().unwrap();
+        assert!(!created_again);
+    }
+
+    #[test]
+    fn test_generate_context_file_primary_noop() {
+        let temp = TempDir::new().unwrap();
+        let ctx = LoopContext::primary(temp.path().to_path_buf());
+
+        // Primary loop doesn't create context file
+        let created = ctx.generate_context_file("main", "test prompt").unwrap();
+        assert!(!created);
+    }
+
+    #[test]
+    fn test_generate_context_file_worktree() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        let worktree_path = repo_root.join(".worktrees/loop-1234");
+
+        let ctx = LoopContext::worktree("loop-1234", worktree_path.clone(), repo_root.clone());
+
+        // Create context file
+        ctx.ensure_agent_dir().unwrap();
+        let created = ctx
+            .generate_context_file("ralph/loop-1234", "Add footer")
+            .unwrap();
+        assert!(created);
+
+        // Verify file exists and contains expected content
+        let context_path = ctx.context_path();
+        assert!(context_path.exists());
+
+        let content = std::fs::read_to_string(&context_path).unwrap();
+        assert!(content.contains("# Worktree Context"));
+        assert!(content.contains("loop-1234"));
+        assert!(content.contains("Add footer"));
+        assert!(content.contains("ralph/loop-1234"));
+
+        // Second call is a no-op
+        let created_again = ctx
+            .generate_context_file("ralph/loop-1234", "Add footer")
+            .unwrap();
+        assert!(!created_again);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_setup_worktree_symlinks() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        let worktree_path = repo_root.join(".worktrees/loop-1234");
+
+        // Create main repo directories
+        std::fs::create_dir_all(repo_root.join(".ralph/agent")).unwrap();
+        std::fs::create_dir_all(repo_root.join(".ralph/specs")).unwrap();
+        std::fs::create_dir_all(repo_root.join(".ralph/tasks")).unwrap();
+        std::fs::write(repo_root.join(".ralph/agent/memories.md"), "# Memories\n").unwrap();
+
+        let ctx = LoopContext::worktree("loop-1234", worktree_path.clone(), repo_root.clone());
+
+        // Setup all symlinks
+        ctx.ensure_directories().unwrap();
+        ctx.setup_worktree_symlinks().unwrap();
+
+        // Verify all symlinks exist
+        assert!(ctx.memories_path().is_symlink());
+        assert!(ctx.specs_dir().is_symlink());
+        assert!(ctx.code_tasks_dir().is_symlink());
     }
 }

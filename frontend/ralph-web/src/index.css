@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/*
+ * Custom theme configuration for Tailwind v4
+ * Based on shadcn/ui "new-york" style with hacker/terminal aesthetic
+ */
+@theme {
+  /* Font families */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Border radius - new-york style is more subtle */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* Dark theme colors - hacker aesthetic */
+  --color-background: oklch(0.145 0 0);
+  --color-foreground: oklch(0.985 0 0);
+
+  --color-card: oklch(0.18 0 0);
+  --color-card-foreground: oklch(0.985 0 0);
+
+  --color-popover: oklch(0.18 0 0);
+  --color-popover-foreground: oklch(0.985 0 0);
+
+  /* Emerald green primary - terminal aesthetic */
+  --color-primary: oklch(0.65 0.2 145);
+  --color-primary-foreground: oklch(0.985 0 0);
+
+  --color-secondary: oklch(0.25 0 0);
+  --color-secondary-foreground: oklch(0.985 0 0);
+
+  --color-muted: oklch(0.25 0 0);
+  --color-muted-foreground: oklch(0.65 0 0);
+
+  --color-accent: oklch(0.65 0.2 145);
+  --color-accent-foreground: oklch(0.985 0 0);
+
+  --color-destructive: oklch(0.55 0.22 29);
+  --color-destructive-foreground: oklch(0.985 0 0);
+
+  --color-border: oklch(0.25 0 0);
+  --color-input: oklch(0.25 0 0);
+  --color-ring: oklch(0.65 0.2 145);
+
+  /* Chart colors */
+  --color-chart-1: oklch(0.65 0.2 145);
+  --color-chart-2: oklch(0.6 0.15 185);
+  --color-chart-3: oklch(0.45 0.1 210);
+  --color-chart-4: oklch(0.75 0.15 85);
+  --color-chart-5: oklch(0.7 0.18 45);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Monospace elements use JetBrains Mono */
+  code,
+  pre,
+  kbd,
+  samp,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}

@@ -176,6 +176,8 @@ pub struct ConsoleStreamHandler {
     verbose: bool,
     stdout: io::Stdout,
     stderr: io::Stderr,
+    /// Tracks whether last output ended with a newline
+    last_was_newline: bool,
 }
 
 impl ConsoleStreamHandler {
@@ -188,6 +190,15 @@ impl ConsoleStreamHandler {
             verbose,
             stdout: io::stdout(),
             stderr: io::stderr(),
+            last_was_newline: true, // Start true so first output doesn't get extra newline
+        }
+    }
+
+    /// Ensures output starts on a new line if the previous output didn't end with one.
+    fn ensure_newline(&mut self) {
+        if !self.last_was_newline {
+            let _ = writeln!(self.stdout);
+            self.last_was_newline = true;
         }
     }
 }
@@ -195,9 +206,11 @@ impl ConsoleStreamHandler {
 impl StreamHandler for ConsoleStreamHandler {
     fn on_text(&mut self, text: &str) {
         let _ = write!(self.stdout, "{}", text);
+        self.last_was_newline = text.ends_with('\n');
     }
 
     fn on_tool_call(&mut self, name: &str, _id: &str, input: &serde_json::Value) {
+        self.ensure_newline();
         match format_tool_summary(name, input) {
             Some(summary) => {
                 let _ = writeln!(self.stdout, "[Tool] {}: {}", name, summary);
@@ -206,6 +219,8 @@ impl StreamHandler for ConsoleStreamHandler {
                 let _ = writeln!(self.stdout, "[Tool] {}", name);
             }
         }
+        // writeln always ends with newline
+        self.last_was_newline = true;
     }
 
     fn on_tool_result(&mut self, _id: &str, output: &str) {

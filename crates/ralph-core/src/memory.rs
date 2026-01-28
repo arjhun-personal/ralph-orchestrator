@@ -4,7 +4,7 @@
 //! - `Memory`: A single stored learning/insight
 //! - `MemoryType`: Classification of memory (pattern, decision, fix, context)
 //!
-//! Memories are stored in `.agent/memories.md` using a structured markdown format
+//! Memories are stored in `.ralph/agent/memories.md` using a structured markdown format
 //! that is both human-readable and machine-parseable.
 
 use serde::{Deserialize, Serialize};
@@ -30,7 +30,7 @@ pub enum MemoryType {
 impl MemoryType {
     /// Returns the markdown section header name for this memory type.
     ///
-    /// Used when writing memories to `.agent/memories.md`.
+    /// Used when writing memories to `.ralph/agent/memories.md`.
     #[must_use]
     pub fn section_name(&self) -> &'static str {
         match self {
@@ -105,7 +105,7 @@ impl std::str::FromStr for MemoryType {
 
 /// A single memory entry.
 ///
-/// Memories are stored in `.agent/memories.md` with the following format:
+/// Memories are stored in `.ralph/agent/memories.md` with the following format:
 /// ```markdown
 /// ### mem-1737372000-a1b2
 /// > The actual memory content

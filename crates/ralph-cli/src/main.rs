@@ -22,6 +22,7 @@ mod presets;
 mod sop_runner;
 mod task_cli;
 mod tools;
+mod web;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser, Subcommand, ValueEnum};
@@ -402,6 +403,9 @@ enum Commands {
 
     /// Manage configured hats
     Hats(hats::HatsArgs),
+
+    /// Run the web dashboard
+    Web(web::WebArgs),
 }
 
 /// Arguments for the init subcommand.
@@ -674,9 +678,11 @@ async fn main() -> Result<()> {
 
     if tui_enabled {
         // TUI mode: logs would corrupt the display, so we suppress them entirely.
-        // For debugging TUI issues, set RALPH_DEBUG_LOG=1 to write to .agent/ralph.log
+        // For debugging TUI issues, set RALPH_DEBUG_LOG=1 to write to .ralph/agent/ralph.log
         if std::env::var("RALPH_DEBUG_LOG").is_ok() {
-            let log_path = std::path::Path::new(".agent").join("ralph.log");
+            let log_path = std::path::Path::new(".ralph")
+                .join("agent")
+                .join("ralph.log");
             if let Ok(file) = std::fs::File::create(&log_path) {
                 if diagnostics_enabled {
                     // TUI + diagnostics: logs to file + trace layer
@@ -771,6 +777,7 @@ async fn main() -> Result<()> {
         Some(Commands::Hats(args)) => {
             hats::execute(&config_sources, args, cli.color.should_use_colors())
         }
+        Some(Commands::Web(args)) => web::execute(args).await,
         None => {
             // Default to run with TUI enabled (new default behavior)
             let args = RunArgs {
@@ -1092,10 +1099,15 @@ async fn run_command(
                     workspace_root.clone(),
                 );
 
-                // Set up memory symlink so parallel loop shares memories
+                // Set up all worktree symlinks (memories, specs, code tasks)
                 context
-                    .setup_memory_symlink()
-                    .context("Failed to create memory symlink in worktree")?;
+                    .setup_worktree_symlinks()
+                    .context("Failed to create symlinks in worktree")?;
+
+                // Generate context file with worktree metadata
+                context
+                    .generate_context_file(&worktree.branch, &prompt_summary)
+                    .context("Failed to generate context file in worktree")?;
 
                 // Register this loop in the registry so `ralph loops` can track it
                 let registry = LoopRegistry::new(workspace_root);
@@ -1148,6 +1160,12 @@ async fn run_command(
     let enable_tui = !args.no_tui && !args.autonomous;
     let verbosity = Verbosity::resolve(verbose || args.verbose, args.quiet);
     let custom_args = args.custom_args;
+    // --no-auto-merge CLI flag overrides config.features.auto_merge
+    let auto_merge_override = if args.no_auto_merge {
+        Some(false)
+    } else {
+        None
+    };
     let reason = loop_runner::run_loop_impl(
         config,
         color_mode,
@@ -1157,6 +1175,7 @@ async fn run_command(
         args.record_session,
         Some(loop_context),
         custom_args,
+        auto_merge_override,
     )
     .await?;
     let exit_code = reason.exit_code();
@@ -1287,6 +1306,7 @@ async fn resume_command(
         args.record_session,
         None,       // Deprecated resume command doesn't have loop_context
         Vec::new(), // Resume command doesn't support custom args
+        None,       // Use config.features.auto_merge (deprecated command)
     )
     .await?;
     let exit_code = reason.exit_code();

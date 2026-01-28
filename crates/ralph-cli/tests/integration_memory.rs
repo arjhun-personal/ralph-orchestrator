@@ -45,8 +45,8 @@ fn test_memory_init_creates_file() -> Result<()> {
     let temp_dir = TempDir::new()?;
     let temp_path = temp_dir.path();
 
-    // Ensure .agent directory and memories.md don't exist
-    let memories_path = temp_path.join(".agent/memories.md");
+    // Ensure .ralph/agent directory and memories.md don't exist
+    let memories_path = temp_path.join(".ralph/agent/memories.md");
     assert!(!memories_path.exists());
 
     // Run init
@@ -79,7 +79,7 @@ fn test_memory_init_fails_without_force() -> Result<()> {
     let temp_path = temp_dir.path();
 
     // Create existing memories file
-    let agent_dir = temp_path.join(".agent");
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("memories.md"), "# Existing content")?;
 
@@ -105,7 +105,7 @@ fn test_memory_init_force_overwrites() -> Result<()> {
     let temp_path = temp_dir.path();
 
     // Create existing memories file
-    let agent_dir = temp_path.join(".agent");
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
     fs::write(agent_dir.join("memories.md"), "# Existing content")?;
 
@@ -133,7 +133,7 @@ fn test_memory_add_creates_file() -> Result<()> {
     let stdout = ralph_memory_ok(temp_path, &["add", "test memory content"]);
 
     // File should exist
-    let memories_path = temp_path.join(".agent/memories.md");
+    let memories_path = temp_path.join(".ralph/agent/memories.md");
     assert!(memories_path.exists(), "memories.md should be created");
 
     // Should contain the memory
@@ -161,7 +161,7 @@ fn test_memory_add_with_type() -> Result<()> {
         &["add", "ECONNREFUSED means start docker", "-t", "fix"],
     );
 
-    let content = fs::read_to_string(temp_path.join(".agent/memories.md"))?;
+    let content = fs::read_to_string(temp_path.join(".ralph/agent/memories.md"))?;
     assert!(content.contains("## Fixes"));
     assert!(content.contains("ECONNREFUSED means start docker"));
 
@@ -179,7 +179,7 @@ fn test_memory_add_with_tags() -> Result<()> {
         &["add", "uses barrel exports", "--tags", "imports,structure"],
     );
 
-    let content = fs::read_to_string(temp_path.join(".agent/memories.md"))?;
+    let content = fs::read_to_string(temp_path.join(".ralph/agent/memories.md"))?;
     assert!(content.contains("uses barrel exports"));
     assert!(content.contains("tags: imports, structure"));
 
@@ -398,7 +398,7 @@ fn test_memory_delete_removes_entry() -> Result<()> {
     let memory_id = add_stdout.trim();
 
     // Verify it exists
-    let content_before = fs::read_to_string(temp_path.join(".agent/memories.md"))?;
+    let content_before = fs::read_to_string(temp_path.join(".ralph/agent/memories.md"))?;
     assert!(content_before.contains("to be deleted"));
 
     // Delete it
@@ -410,7 +410,7 @@ fn test_memory_delete_removes_entry() -> Result<()> {
     );
 
     // Verify it's gone
-    let content_after = fs::read_to_string(temp_path.join(".agent/memories.md"))?;
+    let content_after = fs::read_to_string(temp_path.join(".ralph/agent/memories.md"))?;
     assert!(!content_after.contains("to be deleted"));
     assert!(!content_after.contains(memory_id));
 

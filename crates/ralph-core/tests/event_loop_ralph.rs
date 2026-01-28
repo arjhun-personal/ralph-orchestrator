@@ -24,7 +24,7 @@ fn test_orphaned_event_falls_to_ralph() {
     // Create EventLoop with empty hat registry (no hats configured)
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
   guardrails:
     - "Fresh context each iteration"
@@ -56,7 +56,7 @@ event_loop:
 fn test_ralph_completion_only_from_ralph() {
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 event_loop:
   completion_promise: "LOOP_COMPLETE"
@@ -93,7 +93,7 @@ fn test_ralph_prompt_includes_ghuntley_style() {
     // Test legacy scratchpad mode (memories and tasks disabled)
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
   guardrails:
     - "Fresh context each iteration"
@@ -146,7 +146,7 @@ tasks:
 fn test_ralph_prompt_solo_mode_structure() {
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 event_loop:
   completion_promise: "LOOP_COMPLETE"
@@ -173,7 +173,7 @@ event_loop:
 fn test_ralph_prompt_multi_hat_mode_structure() {
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 hats:
   planner:
@@ -216,10 +216,13 @@ event_loop:
 
 #[test]
 fn test_solo_mode_memories_task_verification_requirements() {
-    // Test that solo mode with memories/tasks enabled includes task verification requirements
+    // Test that solo mode with memories/tasks enabled includes:
+    // - SCRATCHPAD section (always present)
+    // - TASKS section (added when memories enabled)
+    // - VERIFY & COMMIT workflow step
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 event_loop:
   completion_promise: "LOOP_COMPLETE"
@@ -234,28 +237,28 @@ tasks:
 
     let prompt = event_loop.build_ralph_prompt("");
 
-    // CRITICAL: Task Closure Requirements section must be present
+    // SCRATCHPAD section should always be present
     assert!(
-        prompt.contains("CRITICAL: Task Closure Requirements"),
-        "Prompt should include CRITICAL task closure requirements"
+        prompt.contains("### 0b. SCRATCHPAD"),
+        "Prompt should include SCRATCHPAD section"
     );
 
-    // Verification conditions must be listed
+    // TASKS section should be present when memories enabled
     assert!(
-        prompt.contains("You MUST NOT close a task unless ALL"),
-        "Prompt should require verification before closing"
+        prompt.contains("### 0c. TASKS"),
+        "Prompt should include TASKS section when memories enabled"
     );
+
+    // CRITICAL verification note in tasks section
     assert!(
-        prompt.contains("implementation is actually complete"),
-        "Prompt should require complete implementation"
+        prompt.contains("CRITICAL"),
+        "Prompt should include CRITICAL verification note"
     );
+
+    // Task CLI commands
     assert!(
-        prompt.contains("Tests pass"),
-        "Prompt should require tests to pass"
-    );
-    assert!(
-        prompt.contains("evidence of completion"),
-        "Prompt should require evidence"
+        prompt.contains("ralph tools task"),
+        "Prompt should include task CLI commands"
     );
 
     // VERIFY & COMMIT step in workflow
@@ -264,7 +267,7 @@ tasks:
         "Workflow should have VERIFY & COMMIT step"
     );
     assert!(
-        prompt.contains("only AFTER verification passes"),
+        prompt.contains("AFTER verification"),
         "Workflow should emphasize closing only after verification"
     );
 }
@@ -275,7 +278,7 @@ fn test_multihat_mode_has_workflow_section() {
     // (Individual hat instructions are tested in unit tests since those modules are private)
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 event_loop:
   completion_promise: "LOOP_COMPLETE"
@@ -319,7 +322,7 @@ fn test_scratchpad_mode_no_task_verification() {
     // (it uses different task tracking via [ ] / [x] markers)
     let yaml = r#"
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
   specs_dir: "./specs"
 event_loop:
   completion_promise: "LOOP_COMPLETE"

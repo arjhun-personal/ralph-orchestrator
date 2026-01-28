@@ -29,7 +29,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config_content)?;
 
@@ -37,7 +37,7 @@ core:
     fs::write(temp_path.join("PROMPT.md"), "Test task")?;
 
     // Ensure no scratchpad exists
-    let scratchpad_path = temp_path.join(".agent").join("scratchpad.md");
+    let scratchpad_path = temp_path.join(".ralph/agent").join("scratchpad.md");
     assert!(!scratchpad_path.exists());
 
     // Run ralph run --continue - should fail with error about missing scratchpad
@@ -79,7 +79,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 
 memories:
   enabled: false
@@ -92,8 +92,8 @@ tasks:
     // Create a prompt file
     fs::write(temp_path.join("PROMPT.md"), "Test task")?;
 
-    // Create the .agent directory and scratchpad file
-    let agent_dir = temp_path.join(".agent");
+    // Create the .ralph/agent directory and scratchpad file
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
 
     let scratchpad_content = r"# Task List
@@ -145,7 +145,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
 
     fs::write(temp_path.join("ralph.yml"), config_content)?;
@@ -153,8 +153,8 @@ core:
     // Create a prompt file
     fs::write(temp_path.join("PROMPT.md"), "Continue test task")?;
 
-    // Create the .agent directory and scratchpad file
-    let agent_dir = temp_path.join(".agent");
+    // Create the .ralph/agent directory and scratchpad file
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
 
     // Create .ralph directory with a marker file for continue to use
@@ -222,7 +222,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
 
     fs::write(temp_path.join("ralph.yml"), config_content)?;
@@ -230,8 +230,8 @@ core:
     // Create a prompt file
     fs::write(temp_path.join("PROMPT.md"), "Test task")?;
 
-    // Create the .agent directory
-    let agent_dir = temp_path.join(".agent");
+    // Create the .ralph/agent directory
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
 
     // Test 1: Run normal ralph run (should publish task.start)
@@ -317,7 +317,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 
 memories:
   enabled: false
@@ -331,8 +331,8 @@ tasks:
     // Create a prompt file
     fs::write(temp_path.join("PROMPT.md"), "Test task")?;
 
-    // Create the .agent directory and scratchpad with unique content
-    let agent_dir = temp_path.join(".agent");
+    // Create the .ralph/agent directory and scratchpad with unique content
+    let agent_dir = temp_path.join(".ralph/agent");
     fs::create_dir_all(&agent_dir)?;
 
     let scratchpad_content = r"# Existing Task List

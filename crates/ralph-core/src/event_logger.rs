@@ -156,10 +156,20 @@ impl EventLogger {
 
     /// Creates a logger using the events path from a LoopContext.
     ///
-    /// This ensures the logger writes to the correct location when running
-    /// in a worktree or other isolated workspace.
+    /// This reads the timestamped events path from the marker file if it exists,
+    /// falling back to the default events path. This ensures the logger writes
+    /// to the correct location when running in a worktree or other isolated workspace.
     pub fn from_context(context: &LoopContext) -> Self {
-        Self::new(context.events_path())
+        // Read timestamped events path from marker file, fall back to default
+        // The marker file contains a relative path like ".ralph/events-20260127-123456.jsonl"
+        // which we resolve relative to the workspace root
+        let events_path = std::fs::read_to_string(context.current_events_marker())
+            .map(|s| {
+                let relative = s.trim();
+                context.workspace().join(relative)
+            })
+            .unwrap_or_else(|_| context.events_path());
+        Self::new(events_path)
     }
 
     /// Ensures the parent directory exists and opens the file.

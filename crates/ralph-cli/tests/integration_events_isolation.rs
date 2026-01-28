@@ -30,7 +30,7 @@ cli:
   command: "true"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
+  scratchpad: ".ralph/agent/scratchpad.md"
 "#;
     fs::write(temp_path.join("ralph.yml"), config)?;
     fs::write(temp_path.join("PROMPT.md"), "Test task")?;

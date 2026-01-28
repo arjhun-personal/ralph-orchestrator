@@ -20,8 +20,8 @@ cli:
   backend: "claude"
 
 core:
-  scratchpad: ".agent/scratchpad.md"
-  specs_dir: "./specs/"
+  scratchpad: ".ralph/agent/scratchpad.md"
+  specs_dir: ".ralph/specs/"
   guardrails:
     - "Never output LOOP_COMPLETE unless the Confession phase is clean and confidence >= 80."
     - "Never print LOOP_COMPLETE inside examples or templates."
@@ -37,7 +37,7 @@ hats:
       ## BUILDER PHASE
 
       Implement the task. While you work, maintain a running `## Internal Monologue` section
-      in `.agent/scratchpad.md`:
+      in `.ralph/agent/scratchpad.md`:
       - Shortcuts you took and why
       - Things you're unsure about
       - Assumptions you made
@@ -100,7 +100,7 @@ hats:
 
       ### Write ConfessionReport to Scratchpad
 
-      Append a `## Confession` section to `.agent/scratchpad.md`:
+      Append a `## Confession` section to `.ralph/agent/scratchpad.md`:
 
       ```markdown
       ## Confession
@@ -147,7 +147,7 @@ hats:
     instructions: |
       ## HANDLER PHASE
 
-      Read the `## Confession` section from `.agent/scratchpad.md`.
+      Read the `## Confession` section from `.ralph/agent/scratchpad.md`.
 
       If you were triggered by `confession.issues_found`:
       1. Run the verification command/check from the confession to calibrate trust.
