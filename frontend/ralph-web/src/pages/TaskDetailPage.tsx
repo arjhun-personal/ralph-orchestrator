@@ -20,9 +20,77 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { EnhancedLogViewer } from "@/components/tasks/EnhancedLogViewer";
-import { AlertTriangle, Send, Loader2, GitMerge } from "lucide-react";
+import { AlertTriangle, Send, Loader2, GitMerge, CheckCircle2, FileText, GitCommit } from "lucide-react";
 import { type LoopDetailData } from "@/components/tasks/LoopDetail";
 import { LoopBadge } from "@/components/tasks/LoopBadge";
+
+/**
+ * ExecutionSummary Component
+ *
+ * Displays task execution results with special handling for merge loops.
+ * Shows merge-specific information (commit SHA) when the associated loop
+ * has been successfully merged.
+ */
+function ExecutionSummary({
+  summary,
+  loop,
+}: {
+  summary: string;
+  loop?: LoopDetailData;
+}) {
+  const isMerged = loop?.status === "merged";
+  const mergeCommit = loop?.mergeCommit;
+
+  return (
+    <div
+      className={`mt-4 rounded-lg border ${
+        isMerged
+          ? "border-green-500/30 bg-green-500/5"
+          : "border-border bg-muted/50"
+      }`}
+      data-testid="execution-summary"
+    >
+      {/* Header */}
+      <div
+        className={`flex items-center gap-2 px-4 py-3 border-b ${
+          isMerged ? "border-green-500/20" : "border-border"
+        }`}
+      >
+        {isMerged ? (
+          <CheckCircle2 className="h-5 w-5 text-green-500" />
+        ) : (
+          <FileText className="h-5 w-5 text-muted-foreground" />
+        )}
+        <h3
+          className={`font-semibold ${
+            isMerged ? "text-green-700 dark:text-green-400" : "text-muted-foreground"
+          }`}
+        >
+          {isMerged ? "Merge Complete" : "Execution Summary"}
+        </h3>
+      </div>
+
+      {/* Merge commit info (for merged loops) */}
+      {isMerged && mergeCommit && (
+        <div
+          className="flex items-center gap-2 px-4 py-2 border-b border-green-500/20 bg-green-500/10"
+          data-testid="merge-commit-info"
+        >
+          <GitCommit className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <span className="text-sm text-muted-foreground">Merge commit:</span>
+          <code className="text-sm font-mono text-green-700 dark:text-green-400">
+            {mergeCommit.slice(0, 8)}
+          </code>
+        </div>
+      )}
+
+      {/* Summary content */}
+      <div className="p-4">
+        <div className="whitespace-pre-wrap text-sm">{summary}</div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Reusable component for displaying a label-value metric pair
@@ -217,14 +285,7 @@ export function TaskDetailPage() {
 
         {/* Execution summary (for completed tasks) */}
         {task.executionSummary && (
-          <div className="mt-4">
-            <h3 className="font-semibold text-muted-foreground mb-2">
-              Execution Summary
-            </h3>
-            <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded">
-              {task.executionSummary}
-            </div>
-          </div>
+          <ExecutionSummary summary={task.executionSummary} loop={associatedLoop} />
         )}
       </div>
 
