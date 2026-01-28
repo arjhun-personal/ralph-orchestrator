@@ -188,10 +188,16 @@ impl EventLogger {
     }
 
     /// Logs an event record.
+    ///
+    /// Uses a single `write_all` call to ensure the JSON line is written atomically.
+    /// This prevents corruption when multiple processes append to the same file
+    /// concurrently (e.g., during parallel merge queue processing).
     pub fn log(&mut self, record: &EventRecord) -> std::io::Result<()> {
         let file = self.ensure_open()?;
-        let json = serde_json::to_string(record)?;
-        writeln!(file, "{}", json)?;
+        let mut json = serde_json::to_string(record)?;
+        json.push('\n');
+        // Single write_all ensures atomic append on POSIX with O_APPEND
+        file.write_all(json.as_bytes())?;
         file.flush()?;
         debug!(topic = %record.topic, iteration = record.iteration, "Event logged");
         Ok(())
