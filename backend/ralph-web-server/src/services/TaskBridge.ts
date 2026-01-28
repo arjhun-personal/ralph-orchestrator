@@ -285,6 +285,9 @@ export class TaskBridge {
       status: "running",
       startedAt: new Date(),
     });
+
+    // Start polling for loop ID in the background
+    this.scheduleLoopIdResolution(dbTaskId);
   }
 
   /**
@@ -336,12 +339,20 @@ export class TaskBridge {
       executionSummary = stripAnsi(executionSummary);
     }
 
+    // Attempt loop ID resolution as a fallback (in case polling didn't find it yet)
+    const dbTask = this.taskRepository.findById(dbTaskId);
+    let loopId: string | null = null;
+    if (dbTask && !dbTask.loopId) {
+      loopId = this.resolveLoopId(dbTask.title);
+    }
+
     this.taskRepository.update(dbTaskId, {
       status: "closed",
       completedAt: new Date(),
       executionSummary,
       exitCode: result.exitCode ?? 0,
       durationMs,
+      ...(loopId ? { loopId } : {}),
     });
 
     // Clean up the mapping
@@ -731,6 +742,85 @@ export class TaskBridge {
     }
 
     return { success: true };
+  }
+
+  /**
+   * Resolve the loop ID for a task by matching its title against loop prompts
+   * in `.ralph/loops.json`.
+   *
+   * @param taskTitle - The task title (used as the prompt when launching the loop)
+   * @returns The loop ID or null if not found
+   */
+  private resolveLoopId(taskTitle: string): string | null {
+    try {
+      const repoRoot = getGitRepoRoot(this.defaultCwd);
+      const loopsPath = path.join(repoRoot, ".ralph", "loops.json");
+
+      if (!fs.existsSync(loopsPath)) {
+        return null;
+      }
+
+      const loopsData = JSON.parse(fs.readFileSync(loopsPath, "utf-8"));
+      const loops: Array<{ id: string; prompt: string; started: string }> =
+        loopsData.loops ?? [];
+
+      // Find loops whose prompt matches the task title
+      const matches = loops.filter((loop) => loop.prompt === taskTitle);
+
+      if (matches.length === 0) {
+        return null;
+      }
+
+      // If multiple matches, pick the most recently started one
+      if (matches.length > 1) {
+        matches.sort(
+          (a, b) => new Date(b.started).getTime() - new Date(a.started).getTime()
+        );
+      }
+
+      return matches[0].id;
+    } catch (err) {
+      console.warn(`[TaskBridge] Failed to resolve loop ID: ${err}`);
+      return null;
+    }
+  }
+
+  /**
+   * Poll for loop ID resolution after a task starts.
+   * The loop entry in `.ralph/loops.json` may appear with a slight delay
+   * after the CLI process spawns. Polls up to 5 times at 2-second intervals.
+   *
+   * @param dbTaskId - The database task ID to update once the loop ID is found
+   */
+  private scheduleLoopIdResolution(dbTaskId: string): void {
+    const dbTask = this.taskRepository.findById(dbTaskId);
+    if (!dbTask) return;
+
+    const taskTitle = dbTask.title;
+    let attempts = 0;
+    const maxAttempts = 5;
+    const intervalMs = 2000;
+
+    const poll = () => {
+      attempts++;
+      const loopId = this.resolveLoopId(taskTitle);
+
+      if (loopId) {
+        // Verify the task still exists and doesn't already have a loopId
+        const current = this.taskRepository.findById(dbTaskId);
+        if (current && !current.loopId) {
+          this.taskRepository.update(dbTaskId, { loopId });
+        }
+        return; // Done
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(poll, intervalMs);
+      }
+    };
+
+    // Start polling after an initial delay to give the CLI time to register the loop
+    setTimeout(poll, intervalMs);
   }
 
   /**

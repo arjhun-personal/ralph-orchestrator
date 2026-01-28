@@ -18,6 +18,9 @@ pub struct HatlessRalph {
     /// Whether memories mode is enabled.
     /// When enabled, adds tasks CLI instructions alongside scratchpad.
     memories_enabled: bool,
+    /// The user's original objective, stored at initialization.
+    /// Injected into every prompt so hats always see the goal.
+    objective: Option<String>,
 }
 
 /// Hat topology for multi-hat mode prompt generation.
@@ -158,6 +161,7 @@ impl HatlessRalph {
             hat_topology,
             starting_event,
             memories_enabled: false, // Default: scratchpad-only mode
+            objective: None,
         }
     }
 
@@ -170,6 +174,15 @@ impl HatlessRalph {
         self
     }
 
+    /// Stores the user's original objective so it persists across all iterations.
+    ///
+    /// Called once during initialization. The objective is injected into every
+    /// prompt regardless of which hat is active, ensuring intermediate hats
+    /// (test_writer, implementer, refactorer) always see the goal.
+    pub fn set_objective(&mut self, objective: String) {
+        self.objective = Some(objective);
+    }
+
     /// Builds Ralph's prompt with filtered instructions for only active hats.
     ///
     /// This method reduces token usage by including instructions only for hats
@@ -180,11 +193,8 @@ impl HatlessRalph {
     pub fn build_prompt(&self, context: &str, active_hats: &[&ralph_proto::Hat]) -> String {
         let mut prompt = self.core_prompt();
 
-        // Extract the original objective from task.start event
-        let objective = self.extract_objective(context);
-
-        // Add prominent OBJECTIVE section first
-        if let Some(ref obj) = objective {
+        // Add prominent OBJECTIVE section first (stored at initialization, persists across all iterations)
+        if let Some(ref obj) = self.objective {
             prompt.push_str(&self.objective_section(obj));
         }
 
@@ -211,25 +221,14 @@ impl HatlessRalph {
         }
 
         prompt.push_str(&self.event_writing_section());
-        prompt.push_str(&self.done_section(objective.as_deref()));
+
+        // Only show completion instructions when Ralph is coordinating (no active hat).
+        // Hats should publish events and stop — only Ralph decides when the loop is done.
+        if active_hats.is_empty() {
+            prompt.push_str(&self.done_section(self.objective.as_deref()));
+        }
 
         prompt
-    }
-
-    /// Extracts the original user objective from the task.start event in context.
-    fn extract_objective(&self, context: &str) -> Option<String> {
-        // Look for [task.start] event which contains the original user prompt
-        for line in context.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("[task.start]") {
-                // Extract everything after [task.start]
-                let payload = trimmed.strip_prefix("[task.start]")?.trim();
-                if !payload.is_empty() {
-                    return Some(payload.to_string());
-                }
-            }
-        }
-        None
     }
 
     /// Generates the OBJECTIVE section - the primary goal Ralph must achieve.

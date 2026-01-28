@@ -425,9 +425,11 @@ impl EventLoop {
 
     /// Common initialization logic with configurable topic.
     fn initialize_with_topic(&mut self, topic: &str, prompt_content: &str) {
-        // Per spec: Log hat list, not "mode" terminology
-        // ✅ "Ralph ready with hats: planner, builder"
-        // ❌ "Starting in multi-hat mode"
+        // Store the objective so it persists across all iterations.
+        // After iteration 1, bus.take_pending() consumes the start event,
+        // so without this the objective would be invisible to later hats.
+        self.ralph.set_objective(prompt_content.to_string());
+
         let start_event = Event::new(topic, prompt_content);
         self.bus.publish(start_event);
         debug!(topic = topic, "Published {} event", topic);
