@@ -177,10 +177,11 @@ export function TaskDetailPage() {
   // Handle retry merge with user steering input
   const handleRetryMerge = useCallback(() => {
     if (!associatedLoop) return;
-    // TODO: Backend needs endpoint to pass steering input
-    // For now, just retry the merge
-    retryMergeMutation.mutate({ id: associatedLoop.id });
-  }, [associatedLoop, retryMergeMutation]);
+    retryMergeMutation.mutate({
+      id: associatedLoop.id,
+      steeringInput: steeringInput.trim() || undefined,
+    });
+  }, [associatedLoop, retryMergeMutation, steeringInput]);
 
   // Keyboard navigation - Escape to go back
   useEffect(() => {

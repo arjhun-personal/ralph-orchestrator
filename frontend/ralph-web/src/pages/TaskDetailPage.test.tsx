@@ -665,6 +665,52 @@ describe("TaskDetailPage", () => {
       // The LoopBadge component renders with "Loop:" prefix
       expect(screen.getByText("Loop:")).toBeInTheDocument();
     });
+
+    it("passes steering input when retrying merge", async () => {
+      // Given: A task with a loop in needs-review status
+      const user = userEvent.setup();
+      const mockMutate = vi.fn();
+      const { trpc } = await import("@/trpc");
+
+      vi.mocked(trpc.task.get.useQuery).mockReturnValue({
+        data: mockTask,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof trpc.task.get.useQuery>);
+      vi.mocked(trpc.loops.list.useQuery).mockReturnValue({
+        data: [
+          {
+            id: "loop-001",
+            status: "needs-review",
+            pid: 12345,
+            location: "/some/worktree",
+            prompt: "Test prompt",
+            failureReason: "Merge conflict in file.ts",
+          },
+        ],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof trpc.loops.list.useQuery>);
+      vi.mocked(trpc.loops.retry.useMutation).mockReturnValue({
+        mutate: mockMutate,
+        isPending: false,
+      } as unknown as ReturnType<typeof trpc.loops.retry.useMutation>);
+
+      // When: The page is rendered and user enters steering input
+      renderWithRouter("task-001");
+      const textarea = screen.getByPlaceholderText(/keep my changes/i);
+      await user.type(textarea, "Keep the worktree changes");
+
+      // And clicks retry merge
+      const retryButton = screen.getByRole("button", { name: /retry merge/i });
+      await user.click(retryButton);
+
+      // Then: The mutation should be called with steering input
+      expect(mockMutate).toHaveBeenCalledWith({
+        id: "loop-001",
+        steeringInput: "Keep the worktree changes",
+      });
+    });
   });
 
   describe("execution summary component", () => {

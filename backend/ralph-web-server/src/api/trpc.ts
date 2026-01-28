@@ -15,6 +15,9 @@ import { PlanningService } from "../services/PlanningService";
 import { CollectionService } from "../services/CollectionService";
 import { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "../db/schema";
+import * as fs from "fs";
+import * as path from "path";
+import YAML from "yaml";
 
 /**
  * Context passed to all TRPC procedures
@@ -113,15 +116,16 @@ export const taskRouter = router({
         priority: z.number().int().min(1).max(5).default(2),
         blockedBy: z.string().nullable().optional(),
         autoExecute: z.boolean().default(true),
+        preset: z.string().optional(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const { autoExecute, ...taskData } = input;
+      const { autoExecute, preset, ...taskData } = input;
       const task = ctx.taskRepository.create(taskData);
 
       // Auto-execute the task if requested and bridge is available
       if (autoExecute && ctx.taskBridge && !task.blockedBy) {
-        ctx.taskBridge.enqueueTask(task);
+        ctx.taskBridge.enqueueTask(task, preset);
         // Return the updated task with pending status
         return ctx.taskRepository.findById(task.id) ?? task;
       }
@@ -461,13 +465,23 @@ export const loopsRouter = router({
       const loops = await ctx.loopsManager.listLoops();
 
       // Filter out terminal states unless requested
-      if (!input?.includeTerminal) {
-        return loops.filter(
-          (loop) => !["merged", "discarded"].includes(loop.status)
-        );
-      }
+      const filteredLoops = !input?.includeTerminal
+        ? loops.filter((loop) => !["merged", "discarded"].includes(loop.status))
+        : loops;
 
-      return loops;
+      // Enrich worktree loops with merge button state
+      const enrichedLoops = await Promise.all(
+        filteredLoops.map(async (loop) => {
+          // Only worktree loops (not in-place) need merge button state
+          if (loop.location === "(in-place)") {
+            return loop;
+          }
+          const mergeButtonState = await ctx.loopsManager!.getMergeButtonState(loop.id);
+          return { ...loop, mergeButtonState };
+        })
+      );
+
+      return enrichedLoops;
     }),
 
   /**
@@ -511,10 +525,12 @@ export const loopsRouter = router({
   }),
 
   /**
-   * Retry a failed merge
+   * Retry a failed merge with optional user steering input.
+   * Steering input provides guidance to the merge-ralph process
+   * for resolving conflicts or making merge decisions.
    */
   retry: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), steeringInput: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.loopsManager) {
         throw new TRPCError({
@@ -523,7 +539,7 @@ export const loopsRouter = router({
         });
       }
 
-      await ctx.loopsManager.retryMerge(input.id);
+      await ctx.loopsManager.retryMerge(input.id, input.steeringInput);
       return { success: true };
     }),
 
@@ -576,6 +592,22 @@ export const loopsRouter = router({
 
       await ctx.loopsManager.mergeLoop(input.id, input.force);
       return { success: true };
+    }),
+
+  /**
+   * Get merge button state for a loop
+   */
+  mergeButtonState: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.loopsManager) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "LoopsManager is not configured",
+        });
+      }
+
+      return ctx.loopsManager.getMergeButtonState(input.id);
     }),
 });
 
@@ -755,6 +787,97 @@ export const collectionRouter = router({
 });
 
 /**
+ * Preset type for the presets.list endpoint
+ */
+interface Preset {
+  id: string;
+  name: string;
+  source: "builtin" | "directory" | "collection";
+  description?: string;
+  path?: string;
+}
+
+/**
+ * Read YAML presets from a directory
+ * @param dir - Directory to scan for .yml files
+ * @param source - Source type for the presets
+ * @param includePath - Whether to include the file path in the preset
+ */
+function readPresetsFromDir(
+  dir: string,
+  source: "builtin" | "directory",
+  includePath: boolean
+): Preset[] {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".yml"))
+    .map((file) => {
+      const name = path.basename(file, ".yml");
+      const filePath = path.join(dir, file);
+      let description = "";
+
+      try {
+        const content = fs.readFileSync(filePath, "utf-8");
+        const parsed = YAML.parse(content) as Record<string, unknown>;
+        if (parsed && typeof parsed.description === "string") {
+          description = parsed.description;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+
+      return {
+        id: `${source}:${name}`,
+        name,
+        source,
+        description,
+        ...(includePath && { path: filePath }),
+      };
+    });
+}
+
+// Path to builtin presets relative to this file
+const BUILTIN_PRESETS_DIR = path.resolve(__dirname, "../../../../crates/ralph-cli/presets");
+
+function getBuiltinPresets(): Preset[] {
+  return readPresetsFromDir(BUILTIN_PRESETS_DIR, "builtin", false);
+}
+
+function getDirectoryPresets(): Preset[] {
+  const hatsDir = path.resolve(process.cwd(), ".ralph/hats");
+  return readPresetsFromDir(hatsDir, "directory", true);
+}
+
+/**
+ * Presets router - operations for listing available presets
+ */
+export const presetsRouter = router({
+  /**
+   * List all presets from all sources: builtin, directory, and collections
+   */
+  list: publicProcedure.query(({ ctx }) => {
+    const builtinPresets = getBuiltinPresets();
+    const directoryPresets = getDirectoryPresets();
+
+    // Get collections from database and convert to presets
+    const collections = ctx.collectionService.listCollections();
+    const collectionPresets: Preset[] = collections.map((c) => ({
+      id: c.id,
+      name: c.name,
+      source: "collection" as const,
+      description: c.description ?? undefined,
+    }));
+
+    // Return in order: builtin, directory, collection
+    return [...builtinPresets, ...directoryPresets, ...collectionPresets];
+  }),
+});
+
+/**
  * Main app router combining all sub-routers
  */
 export const appRouter = router({
@@ -762,6 +885,7 @@ export const appRouter = router({
   hat: hatRouter,
   loops: loopsRouter,
   collection: collectionRouter,
+  presets: presetsRouter,
   planning: router({
     /**
      * List all planning sessions.

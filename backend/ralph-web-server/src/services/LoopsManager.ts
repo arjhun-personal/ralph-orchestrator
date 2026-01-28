@@ -17,8 +17,19 @@ import { EventEmitter } from "events";
 
 export interface LoopStatus {
   id: string;
-  status: "running" | "completed" | "failed" | "merging" | "stuck";
+  status: "running" | "completed" | "failed" | "merging" | "stuck" | "queued";
   location: string;
+  pid?: number;
+  prompt?: string;
+}
+
+/**
+ * State of the merge button for a loop.
+ * Active means merge can proceed, blocked means it cannot.
+ */
+export interface MergeButtonState {
+  state: "active" | "blocked";
+  reason?: string;
 }
 
 export interface LoopsManagerOptions {
@@ -133,9 +144,18 @@ export class LoopsManager extends EventEmitter {
   }
 
   /**
-   * Retry a failed merge
+   * Retry a failed merge with optional user steering input.
+   * If steeringInput is provided, it's written to .ralph/merge-steering.txt
+   * for the merge-ralph process to read and incorporate into its strategy.
    */
-  async retryMerge(loopId: string): Promise<void> {
+  async retryMerge(loopId: string, steeringInput?: string): Promise<void> {
+    // Write steering input to file for merge-ralph to read
+    if (steeringInput?.trim()) {
+      const steeringPath = `${process.cwd()}/.ralph/merge-steering.txt`;
+      const fs = await import("fs/promises");
+      await fs.writeFile(steeringPath, steeringInput.trim(), "utf-8");
+    }
+
     await this.runRalphCommand(["loops", "retry", loopId]);
   }
 
@@ -167,6 +187,16 @@ export class LoopsManager extends EventEmitter {
       args.push("--force");
     }
     await this.runRalphCommand(args);
+  }
+
+  /**
+   * Get merge button state for a loop.
+   * Returns whether merge is active (can proceed) or blocked (with reason).
+   */
+  async getMergeButtonState(loopId: string): Promise<MergeButtonState> {
+    const output = await this.runRalphCommand(["loops", "merge-button-state", loopId]);
+    const result = JSON.parse(output);
+    return result as MergeButtonState;
   }
 
   /**
