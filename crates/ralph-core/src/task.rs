@@ -51,6 +51,11 @@ pub struct Task {
     #[serde(default)]
     pub blocked_by: Vec<String>,
 
+    /// Loop ID that created this task (from RALPH_LOOP_ID env var).
+    /// Used to filter tasks by ownership when multiple loops share a task list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loop_id: Option<String>,
+
     /// Creation timestamp (ISO 8601)
     pub created: String,
 
@@ -69,9 +74,16 @@ impl Task {
             status: TaskStatus::Open,
             priority: priority.clamp(1, 5),
             blocked_by: Vec::new(),
+            loop_id: None,
             created: chrono::Utc::now().to_rfc3339(),
             closed: None,
         }
+    }
+
+    /// Sets the loop ID for this task.
+    pub fn with_loop_id(mut self, loop_id: Option<String>) -> Self {
+        self.loop_id = loop_id;
+        self
     }
 
     /// Generates a unique task ID: task-{timestamp}-{hex_suffix}

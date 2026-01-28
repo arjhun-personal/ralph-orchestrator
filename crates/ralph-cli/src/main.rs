@@ -495,6 +495,19 @@ struct RunArgs {
     no_auto_merge: bool,
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Chaos Mode Options
+    // ─────────────────────────────────────────────────────────────────────────
+    /// Enable chaos mode: after LOOP_COMPLETE, explore related improvements.
+    /// Activates ONLY after successful completion, not on other termination.
+    #[arg(long)]
+    chaos: bool,
+
+    /// Maximum chaos mode iterations (default: 5).
+    /// Only relevant when --chaos is enabled.
+    #[arg(long, requires = "chaos")]
+    chaos_max_iterations: Option<u32>,
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Verbosity Options
     // ─────────────────────────────────────────────────────────────────────────
     /// Enable verbose output (show tool results and session summary)
@@ -793,6 +806,8 @@ async fn main() -> Result<()> {
                 idle_timeout: None,
                 exclusive: false,
                 no_auto_merge: false,
+                chaos: false,
+                chaos_max_iterations: None,
                 verbose: false,
                 quiet: false,
                 record_session: None,

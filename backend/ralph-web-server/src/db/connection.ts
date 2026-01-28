@@ -117,6 +117,11 @@ export function initializeDatabase(database?: BetterSQLite3Database<typeof schem
   addColumnIfNotExists("tasks", "archived_at", "INTEGER");
   // Merge loop tracking - stores the prompt used when this task triggered a merge loop
   addColumnIfNotExists("tasks", "merge_loop_prompt", "TEXT");
+  // UX improvement fields (Step 9) - for rich task detail display
+  addColumnIfNotExists("tasks", "preset", "TEXT");
+  addColumnIfNotExists("tasks", "current_iteration", "INTEGER");
+  addColumnIfNotExists("tasks", "max_iterations", "INTEGER");
+  addColumnIfNotExists("tasks", "loop_id", "TEXT");
 
   // Create queued_tasks table for task queue persistence
   sqlite.exec(`

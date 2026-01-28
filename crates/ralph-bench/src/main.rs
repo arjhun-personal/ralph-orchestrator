@@ -529,6 +529,8 @@ fn format_termination_reason(reason: &TerminationReason) -> String {
         TerminationReason::ValidationFailure => "ValidationFailure".to_string(),
         TerminationReason::Stopped => "Stopped".to_string(),
         TerminationReason::Interrupted => "Interrupted".to_string(),
+        TerminationReason::ChaosModeComplete => "ChaosModeComplete".to_string(),
+        TerminationReason::ChaosModeMaxIterations => "ChaosModeMaxIterations".to_string(),
     }
 }
 

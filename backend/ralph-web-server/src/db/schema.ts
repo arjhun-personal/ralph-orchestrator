@@ -36,6 +36,11 @@ export const tasks = sqliteTable("tasks", {
   archivedAt: integer("archived_at", { mode: "timestamp" }), // When the task was archived
   // Merge loop tracking - stores the prompt used when this task triggered a merge loop
   mergeLoopPrompt: text("merge_loop_prompt"),
+  // UX improvement fields (Step 9) - for rich task detail display
+  preset: text("preset"), // Hat collection/preset used
+  currentIteration: integer("current_iteration"), // Current iteration count
+  maxIterations: integer("max_iterations"), // Max iterations configured
+  loopId: text("loop_id"), // Associated loop ID
 });
 
 /**

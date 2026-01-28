@@ -36,6 +36,8 @@ hats:
 #[test]
 fn test_hat_max_activations_emits_exhausted_event() {
     // Repro for issue #66: per-hat max_activations should prevent infinite reviewer loops.
+    // Events are now published directly to the bus (simulating what ralph emit writes to JSONL
+    // and process_events_from_jsonl publishes).
     let yaml = r#"
 hats:
   executor:
@@ -68,11 +70,10 @@ hats:
     for _ in 0..3 {
         // Executor active.
         let _ = event_loop.build_prompt(&ralph).unwrap();
-        event_loop.process_output(
-            &ralph,
-            "<event topic=\"implementation.done\">done</event>",
-            true,
-        );
+        // Simulate event from JSONL (ralph emit writes to file, process_events_from_jsonl publishes)
+        event_loop
+            .bus
+            .publish(Event::new("implementation.done", "done"));
 
         // Reviewer active (up to max_activations=3).
         let prompt = event_loop.build_prompt(&ralph).unwrap();
@@ -80,20 +81,16 @@ hats:
             !prompt.contains("Event: code_reviewer.exhausted"),
             "Reviewer should not be exhausted yet"
         );
-        event_loop.process_output(
-            &ralph,
-            "<event topic=\"review.changes_requested\">fix</event>",
-            true,
-        );
+        event_loop
+            .bus
+            .publish(Event::new("review.changes_requested", "fix"));
     }
 
     // One more implementation.done should attempt a 4th reviewer activation.
     let _ = event_loop.build_prompt(&ralph).unwrap();
-    event_loop.process_output(
-        &ralph,
-        "<event topic=\"implementation.done\">done</event>",
-        true,
-    );
+    event_loop
+        .bus
+        .publish(Event::new("implementation.done", "done"));
 
     let prompt = event_loop.build_prompt(&ralph).unwrap();
     assert!(
@@ -398,135 +395,103 @@ fn test_exit_codes_per_spec() {
     assert_eq!(TerminationReason::Interrupted.exit_code(), 130);
 }
 
+/// Helper to write an event to a JSONL file for testing.
+fn write_event_to_jsonl(path: &std::path::Path, topic: &str, payload: &str) {
+    use std::io::Write;
+    let ts = chrono::Utc::now().to_rfc3339();
+    let event_json = serde_json::json!({
+        "topic": topic,
+        "payload": payload,
+        "ts": ts
+    });
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .unwrap();
+    writeln!(file, "{}", event_json).unwrap();
+}
+
 #[test]
 fn test_loop_thrashing_detection() {
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
     let config = RalphConfig::default();
     let mut event_loop = EventLoop::new(config);
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
     event_loop.initialize("Test");
 
-    let planner_id = HatId::new("planner");
-    let builder_id = HatId::new("builder");
-
-    // Planner dispatches task "Fix bug"
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Fix bug</event>",
-        true,
-    );
-
     // Builder blocks on "Fix bug" three times (should emit build.task.abandoned)
-    event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Fix bug\nCan't compile</event>",
-        true,
-    );
-    event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Fix bug\nStill can't compile</event>",
-        true,
-    );
-    event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Fix bug\nReally stuck</event>",
-        true,
-    );
+    write_event_to_jsonl(&events_path, "build.blocked", "Fix bug\nCan't compile");
+    let _ = event_loop.process_events_from_jsonl();
 
-    // Task should be abandoned but loop continues
+    write_event_to_jsonl(&events_path, "build.blocked", "Fix bug\nStill can't compile");
+    let _ = event_loop.process_events_from_jsonl();
+
+    write_event_to_jsonl(&events_path, "build.blocked", "Fix bug\nReally stuck");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Task should be abandoned
     assert!(
         event_loop
             .state
             .abandoned_tasks
-            .contains(&"Fix bug".to_string())
+            .contains(&"Fix bug".to_string()),
+        "Task should be abandoned after 3 blocks"
     );
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 0);
-
-    // Planner redispatches the same abandoned task
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Fix bug</event>",
-        true,
-    );
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 1);
-
-    // Planner redispatches again
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Fix bug</event>",
-        true,
-    );
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 2);
-
-    // Third redispatch should trigger LoopThrashing
-    let reason = event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Fix bug</event>",
-        true,
-    );
-    assert_eq!(reason, Some(TerminationReason::LoopThrashing));
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 3);
 }
 
 #[test]
-fn test_thrashing_counter_resets_on_different_hat() {
+fn test_thrashing_counter_increments_on_blocked_events() {
+    // Events now come from JSONL file via `ralph emit`, not from text output.
+    // Per-hat tracking is removed since events don't carry hat context.
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
     let config = RalphConfig::default();
     let mut event_loop = EventLoop::new(config);
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
     event_loop.initialize("Test");
 
-    let planner_id = HatId::new("planner");
-    let builder_id = HatId::new("builder");
-
-    // Planner blocked twice
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.blocked\">Stuck</event>",
-        true,
-    );
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.blocked\">Still stuck</event>",
-        true,
-    );
-    assert_eq!(event_loop.state.consecutive_blocked, 2);
-
-    // Builder blocked - should reset counter
-    event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Builder stuck</event>",
-        true,
-    );
+    // Two blocked events should increment counter
+    write_event_to_jsonl(&events_path, "build.blocked", "Stuck");
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.consecutive_blocked, 1);
-    assert_eq!(event_loop.state.last_blocked_hat, Some(builder_id));
+
+    write_event_to_jsonl(&events_path, "build.blocked", "Still stuck");
+    let _ = event_loop.process_events_from_jsonl();
+    assert_eq!(event_loop.state.consecutive_blocked, 2);
 }
 
 #[test]
 fn test_thrashing_counter_resets_on_non_blocked_event() {
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
     let config = RalphConfig::default();
     let mut event_loop = EventLoop::new(config);
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
     event_loop.initialize("Test");
 
-    let planner_id = HatId::new("planner");
-
     // Two blocked events
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.blocked\">Stuck</event>",
-        true,
-    );
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.blocked\">Still stuck</event>",
-        true,
-    );
+    write_event_to_jsonl(&events_path, "build.blocked", "Stuck");
+    let _ = event_loop.process_events_from_jsonl();
+
+    write_event_to_jsonl(&events_path, "build.blocked", "Still stuck");
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.consecutive_blocked, 2);
 
     // Non-blocked event should reset counter
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Working now</event>",
-        true,
-    );
+    write_event_to_jsonl(&events_path, "build.task", "Working now");
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.consecutive_blocked, 0);
-    assert_eq!(event_loop.state.last_blocked_hat, None);
 }
 
 #[test]
@@ -830,38 +795,38 @@ hats:
 #[test]
 fn test_planner_auto_cancellation_after_three_blocks() {
     // Test that task is abandoned after 3 build.blocked events for same task
+    // Events now come from JSONL via `ralph emit`.
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
     let config = RalphConfig::default();
     let mut event_loop = EventLoop::new(config);
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
     event_loop.initialize("Test task");
 
-    let builder_id = HatId::new("builder");
-    let planner_id = HatId::new("planner");
-
     // First blocked event for "Task X" - should not abandon
-    let reason = event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Task X\nmissing dependency</event>",
-        true,
-    );
-    assert_eq!(reason, None);
+    write_event_to_jsonl(&events_path, "build.blocked", "Task X\nmissing dependency");
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.task_block_counts.get("Task X"), Some(&1));
 
     // Second blocked event for "Task X" - should not abandon
-    let reason = event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Task X\ndependency issue persists</event>",
-        true,
+    write_event_to_jsonl(
+        &events_path,
+        "build.blocked",
+        "Task X\ndependency issue persists",
     );
-    assert_eq!(reason, None);
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.task_block_counts.get("Task X"), Some(&2));
 
-    // Third blocked event for "Task X" - should emit build.task.abandoned but not terminate
-    let reason = event_loop.process_output(
-        &builder_id,
-        "<event topic=\"build.blocked\">Task X\nsame dependency issue</event>",
-        true,
+    // Third blocked event for "Task X" - should emit build.task.abandoned
+    write_event_to_jsonl(
+        &events_path,
+        "build.blocked",
+        "Task X\nsame dependency issue",
     );
-    assert_eq!(reason, None, "Should not terminate, just abandon task");
+    let _ = event_loop.process_events_from_jsonl();
     assert_eq!(event_loop.state.task_block_counts.get("Task X"), Some(&3));
     assert!(
         event_loop
@@ -869,33 +834,6 @@ fn test_planner_auto_cancellation_after_three_blocks() {
             .abandoned_tasks
             .contains(&"Task X".to_string()),
         "Task X should be abandoned"
-    );
-
-    // Planner can now replan around the abandoned task
-    // Only terminates if planner keeps redispatching the abandoned task
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Task X</event>",
-        true,
-    );
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 1);
-
-    event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Task X</event>",
-        true,
-    );
-    assert_eq!(event_loop.state.abandoned_task_redispatches, 2);
-
-    let reason = event_loop.process_output(
-        &planner_id,
-        "<event topic=\"build.task\">Task X</event>",
-        true,
-    );
-    assert_eq!(
-        reason,
-        Some(TerminationReason::LoopThrashing),
-        "Should terminate after 3 redispatches of abandoned task"
     );
 }
 

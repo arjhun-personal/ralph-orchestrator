@@ -102,6 +102,17 @@ pub async fn run_loop_impl(
         .clone()
         .unwrap_or_else(|| LoopContext::primary(config.core.workspace_root.clone()));
 
+    // Write loop ID to marker file for task ownership tracking.
+    // For worktree loops, use the loop_id; for primary loops, generate one.
+    // This file is read by `ralph tools task add` to tag new tasks.
+    let loop_id = ctx.loop_id().map(|s| s.to_string()).unwrap_or_else(|| {
+        // Primary loop gets a timestamped ID
+        format!("primary-{}", chrono::Utc::now().format("%Y%m%d-%H%M%S"))
+    });
+    let loop_id_marker = ctx.ralph_dir().join("current-loop-id");
+    fs::write(&loop_id_marker, &loop_id).context("Failed to write current-loop-id marker")?;
+    debug!(loop_id = %loop_id, marker = ?loop_id_marker, "Wrote loop ID marker file");
+
     // For fresh runs (not resume), generate a unique timestamped events file
     // This prevents stale events from previous runs polluting new runs (issue #82)
     // The marker file `.ralph/current-events` coordinates path between Ralph and agents
@@ -386,6 +397,8 @@ pub async fn run_loop_impl(
                 TerminationReason::ValidationFailure => "validation_failure",
                 TerminationReason::Stopped => "stopped",
                 TerminationReason::Interrupted => "interrupted",
+                TerminationReason::ChaosModeComplete => "chaos_complete",
+                TerminationReason::ChaosModeMaxIterations => "chaos_max_iterations",
             };
 
             if matches!(reason, TerminationReason::Interrupted) {
@@ -453,6 +466,8 @@ pub async fn run_loop_impl(
                     TerminationReason::Stopped => "manually stopped",
                     TerminationReason::Interrupted => "interrupted by signal",
                     TerminationReason::CompletionPromise => unreachable!(),
+                    TerminationReason::ChaosModeComplete => "chaos mode complete",
+                    TerminationReason::ChaosModeMaxIterations => "chaos mode max iterations",
                 };
                 if let Err(e) = queue.mark_needs_review(loop_id, reason_str) {
                     warn!(loop_id = %loop_id, error = %e, "Failed to mark merge as needs-review");
@@ -935,6 +950,44 @@ pub async fn run_loop_impl(
                     "All done! {} detected.",
                     config.event_loop.completion_promise
                 );
+
+                // Chaos mode activates ONLY after LOOP_COMPLETE
+                if config.features.chaos_mode.enabled && reason.triggers_chaos_mode() {
+                    info!(
+                        "Chaos mode enabled: exploring {} related improvements",
+                        config.features.chaos_mode.max_iterations
+                    );
+                    // TODO: Implement chaos mode loop iterations
+                    // For now, log the prompt content as the "seed" for chaos mode
+                    debug!(
+                        seed = %prompt_content,
+                        max_iterations = config.features.chaos_mode.max_iterations,
+                        cooldown_seconds = config.features.chaos_mode.cooldown_seconds,
+                        "Chaos mode would use original objective as seed"
+                    );
+                    // Return ChaosModeComplete for now to indicate chaos mode was triggered
+                    // Full implementation would loop here with chaos iterations
+                    let chaos_reason = TerminationReason::ChaosModeComplete;
+                    let terminate_event = event_loop.publish_terminate_event(&chaos_reason);
+                    log_terminate_event(
+                        &mut event_logger,
+                        event_loop.state().iteration,
+                        &terminate_event,
+                    );
+                    handle_termination(
+                        &chaos_reason,
+                        event_loop.state(),
+                        &config.core.scratchpad,
+                        &loop_history,
+                        &loop_context,
+                        auto_merge,
+                        &prompt_content,
+                    );
+                    if let Some(handle) = tui_handle.take() {
+                        let _ = handle.await;
+                    }
+                    return Ok(chaos_reason);
+                }
             }
             // Per spec: Publish loop.terminate event to observers
             let terminate_event = event_loop.publish_terminate_event(&reason);

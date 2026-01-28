@@ -10,6 +10,7 @@
 //! - Terminal capture for session recording
 //! - Benchmark task definitions and workspace isolation
 
+pub mod chaos_mode;
 mod cli_capture;
 mod config;
 pub mod diagnostics;
@@ -47,10 +48,12 @@ pub mod utils;
 pub mod workspace;
 pub mod worktree;
 
+pub use chaos_mode::{ChaosModeState, CHAOS_COMPLETION_PROMISE};
 pub use cli_capture::{CliCapture, CliCapturePair};
 pub use config::{
-    CliConfig, CoreConfig, EventLoopConfig, EventMetadata, FeaturesConfig, HatBackend, HatConfig,
-    InjectMode, MemoriesConfig, MemoriesFilter, RalphConfig,
+    ChaosModeConfig, ChaosOutput, CliConfig, CoreConfig, EventLoopConfig, EventMetadata,
+    FeaturesConfig, HatBackend, HatConfig, InjectMode, MemoriesConfig, MemoriesFilter, RalphConfig,
+    ResearchFocus,
 };
 // Re-export loop_name types (also available via FeaturesConfig.loop_naming)
 pub use diagnostics::DiagnosticsCollector;

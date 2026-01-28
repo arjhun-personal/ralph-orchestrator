@@ -774,6 +774,22 @@ You MUST output {} when the objective is complete and all tasks are done.
             self.completion_promise
         );
 
+        // Add task verification when memories/tasks mode is enabled
+        if self.memories_enabled {
+            section.push_str(
+                r"
+**Before declaring completion:**
+1. Run `ralph tools task ready` to check for open tasks
+2. If any tasks are open, complete them first
+3. Only output LOOP_COMPLETE when YOUR tasks are all closed
+
+Tasks from other parallel loops are filtered out automatically. You only need to verify tasks YOU created for THIS objective are complete.
+
+You MUST NOT output LOOP_COMPLETE while tasks remain open.
+",
+            );
+        }
+
         // Reinforce the objective at the end to bookend the prompt
         if let Some(obj) = objective {
             section.push_str(&format!(

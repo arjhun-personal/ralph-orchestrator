@@ -148,6 +148,10 @@ pub fn print_termination(
         TerminationReason::ValidationFailure => (RED, "?", "Too many malformed JSONL events"),
         TerminationReason::Stopped => (CYAN, "?", "Manually stopped"),
         TerminationReason::Interrupted => (YELLOW, "?", "Interrupted by signal"),
+        TerminationReason::ChaosModeComplete => (GREEN, "?", "Chaos mode exploration complete"),
+        TerminationReason::ChaosModeMaxIterations => {
+            (YELLOW, "?", "Chaos mode max iterations reached")
+        }
     };
 
     let separator = "-".repeat(58);

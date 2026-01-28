@@ -108,6 +108,10 @@ pub struct ListArgs {
 /// Arguments for the `task ready` command.
 #[derive(Parser, Debug)]
 pub struct ReadyArgs {
+    /// Show tasks from all loops, not just the current one
+    #[arg(long, short = 'a')]
+    pub all: bool,
+
     /// Output format
     #[arg(long, value_enum, default_value_t = OutputFormat::Table)]
     pub format: OutputFormat,
@@ -163,6 +167,20 @@ fn execute_add(args: AddArgs, root: Option<&PathBuf>, use_colors: bool) -> Resul
     let mut store = TaskStore::load(&path).context("Failed to load tasks")?;
 
     let mut task = Task::new(args.title, args.priority);
+
+    // Auto-tag with loop ID from marker file if available
+    let loop_id_marker = get_tasks_path(root)
+        .parent()
+        .and_then(|p| p.parent()) // .ralph/agent -> .ralph
+        .map(|p| p.join("current-loop-id"));
+    if let Some(marker_path) = loop_id_marker
+        && let Ok(loop_id) = std::fs::read_to_string(&marker_path)
+    {
+        let loop_id = loop_id.trim().to_string();
+        if !loop_id.is_empty() {
+            task = task.with_loop_id(Some(loop_id));
+        }
+    }
 
     if let Some(desc) = args.description {
         task = task.with_description(Some(desc));
@@ -366,7 +384,25 @@ fn execute_ready(args: ReadyArgs, root: Option<&PathBuf>, use_colors: bool) -> R
     let path = get_tasks_path(root);
     let store = TaskStore::load(&path).context("Failed to load tasks")?;
 
-    let ready = store.ready();
+    let mut ready = store.ready();
+
+    // Filter by current loop ID unless --all is specified
+    if !args.all {
+        // Read loop ID from marker file
+        let loop_id_marker = get_tasks_path(root)
+            .parent()
+            .and_then(|p| p.parent()) // .ralph/agent -> .ralph
+            .map(|p| p.join("current-loop-id"));
+        if let Some(marker_path) = loop_id_marker
+            && let Ok(current_loop_id) = std::fs::read_to_string(&marker_path)
+        {
+            let current_loop_id = current_loop_id.trim().to_string();
+            if !current_loop_id.is_empty() {
+                ready.retain(|t| t.loop_id.as_ref() == Some(&current_loop_id));
+            }
+        }
+        // If marker file doesn't exist, show all tasks (backward compatibility)
+    }
 
     match args.format {
         OutputFormat::Table => {

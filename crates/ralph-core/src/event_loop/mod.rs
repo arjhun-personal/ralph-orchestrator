@@ -49,6 +49,10 @@ pub enum TerminationReason {
     Stopped,
     /// Interrupted by signal (SIGINT/SIGTERM).
     Interrupted,
+    /// Chaos mode completion promise detected.
+    ChaosModeComplete,
+    /// Chaos mode max iterations reached.
+    ChaosModeMaxIterations,
 }
 
 impl TerminationReason {
@@ -61,14 +65,15 @@ impl TerminationReason {
     /// - 130: User interrupt (SIGINT = 128 + 2)
     pub fn exit_code(&self) -> i32 {
         match self {
-            TerminationReason::CompletionPromise => 0,
+            TerminationReason::CompletionPromise | TerminationReason::ChaosModeComplete => 0,
             TerminationReason::ConsecutiveFailures
             | TerminationReason::LoopThrashing
             | TerminationReason::ValidationFailure
             | TerminationReason::Stopped => 1,
             TerminationReason::MaxIterations
             | TerminationReason::MaxRuntime
-            | TerminationReason::MaxCost => 2,
+            | TerminationReason::MaxCost
+            | TerminationReason::ChaosModeMaxIterations => 2,
             TerminationReason::Interrupted => 130,
         }
     }
@@ -88,7 +93,24 @@ impl TerminationReason {
             TerminationReason::ValidationFailure => "validation_failure",
             TerminationReason::Stopped => "stopped",
             TerminationReason::Interrupted => "interrupted",
+            TerminationReason::ChaosModeComplete => "chaos_complete",
+            TerminationReason::ChaosModeMaxIterations => "chaos_max_iterations",
         }
+    }
+
+    /// Returns true if this is a successful completion (not an error or limit).
+    pub fn is_success(&self) -> bool {
+        matches!(
+            self,
+            TerminationReason::CompletionPromise | TerminationReason::ChaosModeComplete
+        )
+    }
+
+    /// Returns true if this termination triggers chaos mode.
+    ///
+    /// Chaos mode ONLY activates after LOOP_COMPLETE - not on other termination reasons.
+    pub fn triggers_chaos_mode(&self) -> bool {
+        matches!(self, TerminationReason::CompletionPromise)
     }
 }
 
@@ -100,7 +122,9 @@ pub struct EventLoop {
     state: LoopState,
     instruction_builder: InstructionBuilder,
     ralph: HatlessRalph,
-    event_reader: EventReader,
+    /// Event reader for consuming events from JSONL file.
+    /// Made pub(crate) to allow tests to override the path.
+    pub(crate) event_reader: EventReader,
     diagnostics: crate::diagnostics::DiagnosticsCollector,
     /// Loop context for path resolution (None for legacy single-loop mode).
     loop_context: Option<LoopContext>,
@@ -937,194 +961,9 @@ impl EventLoop {
             return Some(TerminationReason::CompletionPromise);
         }
 
-        // Parse and publish events from output
-        let parser = EventParser::new().with_source(hat_id.clone());
-        let events = parser.parse(output);
-
-        // Validate build.done events have backpressure evidence
-        let mut validated_events = Vec::new();
-        for event in events {
-            if event.topic.as_str() == "build.done" {
-                if let Some(evidence) = EventParser::parse_backpressure_evidence(&event.payload) {
-                    if evidence.all_passed() {
-                        validated_events.push(event);
-                    } else {
-                        // Evidence present but checks failed - synthesize build.blocked
-                        warn!(
-                            hat = %hat_id.as_str(),
-                            tests = evidence.tests_passed,
-                            lint = evidence.lint_passed,
-                            typecheck = evidence.typecheck_passed,
-                            "build.done rejected: backpressure checks failed"
-                        );
-
-                        // Log backpressure triggered
-                        self.diagnostics.log_orchestration(
-                            self.state.iteration,
-                            hat_id.as_str(),
-                            crate::diagnostics::OrchestrationEvent::BackpressureTriggered {
-                                reason: format!(
-                                    "backpressure checks failed: tests={}, lint={}, typecheck={}",
-                                    evidence.tests_passed,
-                                    evidence.lint_passed,
-                                    evidence.typecheck_passed
-                                ),
-                            },
-                        );
-
-                        let blocked = Event::new(
-                            "build.blocked",
-                            "Backpressure checks failed. Fix tests/lint/typecheck before emitting build.done."
-                        ).with_source(hat_id.clone());
-                        validated_events.push(blocked);
-                    }
-                } else {
-                    // No evidence found - synthesize build.blocked
-                    warn!(
-                        hat = %hat_id.as_str(),
-                        "build.done rejected: missing backpressure evidence"
-                    );
-
-                    // Log backpressure triggered
-                    self.diagnostics.log_orchestration(
-                        self.state.iteration,
-                        hat_id.as_str(),
-                        crate::diagnostics::OrchestrationEvent::BackpressureTriggered {
-                            reason: "missing backpressure evidence".to_string(),
-                        },
-                    );
-
-                    let blocked = Event::new(
-                        "build.blocked",
-                        "Missing backpressure evidence. Include 'tests: pass', 'lint: pass', 'typecheck: pass' in build.done payload."
-                    ).with_source(hat_id.clone());
-                    validated_events.push(blocked);
-                }
-            } else {
-                validated_events.push(event);
-            }
-        }
-
-        // Track build.blocked events for task-level thrashing detection
-        let blocked_events: Vec<_> = validated_events
-            .iter()
-            .filter(|e| e.topic == "build.blocked".into())
-            .collect();
-
-        for blocked_event in &blocked_events {
-            // Extract task ID from first line of payload
-            let task_id = Self::extract_task_id(&blocked_event.payload);
-
-            // Increment block count for this task
-            let count = self
-                .state
-                .task_block_counts
-                .entry(task_id.clone())
-                .or_insert(0);
-            *count += 1;
-
-            debug!(
-                task_id = %task_id,
-                block_count = *count,
-                "Task blocked"
-            );
-
-            // After 3 blocks on same task, emit build.task.abandoned
-            if *count >= 3 && !self.state.abandoned_tasks.contains(&task_id) {
-                warn!(
-                    task_id = %task_id,
-                    "Task abandoned after 3 consecutive blocks"
-                );
-
-                self.state.abandoned_tasks.push(task_id.clone());
-
-                // Log task abandoned
-                self.diagnostics.log_orchestration(
-                    self.state.iteration,
-                    hat_id.as_str(),
-                    crate::diagnostics::OrchestrationEvent::TaskAbandoned {
-                        reason: format!(
-                            "3 consecutive build.blocked events for task '{}'",
-                            task_id
-                        ),
-                    },
-                );
-
-                let abandoned_event = Event::new(
-                    "build.task.abandoned",
-                    format!(
-                        "Task '{}' abandoned after 3 consecutive build.blocked events",
-                        task_id
-                    ),
-                )
-                .with_source(hat_id.clone());
-
-                self.bus.publish(abandoned_event);
-            }
-        }
-
-        // Track build.task events to detect redispatch of abandoned tasks
-        let task_events: Vec<_> = validated_events
-            .iter()
-            .filter(|e| e.topic == "build.task".into())
-            .collect();
-
-        for task_event in task_events {
-            let task_id = Self::extract_task_id(&task_event.payload);
-
-            // Check if this task was already abandoned
-            if self.state.abandoned_tasks.contains(&task_id) {
-                self.state.abandoned_task_redispatches += 1;
-                warn!(
-                    task_id = %task_id,
-                    redispatch_count = self.state.abandoned_task_redispatches,
-                    "Planner redispatched abandoned task"
-                );
-            } else {
-                // Reset redispatch counter on non-abandoned task
-                self.state.abandoned_task_redispatches = 0;
-            }
-        }
-
-        // Track hat-level blocking for legacy thrashing detection
-        let has_blocked_event = !blocked_events.is_empty();
-
-        if has_blocked_event {
-            // Check if same hat as last blocked event
-            if self.state.last_blocked_hat.as_ref() == Some(hat_id) {
-                self.state.consecutive_blocked += 1;
-            } else {
-                self.state.consecutive_blocked = 1;
-                self.state.last_blocked_hat = Some(hat_id.clone());
-            }
-        } else {
-            // Reset counter on any non-blocked event
-            self.state.consecutive_blocked = 0;
-            self.state.last_blocked_hat = None;
-        }
-
-        for event in validated_events {
-            debug!(
-                topic = %event.topic,
-                source = ?event.source,
-                target = ?event.target,
-                "Publishing event from output"
-            );
-            let topic = event.topic.clone();
-
-            // Log event published
-            self.diagnostics.log_orchestration(
-                self.state.iteration,
-                hat_id.as_str(),
-                crate::diagnostics::OrchestrationEvent::EventPublished {
-                    topic: topic.to_string(),
-                },
-            );
-
-            self.bus.publish(event);
-            // Note: Orphan event detection happens in loop_runner.rs::log_events_from_output()
-            // which logs to events.jsonl and emits event.orphaned for events with no subscriber
-        }
+        // Events are ONLY read from the JSONL file written by `ralph emit`.
+        // This enforces tool use and prevents confabulation (agent claiming to emit without actually doing so).
+        // See process_events_from_jsonl() for event processing.
 
         // Check termination conditions
         self.check_termination()
@@ -1238,16 +1077,148 @@ impl EventLoop {
 
         let mut has_orphans = false;
 
+        // Validate and transform events (apply backpressure for build.done)
+        let mut validated_events = Vec::new();
         for event in result.events {
-            // Check if any hat subscribes to this event
-            if self.registry.has_subscriber(&event.topic) {
-                // Route to subscriber via EventBus
-                let proto_event = if let Some(payload) = event.payload {
-                    Event::new(event.topic.as_str(), &payload)
+            let payload = event.payload.clone().unwrap_or_default();
+
+            if event.topic == "build.done" {
+                // Validate build.done events have backpressure evidence
+                if let Some(evidence) = EventParser::parse_backpressure_evidence(&payload) {
+                    if evidence.all_passed() {
+                        validated_events.push(Event::new(event.topic.as_str(), &payload));
+                    } else {
+                        // Evidence present but checks failed - synthesize build.blocked
+                        warn!(
+                            tests = evidence.tests_passed,
+                            lint = evidence.lint_passed,
+                            typecheck = evidence.typecheck_passed,
+                            "build.done rejected: backpressure checks failed"
+                        );
+
+                        self.diagnostics.log_orchestration(
+                            self.state.iteration,
+                            "jsonl",
+                            crate::diagnostics::OrchestrationEvent::BackpressureTriggered {
+                                reason: format!(
+                                    "backpressure checks failed: tests={}, lint={}, typecheck={}",
+                                    evidence.tests_passed,
+                                    evidence.lint_passed,
+                                    evidence.typecheck_passed
+                                ),
+                            },
+                        );
+
+                        validated_events.push(Event::new(
+                            "build.blocked",
+                            "Backpressure checks failed. Fix tests/lint/typecheck before emitting build.done.",
+                        ));
+                    }
                 } else {
-                    Event::new(event.topic.as_str(), "")
-                };
-                self.bus.publish(proto_event);
+                    // No evidence found - synthesize build.blocked
+                    warn!("build.done rejected: missing backpressure evidence");
+
+                    self.diagnostics.log_orchestration(
+                        self.state.iteration,
+                        "jsonl",
+                        crate::diagnostics::OrchestrationEvent::BackpressureTriggered {
+                            reason: "missing backpressure evidence".to_string(),
+                        },
+                    );
+
+                    validated_events.push(Event::new(
+                        "build.blocked",
+                        "Missing backpressure evidence. Include 'tests: pass', 'lint: pass', 'typecheck: pass' in build.done payload.",
+                    ));
+                }
+            } else {
+                // Non-build.done events pass through unchanged
+                validated_events.push(Event::new(event.topic.as_str(), &payload));
+            }
+        }
+
+        // Track build.blocked events for thrashing detection
+        let blocked_events: Vec<_> = validated_events
+            .iter()
+            .filter(|e| e.topic == "build.blocked".into())
+            .collect();
+
+        for blocked_event in &blocked_events {
+            let task_id = Self::extract_task_id(&blocked_event.payload);
+
+            let count = self
+                .state
+                .task_block_counts
+                .entry(task_id.clone())
+                .or_insert(0);
+            *count += 1;
+
+            debug!(
+                task_id = %task_id,
+                block_count = *count,
+                "Task blocked"
+            );
+
+            // After 3 blocks on same task, emit build.task.abandoned
+            if *count >= 3 && !self.state.abandoned_tasks.contains(&task_id) {
+                warn!(
+                    task_id = %task_id,
+                    "Task abandoned after 3 consecutive blocks"
+                );
+
+                self.state.abandoned_tasks.push(task_id.clone());
+
+                self.diagnostics.log_orchestration(
+                    self.state.iteration,
+                    "jsonl",
+                    crate::diagnostics::OrchestrationEvent::TaskAbandoned {
+                        reason: format!(
+                            "3 consecutive build.blocked events for task '{}'",
+                            task_id
+                        ),
+                    },
+                );
+
+                let abandoned_event = Event::new(
+                    "build.task.abandoned",
+                    format!(
+                        "Task '{}' abandoned after 3 consecutive build.blocked events",
+                        task_id
+                    ),
+                );
+
+                self.bus.publish(abandoned_event);
+            }
+        }
+
+        // Track hat-level blocking for legacy thrashing detection
+        let has_blocked_event = !blocked_events.is_empty();
+
+        if has_blocked_event {
+            self.state.consecutive_blocked += 1;
+        } else {
+            self.state.consecutive_blocked = 0;
+            self.state.last_blocked_hat = None;
+        }
+
+        // Publish validated events
+        for event in validated_events {
+            // Log all events from JSONL (whether orphaned or not)
+            self.diagnostics.log_orchestration(
+                self.state.iteration,
+                "jsonl",
+                crate::diagnostics::OrchestrationEvent::EventPublished {
+                    topic: event.topic.to_string(),
+                },
+            );
+
+            // Check if any hat subscribes to this event
+            if self.registry.has_subscriber(event.topic.as_str()) {
+                debug!(
+                    topic = %event.topic,
+                    "Publishing event from JSONL"
+                );
+                self.bus.publish(event);
             } else {
                 // Orphaned event - Ralph will handle it
                 debug!(
@@ -1522,5 +1493,7 @@ fn termination_status_text(reason: &TerminationReason) -> &'static str {
         TerminationReason::ValidationFailure => "Too many consecutive malformed JSONL events.",
         TerminationReason::Stopped => "Manually stopped.",
         TerminationReason::Interrupted => "Interrupted by signal.",
+        TerminationReason::ChaosModeComplete => "Chaos mode exploration complete.",
+        TerminationReason::ChaosModeMaxIterations => "Chaos mode stopped at iteration limit.",
     }
 }

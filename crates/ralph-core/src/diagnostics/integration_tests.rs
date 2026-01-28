@@ -87,17 +87,37 @@ mod tests {
         assert!(has_hat_selected, "Should log hat_selected event");
     }
 
+    /// Helper to write an event to a JSONL file for testing.
+    fn write_event_to_jsonl(path: &std::path::Path, topic: &str, payload: &str) {
+        use std::io::Write;
+        let ts = chrono::Utc::now().to_rfc3339();
+        let event_json = serde_json::json!({
+            "topic": topic,
+            "payload": payload,
+            "ts": ts
+        });
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .unwrap();
+        writeln!(file, "{}", event_json).unwrap();
+    }
+
     #[test]
     fn test_event_loop_logs_event_published() {
+        // Events now come from JSONL via `ralph emit`, not from XML in text output.
         let temp_dir = TempDir::new().unwrap();
+        let events_path = temp_dir.path().join("events.jsonl");
 
         let config = RalphConfig::default();
         let diagnostics = DiagnosticsCollector::with_enabled(temp_dir.path(), true).unwrap();
         let mut event_loop = EventLoop::with_diagnostics(config, diagnostics);
+        event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
 
-        // Process output with an event
-        let output = r#"<event topic="build.start">Starting build</event>"#;
-        event_loop.process_output(&"ralph".into(), output, true);
+        // Write event to JSONL file
+        write_event_to_jsonl(&events_path, "build.start", "Starting build");
+        let _ = event_loop.process_events_from_jsonl();
 
         let diagnostics_dir = temp_dir.path().join(".ralph").join("diagnostics");
         let session_dirs: Vec<_> = std::fs::read_dir(&diagnostics_dir)
@@ -122,15 +142,19 @@ mod tests {
 
     #[test]
     fn test_event_loop_logs_backpressure_triggered() {
+        // Events now come from JSONL via `ralph emit`.
+        // build.done without backpressure evidence triggers backpressure.
         let temp_dir = TempDir::new().unwrap();
+        let events_path = temp_dir.path().join("events.jsonl");
 
         let config = RalphConfig::default();
         let diagnostics = DiagnosticsCollector::with_enabled(temp_dir.path(), true).unwrap();
         let mut event_loop = EventLoop::with_diagnostics(config, diagnostics);
+        event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
 
-        // Process output with build.done but missing backpressure evidence
-        let output = r#"<event topic="build.done">Done</event>"#;
-        event_loop.process_output(&"builder".into(), output, true);
+        // Write build.done event without backpressure evidence
+        write_event_to_jsonl(&events_path, "build.done", "Done");
+        let _ = event_loop.process_events_from_jsonl();
 
         let diagnostics_dir = temp_dir.path().join(".ralph").join("diagnostics");
         let session_dirs: Vec<_> = std::fs::read_dir(&diagnostics_dir)
