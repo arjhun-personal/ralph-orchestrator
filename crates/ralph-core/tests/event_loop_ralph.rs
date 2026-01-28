@@ -267,8 +267,8 @@ tasks:
         "Workflow should have VERIFY & COMMIT step"
     );
     assert!(
-        prompt.contains("AFTER verification"),
-        "Workflow should emphasize closing only after verification"
+        prompt.contains("AFTER commit"),
+        "Workflow should emphasize closing only after commit"
     );
 }
 

@@ -27,6 +27,14 @@ import {
 import type { LoopStatus } from "./LoopBadge";
 
 /**
+ * Merge button state from the server
+ */
+export interface MergeButtonState {
+  state: "active" | "blocked";
+  reason?: string;
+}
+
+/**
  * Actions available for loops
  */
 export type LoopAction = "retry" | "merge" | "discard" | "stop";
@@ -54,6 +62,8 @@ interface LoopActionsProps {
   className?: string;
   /** Layout direction */
   direction?: "row" | "column";
+  /** Merge button state (active or blocked with reason) */
+  mergeButtonState?: MergeButtonState;
 }
 
 /**
@@ -148,6 +158,7 @@ function LoopActionsComponent({
   callbacks = {},
   className,
   direction = "row",
+  mergeButtonState,
 }: LoopActionsProps) {
   const [loadingAction, setLoadingAction] = useState<LoopAction | null>(null);
   const [confirmingAction, setConfirmingAction] = useState<LoopAction | null>(null);
@@ -266,6 +277,11 @@ function LoopActionsComponent({
           const config = ACTION_CONFIG[action];
           const ActionIcon = config.icon;
           const isLoading = loadingAction === action;
+          const isMergeBlocked = action === "merge" && mergeButtonState?.state === "blocked";
+          const isDisabled = loadingAction !== null || isMergeBlocked;
+          const tooltip = isMergeBlocked && mergeButtonState?.reason
+            ? mergeButtonState.reason
+            : config.description;
 
           return (
             <Button
@@ -273,8 +289,9 @@ function LoopActionsComponent({
               size="sm"
               variant={config.variant}
               onClick={() => handleActionClick(action)}
-              disabled={loadingAction !== null}
-              title={config.description}
+              disabled={isDisabled}
+              title={tooltip}
+              className={cn(isMergeBlocked && "opacity-50")}
             >
               {isLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />

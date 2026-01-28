@@ -248,7 +248,6 @@ mod tests {
             task_block_counts: std::collections::HashMap::new(),
             abandoned_tasks: Vec::new(),
             abandoned_task_redispatches: 0,
-            completion_confirmations: 0,
             consecutive_malformed_events: 0,
             hat_activation_counts: std::collections::HashMap::new(),
             exhausted_hats: std::collections::HashSet::new(),

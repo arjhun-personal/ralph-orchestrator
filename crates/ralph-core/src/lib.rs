@@ -18,6 +18,7 @@ mod event_loop;
 mod event_parser;
 mod event_reader;
 pub mod file_lock;
+mod git_ops;
 mod hat_registry;
 mod hatless_ralph;
 mod instructions;
@@ -54,6 +55,7 @@ pub use event_loop::{EventLoop, LoopState, TerminationReason, UserPrompt, UserPr
 pub use event_parser::EventParser;
 pub use event_reader::{Event, EventReader, MalformedLine, ParseResult};
 pub use file_lock::{FileLock, LockGuard as FileLockGuard, LockedFile};
+pub use git_ops::{AutoCommitResult, GitOpsError, auto_commit_changes, has_uncommitted_changes};
 pub use hat_registry::HatRegistry;
 pub use hatless_ralph::{HatInfo, HatTopology, HatlessRalph};
 pub use instructions::InstructionBuilder;
@@ -89,6 +91,7 @@ pub use workspace::{
     WorkspaceManager,
 };
 pub use worktree::{
-    Worktree, WorktreeConfig, WorktreeError, create_worktree, ensure_gitignore,
-    list_ralph_worktrees, list_worktrees, remove_worktree, worktree_exists,
+    SyncStats, Worktree, WorktreeConfig, WorktreeError, create_worktree, ensure_gitignore,
+    list_ralph_worktrees, list_worktrees, remove_worktree, sync_working_directory_to_worktree,
+    worktree_exists,
 };

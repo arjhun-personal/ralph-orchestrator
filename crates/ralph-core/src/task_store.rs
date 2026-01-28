@@ -216,8 +216,18 @@ impl TaskStore {
     }
 
     /// Returns true if there are any open tasks.
+    ///
+    /// A task is considered open if it is not Closed. This includes Failed tasks.
     pub fn has_open_tasks(&self) -> bool {
         self.tasks.iter().any(|t| t.status != TaskStatus::Closed)
+    }
+
+    /// Returns true if there are any pending (non-terminal) tasks.
+    ///
+    /// A task is pending if its status is not terminal (i.e., not Closed or Failed).
+    /// Use this when you need to check if there's active work remaining.
+    pub fn has_pending_tasks(&self) -> bool {
+        self.tasks.iter().any(|t| !t.status.is_terminal())
     }
 }
 
@@ -322,6 +332,45 @@ mod tests {
         let task = Task::new("Test".to_string(), 1);
         store.add(task);
 
+        assert!(store.has_open_tasks());
+    }
+
+    #[test]
+    fn test_has_pending_tasks_excludes_failed() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("tasks.jsonl");
+        let mut store = TaskStore::load(&path).unwrap();
+
+        // Empty store has no pending tasks
+        assert!(!store.has_pending_tasks());
+
+        // Add an open task - should have pending
+        let task1 = Task::new("Open task".to_string(), 1);
+        store.add(task1);
+        assert!(store.has_pending_tasks());
+
+        // Close the task - should have no pending
+        let id = store.all()[0].id.clone();
+        store.close(&id);
+        assert!(!store.has_pending_tasks());
+    }
+
+    #[test]
+    fn test_has_pending_tasks_failed_is_terminal() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("tasks.jsonl");
+        let mut store = TaskStore::load(&path).unwrap();
+
+        // Add a task and fail it
+        let task = Task::new("Failed task".to_string(), 1);
+        store.add(task);
+        let id = store.all()[0].id.clone();
+        store.fail(&id);
+
+        // Failed tasks are terminal, so no pending tasks
+        assert!(!store.has_pending_tasks());
+
+        // But has_open_tasks returns true (Failed != Closed)
         assert!(store.has_open_tasks());
     }
 

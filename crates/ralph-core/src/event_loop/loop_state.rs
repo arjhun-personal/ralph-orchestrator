@@ -31,8 +31,6 @@ pub struct LoopState {
     pub abandoned_tasks: Vec<String>,
     /// Count of times planner dispatched an already-abandoned task.
     pub abandoned_task_redispatches: u32,
-    /// Number of consecutive completion confirmations (requires 2 for termination).
-    pub completion_confirmations: u32,
     /// Consecutive malformed JSONL lines encountered (for validation backpressure).
     pub consecutive_malformed_events: u32,
 
@@ -56,7 +54,6 @@ impl Default for LoopState {
             task_block_counts: HashMap::new(),
             abandoned_tasks: Vec::new(),
             abandoned_task_redispatches: 0,
-            completion_confirmations: 0,
             consecutive_malformed_events: 0,
             hat_activation_counts: HashMap::new(),
             exhausted_hats: HashSet::new(),

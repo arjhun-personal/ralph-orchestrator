@@ -477,7 +477,9 @@ You MUST pick exactly ONE task to implement.
 
 ### 4. VERIFY & COMMIT
 You MUST run tests and verify the implementation works.
-You MUST close the task with `ralph tools task close` AFTER verification.
+You MUST commit after verification passes - one commit per task.
+You SHOULD run `git diff --cached` to review staged changes before committing.
+You MUST close the task with `ralph tools task close` AFTER commit.
 You SHOULD save learnings to memories with `ralph tools memory add`.
 You MUST update scratchpad to reflect progress.
 
@@ -504,7 +506,9 @@ You MUST pick exactly ONE task to implement.
 You MUST NOT use more than 1 subagent for build/tests.
 
 ### 4. COMMIT
+You MUST commit after completing each atomic unit of work.
 You MUST capture the why, not just the what.
+You SHOULD run `git diff` before committing to review changes.
 You MUST mark the task `[x]` in scratchpad when complete.
 
 ### 5. REPEAT

@@ -503,6 +503,7 @@ export function ThreadList({ pollingInterval = 5000, className }: ThreadListProp
                     status={loop.status}
                     isGitWorkspace={!!loop.location && loop.location !== "(in-place)"}
                     callbacks={loopActionCallbacks}
+                    mergeButtonState={loop.mergeButtonState}
                   />
                 </div>
               </div>

@@ -33,9 +33,10 @@
 //! assert!(matches!(action, CompletionAction::Enqueued { .. }));
 //! ```
 
+use crate::git_ops::auto_commit_changes;
 use crate::loop_context::LoopContext;
 use crate::merge_queue::{MergeQueue, MergeQueueError};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 /// Action taken upon loop completion.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,6 +127,27 @@ impl LoopCompletionHandler {
         let worktree_path = context.workspace().to_string_lossy().to_string();
 
         if self.auto_merge {
+            // Auto-commit any uncommitted changes before enqueueing
+            match auto_commit_changes(context.workspace(), &loop_id) {
+                Ok(result) => {
+                    if result.committed {
+                        info!(
+                            loop_id = %loop_id,
+                            commit = ?result.commit_sha,
+                            files = result.files_staged,
+                            "Auto-committed changes before merge queue"
+                        );
+                    }
+                }
+                Err(e) => {
+                    warn!(
+                        loop_id = %loop_id,
+                        error = %e,
+                        "Auto-commit failed, proceeding with enqueue"
+                    );
+                }
+            }
+
             // Enqueue to merge queue for automatic merge-ralph processing
             let queue = MergeQueue::new(context.repo_root());
             queue.enqueue(&loop_id, prompt)?;
@@ -156,7 +178,40 @@ impl LoopCompletionHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
     use tempfile::TempDir;
+
+    fn init_git_repo(dir: &std::path::Path) {
+        Command::new("git")
+            .args(["init", "--initial-branch=main"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+
+        Command::new("git")
+            .args(["config", "user.email", "test@test.local"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+
+        Command::new("git")
+            .args(["config", "user.name", "Test User"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+
+        std::fs::write(dir.join("README.md"), "# Test").unwrap();
+        Command::new("git")
+            .args(["add", "README.md"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-m", "Initial commit"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+    }
 
     #[test]
     fn test_primary_loop_no_action() {
@@ -235,5 +290,121 @@ mod tests {
     fn test_default_handler_has_auto_merge_enabled() {
         let handler = LoopCompletionHandler::default();
         assert!(handler.auto_merge);
+    }
+
+    #[test]
+    fn test_worktree_loop_auto_commits_uncommitted_changes() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        init_git_repo(&repo_root);
+
+        // Create worktree directory and set up as a git worktree
+        let worktree_path = repo_root.join(".worktrees/ralph-autocommit");
+        let branch_name = "ralph/ralph-autocommit";
+
+        // Create the worktree
+        std::fs::create_dir_all(repo_root.join(".worktrees")).unwrap();
+        Command::new("git")
+            .args(["worktree", "add", "-b", branch_name])
+            .arg(&worktree_path)
+            .current_dir(&repo_root)
+            .output()
+            .unwrap();
+
+        // Create uncommitted changes in the worktree
+        std::fs::write(worktree_path.join("feature.txt"), "new feature").unwrap();
+
+        // Create .ralph directory for merge queue
+        std::fs::create_dir_all(repo_root.join(".ralph")).unwrap();
+
+        let context =
+            LoopContext::worktree("ralph-autocommit", worktree_path.clone(), repo_root.clone());
+
+        let handler = LoopCompletionHandler::new(true);
+
+        let action = handler.handle_completion(&context, "add feature").unwrap();
+
+        // Should enqueue successfully
+        assert!(matches!(action, CompletionAction::Enqueued { .. }));
+
+        // Verify the changes were committed
+        let output = Command::new("git")
+            .args(["log", "-1", "--pretty=%s"])
+            .current_dir(&worktree_path)
+            .output()
+            .unwrap();
+        let message = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            message.contains("auto-commit before merge"),
+            "Expected auto-commit message, got: {}",
+            message
+        );
+
+        // Verify working tree is clean
+        let output = Command::new("git")
+            .args(["status", "--porcelain"])
+            .current_dir(&worktree_path)
+            .output()
+            .unwrap();
+        let status = String::from_utf8_lossy(&output.stdout);
+        assert!(status.trim().is_empty(), "Working tree should be clean");
+    }
+
+    #[test]
+    fn test_worktree_loop_no_auto_commit_when_clean() {
+        let temp = TempDir::new().unwrap();
+        let repo_root = temp.path().to_path_buf();
+        init_git_repo(&repo_root);
+
+        // Create worktree
+        let worktree_path = repo_root.join(".worktrees/ralph-clean");
+        let branch_name = "ralph/ralph-clean";
+
+        std::fs::create_dir_all(repo_root.join(".worktrees")).unwrap();
+        Command::new("git")
+            .args(["worktree", "add", "-b", branch_name])
+            .arg(&worktree_path)
+            .current_dir(&repo_root)
+            .output()
+            .unwrap();
+
+        // Get the initial commit count
+        let output = Command::new("git")
+            .args(["rev-list", "--count", "HEAD"])
+            .current_dir(&worktree_path)
+            .output()
+            .unwrap();
+        let initial_count: i32 = String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .parse()
+            .unwrap();
+
+        // Create .ralph directory for merge queue
+        std::fs::create_dir_all(repo_root.join(".ralph")).unwrap();
+
+        let context =
+            LoopContext::worktree("ralph-clean", worktree_path.clone(), repo_root.clone());
+
+        let handler = LoopCompletionHandler::new(true);
+
+        let action = handler.handle_completion(&context, "no changes").unwrap();
+
+        assert!(matches!(action, CompletionAction::Enqueued { .. }));
+
+        // Verify no new commit was made
+        let output = Command::new("git")
+            .args(["rev-list", "--count", "HEAD"])
+            .current_dir(&worktree_path)
+            .output()
+            .unwrap();
+        let final_count: i32 = String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .parse()
+            .unwrap();
+
+        assert_eq!(
+            initial_count, final_count,
+            "No new commit should be made when working tree is clean"
+        );
     }
 }

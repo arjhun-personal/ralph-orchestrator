@@ -186,16 +186,86 @@ fn test_completion_promise_detection() {
     // Use Ralph since it's the coordinator that outputs completion promise
     let hat_id = HatId::new("ralph");
 
-    // First LOOP_COMPLETE - should NOT terminate (needs consecutive confirmation)
-    let reason = event_loop.process_output(&hat_id, "Done! LOOP_COMPLETE", true);
-    assert_eq!(reason, None, "First confirmation should not terminate");
-
-    // Second consecutive LOOP_COMPLETE - should terminate
+    // LOOP_COMPLETE with all tasks done - should terminate immediately
     let reason = event_loop.process_output(&hat_id, "Done! LOOP_COMPLETE", true);
     assert_eq!(
         reason,
         Some(TerminationReason::CompletionPromise),
-        "Second consecutive confirmation should terminate"
+        "Should terminate immediately when LOOP_COMPLETE + tasks verified"
+    );
+}
+
+#[test]
+fn test_completion_promise_with_open_tasks_still_terminates() {
+    use std::fs;
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+
+    // Create scratchpad with PENDING tasks ([ ] markers)
+    let agent_dir = temp_dir.path().join(".agent");
+    fs::create_dir_all(&agent_dir).unwrap();
+    let scratchpad_path = agent_dir.join("scratchpad.md");
+    fs::write(
+        &scratchpad_path,
+        "## Tasks\n- [x] Task 1 done\n- [ ] Task 2 still pending\n",
+    )
+    .unwrap();
+
+    // Configure event loop to use temp directory scratchpad
+    let mut config = RalphConfig::default();
+    config.core.scratchpad = scratchpad_path.to_string_lossy().to_string();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+
+    let hat_id = HatId::new("ralph");
+
+    // LOOP_COMPLETE with pending tasks - should STILL terminate (trust the agent)
+    // Previously this would reject completion, but now we trust the agent's decision
+    let reason = event_loop.process_output(&hat_id, "Done! LOOP_COMPLETE", true);
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "Should terminate even with open tasks - trust the agent's decision"
+    );
+}
+
+#[test]
+fn test_completion_promise_with_pending_tasks_in_task_store() {
+    use crate::task::{Task, TaskStatus};
+    use crate::task_store::TaskStore;
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let tasks_path = temp_dir.path().join(".ralph/agent/tasks.jsonl");
+
+    // Create task store with one open and one closed task
+    let mut store = TaskStore::load(&tasks_path).unwrap();
+    let mut task1 = Task::new("Completed task".to_string(), 1);
+    task1.status = TaskStatus::Closed;
+    store.add(task1);
+
+    let task2 = Task::new("Still open task".to_string(), 2);
+    store.add(task2);
+    store.save().unwrap();
+
+    // Configure event loop with memories enabled and pointing to temp dir
+    let mut config = RalphConfig::default();
+    config.memories.enabled = true;
+    config.core.workspace_root = temp_dir.path().to_path_buf();
+
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+
+    let hat_id = HatId::new("ralph");
+
+    // LOOP_COMPLETE with open tasks in task store - should STILL terminate
+    // The agent knows when the objective is done; not all tasks need to be closed
+    let reason = event_loop.process_output(&hat_id, "Done! LOOP_COMPLETE", true);
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "Should terminate even with open tasks in task store - trust the agent"
     );
 }
 
@@ -747,19 +817,13 @@ hats:
     // Ralph handles task.start, not a specific hat
     let ralph_id = HatId::new("ralph");
 
-    // Simulate completion with some cancelled tasks
+    // Simulate completion with some cancelled tasks - should complete immediately
     let output = "All done! LOOP_COMPLETE";
-
-    // First confirmation - should not terminate yet
-    let reason = event_loop.process_output(&ralph_id, output, true);
-    assert_eq!(reason, None, "First confirmation should not terminate");
-
-    // Second consecutive confirmation - should complete successfully despite cancelled tasks
     let reason = event_loop.process_output(&ralph_id, output, true);
     assert_eq!(
         reason,
         Some(TerminationReason::CompletionPromise),
-        "Should complete with partial completion"
+        "Should complete immediately with partial completion (cancelled tasks ok)"
     );
 }
 

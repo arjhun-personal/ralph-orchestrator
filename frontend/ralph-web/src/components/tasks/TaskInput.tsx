@@ -40,8 +40,17 @@ export function TaskInput({
   className,
 }: TaskInputProps) {
   const [value, setValue] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState<string | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
+  const presetsQuery = trpc.presets.list.useQuery();
+
+  // Set default preset to first available once loaded
+  useEffect(() => {
+    if (presetsQuery.data && presetsQuery.data.length > 0 && !selectedPreset) {
+      setSelectedPreset(presetsQuery.data[0].id);
+    }
+  }, [presetsQuery.data, selectedPreset]);
 
   const createMutation = trpc.task.create.useMutation({
     onSuccess: (task) => {
@@ -77,8 +86,9 @@ export function TaskInput({
       title: trimmed,
       status: "open",
       priority: 2,
+      preset: selectedPreset,
     });
-  }, [value, createMutation]);
+  }, [value, createMutation, selectedPreset]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -94,9 +104,27 @@ export function TaskInput({
 
   const isDisabled = createMutation.isPending;
   const hasValue = value.trim().length > 0;
+  const presetsDisabled = presetsQuery.isLoading || !presetsQuery.data;
 
   return (
     <div className={cn("space-y-3", className)}>
+      <select
+        aria-label="Preset"
+        value={selectedPreset ?? ""}
+        onChange={(e) => setSelectedPreset(e.target.value)}
+        disabled={presetsDisabled}
+        className={cn(
+          "w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+          presetsDisabled && "opacity-50 cursor-not-allowed"
+        )}
+      >
+        {presetsQuery.data?.map((preset) => (
+          <option key={preset.id} value={preset.id}>
+            {preset.name} ({preset.source})
+          </option>
+        ))}
+      </select>
+
       <Textarea
         ref={textareaRef}
         value={value}

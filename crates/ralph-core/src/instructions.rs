@@ -73,7 +73,7 @@ impl InstructionBuilder {
                     "Analyze the blocker and decide how to unblock (simplify task, gather info, or escalate).",
                 ),
                 "build.task" => Some(
-                    "Implement the assigned task. Follow existing patterns. Run backpressure (tests/checks). Commit when done.",
+                    "Implement the assigned task. Follow existing patterns. Run backpressure (tests/checks). Commit atomically when tests pass.",
                 ),
                 "review.request" => Some(
                     "Review the recent changes for correctness, tests, patterns, errors, and security.",

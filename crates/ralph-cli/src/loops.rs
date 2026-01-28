@@ -63,6 +63,9 @@ pub enum LoopsCommands {
 
     /// Process pending merge queue entries
     Process,
+
+    /// Get merge button state for a loop (JSON output for web API)
+    MergeButtonState(MergeButtonStateArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -148,6 +151,12 @@ pub struct MergeArgs {
     pub force: bool,
 }
 
+#[derive(Parser, Debug)]
+pub struct MergeButtonStateArgs {
+    /// Loop ID
+    pub loop_id: String,
+}
+
 /// Execute a loops command.
 pub fn execute(args: LoopsArgs, use_colors: bool) -> Result<()> {
     match args.command {
@@ -169,6 +178,7 @@ pub fn execute(args: LoopsArgs, use_colors: bool) -> Result<()> {
         Some(LoopsCommands::Diff(diff_args)) => show_diff(diff_args),
         Some(LoopsCommands::Merge(merge_args)) => merge_loop(merge_args),
         Some(LoopsCommands::Process) => process_queue(),
+        Some(LoopsCommands::MergeButtonState(args)) => get_merge_button_state(args),
     }
 }
 
@@ -179,6 +189,22 @@ fn process_queue() -> Result<()> {
     // Delegate to the loop_runner's process_pending_merges function
     crate::loop_runner::process_pending_merges_cli(&cwd);
 
+    Ok(())
+}
+
+/// Get merge button state for a loop (JSON output for web API).
+fn get_merge_button_state(args: MergeButtonStateArgs) -> Result<()> {
+    let cwd = std::env::current_dir()?;
+    let state = merge_button_state(&cwd, &args.loop_id)?;
+
+    let json = match state {
+        MergeButtonState::Active => serde_json::json!({ "state": "active" }),
+        MergeButtonState::Blocked { reason } => {
+            serde_json::json!({ "state": "blocked", "reason": reason })
+        }
+    };
+
+    println!("{}", serde_json::to_string(&json)?);
     Ok(())
 }
 

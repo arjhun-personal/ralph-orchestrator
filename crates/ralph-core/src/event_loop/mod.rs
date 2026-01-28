@@ -903,62 +903,38 @@ impl EventLoop {
         }
 
         // Check for completion promise - only valid from Ralph (the coordinator)
-        // Per spec: Requires dual condition (task state + consecutive confirmation)
-        // When memories are enabled, verify tasks instead of scratchpad
+        // Trust the agent's decision to complete - it knows when the objective is done.
+        // Open tasks are logged as a warning but do not block completion.
         if hat_id.as_str() == "ralph"
             && EventParser::contains_promise(output, &self.config.event_loop.completion_promise)
         {
-            let verification_result = if self.config.memories.enabled {
-                self.verify_tasks_complete()
-            } else {
-                self.verify_scratchpad_complete()
-            };
-
-            match verification_result {
-                Ok(true) => {
-                    // All tasks complete - increment confirmation counter
-                    self.state.completion_confirmations += 1;
-
-                    if self.state.completion_confirmations >= 2 {
-                        // Second consecutive confirmation - terminate
-                        info!(
-                            confirmations = self.state.completion_confirmations,
-                            "Completion confirmed on consecutive iterations - terminating"
-                        );
-
-                        // Log loop terminated
-                        self.diagnostics.log_orchestration(
-                            self.state.iteration,
-                            "loop",
-                            crate::diagnostics::OrchestrationEvent::LoopTerminated {
-                                reason: "completion_promise".to_string(),
-                            },
-                        );
-
-                        return Some(TerminationReason::CompletionPromise);
-                    }
-                    // First confirmation - continue to next iteration
-                    info!(
-                        confirmations = self.state.completion_confirmations,
-                        "Completion detected but requires consecutive confirmation - continuing"
+            // Log warning if tasks remain open (informational only)
+            if self.config.memories.enabled {
+                if let Ok(false) = self.verify_tasks_complete() {
+                    let open_tasks = self.get_open_task_list();
+                    warn!(
+                        open_tasks = ?open_tasks,
+                        "LOOP_COMPLETE with {} open task(s) - trusting agent decision",
+                        open_tasks.len()
                     );
                 }
-                Ok(false) => {
-                    // Pending tasks exist - reject completion
-                    debug!(
-                        "Completion promise detected but scratchpad has pending [ ] tasks - rejected"
-                    );
-                    self.state.completion_confirmations = 0;
-                }
-                Err(e) => {
-                    // Scratchpad doesn't exist or can't be read - reject completion
-                    debug!(
-                        error = %e,
-                        "Completion promise detected but scratchpad verification failed - rejected"
-                    );
-                    self.state.completion_confirmations = 0;
-                }
+            } else if let Ok(false) = self.verify_scratchpad_complete() {
+                warn!("LOOP_COMPLETE with pending scratchpad tasks - trusting agent decision");
             }
+
+            // Trust the agent - terminate immediately
+            info!("LOOP_COMPLETE detected - terminating");
+
+            // Log loop terminated
+            self.diagnostics.log_orchestration(
+                self.state.iteration,
+                "loop",
+                crate::diagnostics::OrchestrationEvent::LoopTerminated {
+                    reason: "completion_promise".to_string(),
+                },
+            );
+
+            return Some(TerminationReason::CompletionPromise);
         }
 
         // Parse and publish events from output
@@ -1206,7 +1182,22 @@ impl EventLoop {
         }
 
         let store = TaskStore::load(&tasks_path)?;
-        Ok(!store.has_open_tasks())
+        Ok(!store.has_pending_tasks())
+    }
+
+    /// Returns a list of open task descriptions for logging purposes.
+    fn get_open_task_list(&self) -> Vec<String> {
+        use crate::task_store::TaskStore;
+
+        let tasks_path = self.tasks_path();
+        if let Ok(store) = TaskStore::load(&tasks_path) {
+            return store
+                .open()
+                .iter()
+                .map(|t| format!("{}: {}", t.id, t.title))
+                .collect();
+        }
+        vec![]
     }
 
     /// Processes events from JSONL and routes orphaned events to Ralph.

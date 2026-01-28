@@ -385,9 +385,10 @@ export class TaskBridge {
    * Uses the task's title as the execution prompt.
    *
    * @param dbTask - Database task to enqueue
+   * @param preset - Optional preset ID to use for execution (e.g., "builtin:feature" or collection ID)
    * @returns Result with success status and queued task ID
    */
-  enqueueTask(dbTask: Task): EnqueueResult {
+  enqueueTask(dbTask: Task, preset?: string): EnqueueResult {
     try {
       // Check if task is already running or queued
       if (dbTask.status === "running") {
@@ -398,6 +399,19 @@ export class TaskBridge {
         return { success: false, error: "Task is already queued" };
       }
 
+      // Build additional args for preset
+      const args: string[] = [];
+      if (preset) {
+        // Preset format: "builtin:name" or "directory:name" or collection UUID
+        // For builtin presets, use just the name (ralph -c feature)
+        // For collection presets, we'd need to export to a temp file (future enhancement)
+        const presetMatch = preset.match(/^(builtin|directory):(.+)$/);
+        if (presetMatch) {
+          args.push("-c", presetMatch[2]);
+        }
+        // Collection presets (UUIDs) would need special handling - not implemented yet
+      }
+
       // Enqueue the task with the title as the prompt
       const queuedTask = this.taskQueue.enqueue({
         taskType: this.taskType,
@@ -405,6 +419,7 @@ export class TaskBridge {
           prompt: dbTask.title,
           cwd: this.defaultCwd,
           dbTaskId: dbTask.id, // Include for reference in handlers
+          args: args.length > 0 ? args : undefined,
         },
         priority: dbTask.priority,
       });

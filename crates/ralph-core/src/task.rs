@@ -19,6 +19,15 @@ pub enum TaskStatus {
     Failed,
 }
 
+impl TaskStatus {
+    /// Returns true if this status is terminal (Closed or Failed).
+    ///
+    /// Terminal statuses indicate the task is done and no longer needs attention.
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, TaskStatus::Closed | TaskStatus::Failed)
+    }
+}
+
 /// A task in the task tracking system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -169,5 +178,13 @@ mod tests {
 
         task.status = TaskStatus::Failed;
         assert!(!task.is_ready(&[]));
+    }
+
+    #[test]
+    fn test_is_terminal() {
+        assert!(!TaskStatus::Open.is_terminal());
+        assert!(!TaskStatus::InProgress.is_terminal());
+        assert!(TaskStatus::Closed.is_terminal());
+        assert!(TaskStatus::Failed.is_terminal());
     }
 }

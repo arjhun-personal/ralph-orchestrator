@@ -14,6 +14,7 @@ import { memo, useState, useCallback, useMemo } from "react";
 import { ChevronDown, ChevronRight, Folder, GitBranch, Terminal, AlertTriangle, Hash, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LoopBadge, type LoopStatus } from "./LoopBadge";
+import type { MergeButtonState } from "./LoopActions";
 
 /**
  * Loop data shape matching spec's LoopRow interface (lines 47-62)
@@ -33,6 +34,7 @@ export interface LoopDetailData {
   mergeCommit?: string;
   failureReason?: string;
   isPrimary?: boolean;
+  mergeButtonState?: MergeButtonState;
 }
 
 interface LoopDetailProps {
