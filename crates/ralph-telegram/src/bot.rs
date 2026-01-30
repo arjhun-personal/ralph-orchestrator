@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use async_trait::async_trait;
 
 use crate::error::{TelegramError, TelegramResult};
@@ -11,6 +13,26 @@ pub trait BotApi: Send + Sync {
     ///
     /// Returns the Telegram message ID of the sent message.
     async fn send_message(&self, chat_id: i64, text: &str) -> TelegramResult<i32>;
+
+    /// Send a document (file) to the given chat with an optional caption.
+    ///
+    /// Returns the Telegram message ID of the sent message.
+    async fn send_document(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32>;
+
+    /// Send a photo to the given chat with an optional caption.
+    ///
+    /// Returns the Telegram message ID of the sent message.
+    async fn send_photo(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32>;
 }
 
 /// Wraps a `teloxide::Bot` and provides formatted messaging for Ralph.
@@ -80,6 +102,60 @@ impl BotApi for TelegramBot {
 
         Ok(result.id.0)
     }
+
+    async fn send_document(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32> {
+        use teloxide::payloads::SendDocumentSetters;
+        use teloxide::prelude::*;
+        use teloxide::types::{InputFile, ParseMode};
+
+        let input_file = InputFile::file(file_path);
+        let mut request = self
+            .bot
+            .send_document(teloxide::types::ChatId(chat_id), input_file);
+
+        if let Some(cap) = caption {
+            request = request.caption(cap).parse_mode(ParseMode::Html);
+        }
+
+        let result = request.await.map_err(|e| TelegramError::Send {
+            attempts: 1,
+            reason: e.to_string(),
+        })?;
+
+        Ok(result.id.0)
+    }
+
+    async fn send_photo(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32> {
+        use teloxide::payloads::SendPhotoSetters;
+        use teloxide::prelude::*;
+        use teloxide::types::{InputFile, ParseMode};
+
+        let input_file = InputFile::file(file_path);
+        let mut request = self
+            .bot
+            .send_photo(teloxide::types::ChatId(chat_id), input_file);
+
+        if let Some(cap) = caption {
+            request = request.caption(cap).parse_mode(ParseMode::Html);
+        }
+
+        let result = request.await.map_err(|e| TelegramError::Send {
+            attempts: 1,
+            reason: e.to_string(),
+        })?;
+
+        Ok(result.id.0)
+    }
 }
 
 #[cfg(test)]
@@ -126,6 +202,54 @@ mod tests {
                 });
             }
             self.sent.lock().unwrap().push((chat_id, text.to_string()));
+            let mut id = self.next_id.lock().unwrap();
+            let current = *id;
+            *id += 1;
+            Ok(current)
+        }
+
+        async fn send_document(
+            &self,
+            chat_id: i64,
+            file_path: &Path,
+            caption: Option<&str>,
+        ) -> TelegramResult<i32> {
+            if self.should_fail {
+                return Err(TelegramError::Send {
+                    attempts: 1,
+                    reason: "mock failure".to_string(),
+                });
+            }
+            let label = format!(
+                "[doc:{}]{}",
+                file_path.display(),
+                caption.map(|c| format!(" {c}")).unwrap_or_default()
+            );
+            self.sent.lock().unwrap().push((chat_id, label));
+            let mut id = self.next_id.lock().unwrap();
+            let current = *id;
+            *id += 1;
+            Ok(current)
+        }
+
+        async fn send_photo(
+            &self,
+            chat_id: i64,
+            file_path: &Path,
+            caption: Option<&str>,
+        ) -> TelegramResult<i32> {
+            if self.should_fail {
+                return Err(TelegramError::Send {
+                    attempts: 1,
+                    reason: "mock failure".to_string(),
+                });
+            }
+            let label = format!(
+                "[photo:{}]{}",
+                file_path.display(),
+                caption.map(|c| format!(" {c}")).unwrap_or_default()
+            );
+            self.sent.lock().unwrap().push((chat_id, label));
             let mut id = self.next_id.lock().unwrap();
             let current = *id;
             *id += 1;

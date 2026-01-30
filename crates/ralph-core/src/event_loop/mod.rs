@@ -1188,6 +1188,31 @@ impl EventLoop {
         self.state.iteration += 1;
         self.state.last_hat = Some(hat_id.clone());
 
+        // Periodic Telegram check-in
+        if let Some(interval_secs) = self.config.human.checkin_interval_seconds
+            && let Some(ref telegram_service) = self.telegram_service
+        {
+            let elapsed = self.state.elapsed();
+            let interval = std::time::Duration::from_secs(interval_secs);
+            let last = self
+                .state
+                .last_checkin_at
+                .map(|t| t.elapsed())
+                .unwrap_or(elapsed);
+
+            if last >= interval {
+                match telegram_service.send_checkin(self.state.iteration, elapsed) {
+                    Ok(_) => {
+                        self.state.last_checkin_at = Some(std::time::Instant::now());
+                        debug!(iteration = self.state.iteration, "Sent Telegram check-in");
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "Failed to send Telegram check-in");
+                    }
+                }
+            }
+        }
+
         // Log iteration started
         self.diagnostics.log_orchestration(
             self.state.iteration,
@@ -1487,13 +1512,13 @@ impl EventLoop {
             self.state.last_blocked_hat = None;
         }
 
-        // Handle ask.human blocking behavior:
-        // When an ask.human event is detected and Telegram service is active,
+        // Handle interact.human blocking behavior:
+        // When an interact.human event is detected and Telegram service is active,
         // send the question and block until human.response or timeout.
         let mut response_event = None;
         let ask_human_idx = validated_events
             .iter()
-            .position(|e| e.topic == "ask.human".into());
+            .position(|e| e.topic == "interact.human".into());
 
         if let Some(idx) = ask_human_idx {
             let ask_event = &validated_events[idx];
@@ -1502,7 +1527,7 @@ impl EventLoop {
             if let Some(ref telegram_service) = self.telegram_service {
                 info!(
                     payload = %payload,
-                    "ask.human event detected — sending question via Telegram"
+                    "interact.human event detected — sending question via Telegram"
                 );
 
                 // Send the question (includes retry with exponential backoff)
@@ -1511,7 +1536,7 @@ impl EventLoop {
                     Err(e) => {
                         warn!(
                             error = %e,
-                            "Failed to send ask.human question after retries — treating as timeout"
+                            "Failed to send interact.human question after retries — treating as timeout"
                         );
                         // Log to diagnostics
                         self.diagnostics.log_error(
@@ -1560,7 +1585,9 @@ impl EventLoop {
                     }
                 }
             } else {
-                debug!("ask.human event detected but no Telegram service active — passing through");
+                debug!(
+                    "interact.human event detected but no Telegram service active — passing through"
+                );
             }
         }
 

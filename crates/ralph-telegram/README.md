@@ -4,7 +4,7 @@ Telegram integration for human-in-the-loop orchestration in Ralph.
 
 Enables bidirectional communication between AI agents and humans during orchestration loops:
 
-- **AI to Human**: Agents emit `ask.human` events; the bot sends questions to Telegram
+- **AI to Human**: Agents emit `interact.human` events; the bot sends questions to Telegram
 - **Human to AI**: Humans reply or send proactive `human.guidance` via Telegram messages
 
 ## Setup
@@ -46,9 +46,9 @@ When the bot starts, it sends a greeting message to your Telegram chat. The chat
 
 ## How It Works
 
-### ask.human Flow
+### interact.human Flow
 
-When an agent emits an `ask.human` event:
+When an agent emits an `interact.human` event:
 
 1. The bot sends the question to Telegram with context (hat name, iteration, loop ID)
 2. The event loop **blocks** waiting for a reply

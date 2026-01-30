@@ -194,14 +194,14 @@ human:
 
 | Event | Direction | Purpose |
 |-------|-----------|---------|
-| `ask.human` | Agent to Human | Agent asks a question; loop blocks until response or timeout |
-| `human.response` | Human to Agent | Reply to an `ask.human` question |
+| `interact.human` | Agent to Human | Agent asks a question; loop blocks until response or timeout |
+| `human.response` | Human to Agent | Reply to an `interact.human` question |
 | `human.guidance` | Human to Agent | Proactive guidance injected as `## HUMAN GUIDANCE` in prompt |
 
 ### How It Works
 
 - The Telegram bot starts only on the **primary loop** (the one holding `.ralph/loop.lock`)
-- When an agent emits `ask.human`, the event loop sends the question via Telegram and **blocks**
+- When an agent emits `interact.human`, the event loop sends the question via Telegram and **blocks**
 - Responses are published as `human.response` events on the bus
 - Proactive messages become `human.guidance` events, squashed into a numbered list in the prompt
 - Send failures retry with exponential backoff (3 attempts); if all fail, treated as timeout

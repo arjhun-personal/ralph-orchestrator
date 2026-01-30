@@ -1294,7 +1294,7 @@ impl HatConfig {
 /// Human-in-the-loop configuration.
 ///
 /// Enables bidirectional communication between AI agents and humans
-/// during orchestration loops. When enabled, agents can emit `ask.human`
+/// during orchestration loops. When enabled, agents can emit `interact.human`
 /// events to request clarification (blocking the loop), and humans can
 /// send proactive guidance via Telegram.
 ///
@@ -1303,6 +1303,7 @@ impl HatConfig {
 /// human:
 ///   enabled: true
 ///   timeout_seconds: 300
+///   checkin_interval_seconds: 120  # Optional: send status every 2 min
 ///   telegram:
 ///     bot_token: "..."  # Or set RALPH_TELEGRAM_BOT_TOKEN env var
 /// ```
@@ -1315,6 +1316,11 @@ pub struct HumanConfig {
     /// Timeout in seconds for waiting on human responses.
     /// Required when enabled (no default — must be explicit).
     pub timeout_seconds: Option<u64>,
+
+    /// Interval in seconds between periodic check-in messages sent via Telegram.
+    /// When set, Ralph sends a status message every N seconds so the human
+    /// knows it's still working. If `None`, no check-ins are sent.
+    pub checkin_interval_seconds: Option<u64>,
 
     /// Telegram bot configuration.
     #[serde(default)]
@@ -2360,6 +2366,7 @@ human:
         let human = HumanConfig {
             enabled: true,
             timeout_seconds: None,
+            checkin_interval_seconds: None,
             telegram: None,
         };
         let result = human.validate();
@@ -2381,6 +2388,7 @@ human:
         let config = HumanConfig {
             enabled: true,
             timeout_seconds: Some(300),
+            checkin_interval_seconds: None,
             telegram: Some(TelegramBotConfig {
                 bot_token: Some("config-token".to_string()),
             }),
@@ -2400,6 +2408,7 @@ human:
         let config = HumanConfig {
             enabled: true,
             timeout_seconds: Some(300),
+            checkin_interval_seconds: None,
             telegram: None,
         };
 
@@ -2417,6 +2426,7 @@ human:
         let human = HumanConfig {
             enabled: true,
             timeout_seconds: Some(300),
+            checkin_interval_seconds: None,
             telegram: Some(TelegramBotConfig {
                 bot_token: Some("test-token".to_string()),
             }),
@@ -2435,6 +2445,7 @@ human:
         let human = HumanConfig {
             enabled: true,
             timeout_seconds: Some(300),
+            checkin_interval_seconds: None,
             telegram: None,
         };
         let result = human.validate();
@@ -2459,6 +2470,7 @@ human:
         let human = HumanConfig {
             enabled: true,
             timeout_seconds: Some(300),
+            checkin_interval_seconds: None,
             telegram: Some(TelegramBotConfig { bot_token: None }),
         };
         let result = human.validate();

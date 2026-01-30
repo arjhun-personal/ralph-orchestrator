@@ -355,6 +355,74 @@ impl TelegramService {
         Ok(message_id)
     }
 
+    /// Send a periodic check-in message via Telegram.
+    ///
+    /// Loads the chat ID from state and sends a short status update so the
+    /// human knows the loop is still running. Skips silently if no chat ID
+    /// is configured. Returns `Ok(0)` when skipped, or the message ID on
+    /// success.
+    pub fn send_checkin(&self, iteration: u32, elapsed: Duration) -> TelegramResult<i32> {
+        let state = self.state_manager.load_or_default()?;
+        let Some(chat_id) = state.chat_id else {
+            debug!(
+                loop_id = %self.loop_id,
+                "No chat ID configured — skipping check-in"
+            );
+            return Ok(0);
+        };
+
+        let elapsed_secs = elapsed.as_secs();
+        let minutes = elapsed_secs / 60;
+        let seconds = elapsed_secs % 60;
+        let elapsed_str = if minutes > 0 {
+            format!("{}m {}s", minutes, seconds)
+        } else {
+            format!("{}s", seconds)
+        };
+
+        let msg = format!(
+            "Still working — iteration {}, {} elapsed.",
+            iteration, elapsed_str
+        );
+        self.send_with_retry(chat_id, &msg)
+    }
+
+    /// Send a document (file) to the human via Telegram.
+    ///
+    /// Loads the chat ID from state and sends the file at `file_path` with an
+    /// optional caption. Returns `Ok(0)` if no chat ID is configured.
+    pub fn send_document(&self, file_path: &Path, caption: Option<&str>) -> TelegramResult<i32> {
+        let state = self.state_manager.load_or_default()?;
+        let Some(chat_id) = state.chat_id else {
+            warn!(
+                loop_id = %self.loop_id,
+                file = %file_path.display(),
+                "No chat ID configured — document not sent"
+            );
+            return Ok(0);
+        };
+
+        self.send_document_with_retry(chat_id, file_path, caption)
+    }
+
+    /// Send a photo to the human via Telegram.
+    ///
+    /// Loads the chat ID from state and sends the image at `file_path` with an
+    /// optional caption. Returns `Ok(0)` if no chat ID is configured.
+    pub fn send_photo(&self, file_path: &Path, caption: Option<&str>) -> TelegramResult<i32> {
+        let state = self.state_manager.load_or_default()?;
+        let Some(chat_id) = state.chat_id else {
+            warn!(
+                loop_id = %self.loop_id,
+                file = %file_path.display(),
+                "No chat ID configured — photo not sent"
+            );
+            return Ok(0);
+        };
+
+        self.send_photo_with_retry(chat_id, file_path, caption)
+    }
+
     /// Attempt to send a message with exponential backoff retries.
     ///
     /// Uses the host tokio runtime via `block_in_place` + `Handle::block_on`
@@ -371,6 +439,54 @@ impl TelegramService {
             |_attempt| {
                 tokio::task::block_in_place(|| {
                     handle.block_on(self.bot.send_message(chat_id, payload))
+                })
+            },
+            |delay| std::thread::sleep(delay),
+        )
+    }
+
+    /// Attempt to send a document with exponential backoff retries.
+    fn send_document_with_retry(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32> {
+        use crate::bot::BotApi;
+
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| TelegramError::Send {
+            attempts: 0,
+            reason: "no tokio runtime available for sending".to_string(),
+        })?;
+
+        retry_with_backoff(
+            |_attempt| {
+                tokio::task::block_in_place(|| {
+                    handle.block_on(self.bot.send_document(chat_id, file_path, caption))
+                })
+            },
+            |delay| std::thread::sleep(delay),
+        )
+    }
+
+    /// Attempt to send a photo with exponential backoff retries.
+    fn send_photo_with_retry(
+        &self,
+        chat_id: i64,
+        file_path: &Path,
+        caption: Option<&str>,
+    ) -> TelegramResult<i32> {
+        use crate::bot::BotApi;
+
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| TelegramError::Send {
+            attempts: 0,
+            reason: "no tokio runtime available for sending".to_string(),
+        })?;
+
+        retry_with_backoff(
+            |_attempt| {
+                tokio::task::block_in_place(|| {
+                    handle.block_on(self.bot.send_photo(chat_id, file_path, caption))
                 })
             },
             |delay| std::thread::sleep(delay),
