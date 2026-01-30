@@ -132,7 +132,7 @@ def ralph_config_path(project_root: Path) -> Path:
             return config_path
 
     # Create a minimal config for testing
-    test_config = project_root / "ralph.test.yml"
+    test_config = project_root / "ralph.bot.yml"
     test_config.write_text("""
 cli:
   backend: claude

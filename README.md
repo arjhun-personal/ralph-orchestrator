@@ -106,6 +106,14 @@ Ralph implements the [Ralph Wiggum technique](https://ghuntley.com/ralph/) — a
 
 Ralph supports human interaction during orchestration via Telegram. Agents can ask questions and block until answered; humans can send proactive guidance at any time.
 
+Quick onboarding (Telegram):
+
+```bash
+ralph bot onboard --telegram   # guided setup (token + chat id)
+ralph bot status               # verify config
+ralph bot test                 # send a test message
+```
+
 ```yaml
 # ralph.yml
 RObot:
