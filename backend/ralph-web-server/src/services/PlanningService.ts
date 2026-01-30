@@ -197,8 +197,9 @@ export class PlanningService {
           try {
             const convContent = await fs.readFile(conversationPath, "utf-8");
             messageCount = convContent.trim().split("\n").filter((l: string) => l.trim()).length;
-          } catch {
-            // File doesn't exist yet
+          } catch (err) {
+            // Expected if conversation file doesn't exist yet
+            console.warn(`[PlanningService] Could not read conversation file for session ${entry.name}:`, err);
           }
 
           sessions.push({
@@ -211,8 +212,8 @@ export class PlanningService {
             messageCount,
             iterations: metadata.iterations,
           });
-        } catch {
-          // Skip sessions with invalid metadata
+        } catch (err) {
+          console.warn(`[PlanningService] Skipping session ${entry.name} due to invalid metadata:`, err);
         }
       }
     }
@@ -248,8 +249,8 @@ export class PlanningService {
       for (const entry of entries) {
         conversation.push(toFrontendEntry(entry));
       }
-    } catch {
-      // File doesn't exist yet or is empty
+    } catch (err) {
+      console.warn(`[PlanningService:${sessionId}] Could not load conversation file:`, err);
     }
 
     // List artifacts if any
@@ -258,8 +259,8 @@ export class PlanningService {
     try {
       const artifactEntries = await fs.readdir(artifactsDir);
       artifacts = artifactEntries.filter((e: string) => !e.startsWith("."));
-    } catch {
-      // Directory doesn't exist
+    } catch (err) {
+      console.warn(`[PlanningService:${sessionId}] Could not read artifacts directory:`, err);
     }
 
     const isCompleted = metadata.status === SessionStatus.Completed;
@@ -415,7 +416,8 @@ export class PlanningService {
     try {
       const relativePath = await fs.readFile(currentEventsPath, "utf-8");
       return path.join(this.workspaceRoot, relativePath.trim());
-    } catch {
+    } catch (err) {
+      console.warn("[PlanningService] Could not read current-events file:", err);
       return null;
     }
   }
@@ -469,13 +471,13 @@ export class PlanningService {
           // Mark this event as processed
           processedTimestamps.add(event.ts);
         } catch (parseErr) {
-          // Skip malformed lines
+          console.warn(`[PlanningService:${sessionId}] Skipping malformed event line:`, parseErr);
         }
       }
 
       this.processedEventTimestamps.set(sessionId, processedTimestamps);
     } catch (err) {
-      // Events file might not exist yet, that's OK
+      console.warn(`[PlanningService:${sessionId}] Could not read events file:`, err);
     }
   }
 
@@ -586,8 +588,8 @@ export class PlanningService {
   private async ensureSessionsDir(): Promise<void> {
     try {
       await fs.mkdir(this.sessionsDir, { recursive: true });
-    } catch {
-      // Directory exists or was created
+    } catch (err) {
+      console.warn("[PlanningService] Failed to create sessions directory:", err);
     }
   }
 
@@ -651,7 +653,8 @@ export class PlanningService {
     try {
       const content = await fs.readFile(artifactPath, "utf-8");
       return { content, filename };
-    } catch {
+    } catch (err) {
+      console.warn(`[PlanningService] Could not read artifact ${filename}:`, err);
       throw new Error(`Artifact not found: ${filename}`);
     }
   }

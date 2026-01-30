@@ -78,8 +78,8 @@ export async function createServer(options: ServerOptions = {}): Promise<Fastify
         } else if (message.type === "unsubscribe" && message.taskId) {
           broadcaster.unsubscribe(clientId, message.taskId);
         }
-      } catch {
-        // Invalid message format - ignore
+      } catch (err) {
+        console.warn(`[WebSocket] Invalid message from client ${clientId}:`, err);
         socket.send(
           JSON.stringify({
             type: "error",

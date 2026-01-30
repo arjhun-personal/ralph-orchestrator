@@ -919,8 +919,8 @@ export const configRouter = router({
 
     try {
       parsed = YAML.parse(raw) as Record<string, unknown>;
-    } catch {
-      // Return raw even if parsing fails - user can see/fix the issue
+    } catch (err) {
+      console.warn("[Config] Failed to parse ralph.yml:", err);
     }
 
     return { raw, parsed };
@@ -1003,8 +1003,8 @@ export function readPresetsFromDir(
         if (parsed && typeof parsed.description === "string") {
           description = parsed.description;
         }
-      } catch {
-        // Ignore parse errors
+      } catch (err) {
+        console.warn(`[Presets] Failed to parse preset file ${file}:`, err);
       }
 
       return {
