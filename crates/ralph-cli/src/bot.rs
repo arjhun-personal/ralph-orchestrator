@@ -1046,6 +1046,7 @@ mod tests {
         })
     }
 
+
     #[test]
     fn test_save_telegram_state_creates_file() {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -1388,6 +1389,25 @@ mod tests {
 
         assert_eq!(resolve_chat_id(), Some(4242));
     }
+
+    #[test]
+    fn test_resolve_chat_id_missing_file_returns_none() {
+        let _lock = test_lock();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        assert_eq!(resolve_chat_id(), None);
+    }
+
+    #[test]
+    fn test_is_robot_enabled_missing_config_returns_false() {
+        let _lock = test_lock();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        assert!(!is_robot_enabled());
+    }
+
 
     #[test]
     fn test_load_config_bot_token_from_missing_file_returns_none() {

@@ -1971,6 +1971,20 @@ mod tests {
     }
 
     #[test]
+    fn test_process_pending_merges_with_empty_queue_no_config_written() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let repo_root = temp_dir.path();
+        std::fs::create_dir_all(repo_root.join(".ralph/merge-queue")).expect("queue dir");
+
+        let config_path = repo_root.join(".ralph/merge-loop-config.yml");
+        assert!(!config_path.exists());
+
+        process_pending_merges_with_command(repo_root, OsStr::new("ralph"));
+
+        assert!(!config_path.exists());
+    }
+
+    #[test]
     fn test_resolve_prompt_content_inline_precedence() {
         let mut config = RalphConfig::default();
         config.event_loop.prompt = Some("inline prompt".to_string());
@@ -2006,6 +2020,19 @@ mod tests {
         let err = resolve_prompt_content(&config.event_loop).expect_err("missing prompt");
         assert!(
             err.to_string().contains("Prompt file"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_resolve_prompt_content_no_prompt_errors() {
+        let mut config = RalphConfig::default();
+        config.event_loop.prompt = None;
+        config.event_loop.prompt_file = String::new();
+
+        let err = resolve_prompt_content(&config.event_loop).expect_err("missing prompt");
+        assert!(
+            err.to_string().contains("No prompt specified"),
             "unexpected error: {err}"
         );
     }

@@ -652,6 +652,42 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
+    async fn preflight_skips_install_when_node_modules_present() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let bin_dir = temp_dir.path().join("bin");
+        std::fs::create_dir_all(&bin_dir).expect("bin dir");
+
+        let node_path = write_fake_executable(&bin_dir, "node", "echo v20.1.0");
+        let npx_path = write_fake_executable(&bin_dir, "npx", "echo 4.21.0");
+        let npm_path = write_fake_executable(
+            &bin_dir,
+            "npm",
+            "if [ \"$1\" = \"--version\" ]; then echo 9.6.0; exit 0; fi\n\
+if [ \"$1\" = \"ci\" ] || [ \"$1\" = \"install\" ]; then touch npm_install_called; exit 0; fi\n\
+exit 1",
+        );
+
+        let root = temp_dir.path().join("workspace");
+        let backend_dir = root.join("server");
+        std::fs::create_dir_all(&backend_dir).expect("backend dir");
+        std::fs::create_dir_all(root.join("node_modules")).expect("node_modules dir");
+        std::fs::write(root.join("node_modules/.package-lock.json"), "")
+            .expect("lockfile");
+
+        preflight_with(
+            &root,
+            &backend_dir,
+            node_path.as_os_str(),
+            npm_path.as_os_str(),
+            npx_path.as_os_str(),
+        )
+        .await
+        .expect("preflight");
+        assert!(!root.join("npm_install_called").exists());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
     async fn run_npm_install_uses_ci_with_lockfile() {
         let temp_dir = TempDir::new().expect("temp dir");
         let bin_dir = temp_dir.path().join("bin");
@@ -716,6 +752,16 @@ mod tests {
             .expect_err("npm install failure");
         let msg = format!("{err}");
         assert!(msg.contains("npm install failed"), "msg: {msg}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_tsx_version_with_missing_binary_is_ok() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let backend_dir = temp_dir.path().join("server");
+        std::fs::create_dir_all(&backend_dir).expect("backend dir");
+
+        assert!(check_tsx_version_with(&backend_dir, OsStr::new("missing-npx-123")).is_ok());
     }
 
     #[cfg(unix)]
