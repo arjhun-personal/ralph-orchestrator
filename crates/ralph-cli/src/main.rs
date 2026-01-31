@@ -2609,4 +2609,15 @@ core:
             std::env::current_dir().unwrap()
         );
     }
+
+    #[test]
+    fn test_list_directory_contents_handles_nested_paths() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let nested_dir = temp_dir.path().join("one/two");
+        std::fs::create_dir_all(&nested_dir).unwrap();
+        std::fs::write(temp_dir.path().join("one/file.txt"), "hello").unwrap();
+
+        assert!(list_directory_contents(temp_dir.path(), false, 0).is_ok());
+        assert!(list_directory_contents(temp_dir.path(), true, 0).is_ok());
+    }
 }

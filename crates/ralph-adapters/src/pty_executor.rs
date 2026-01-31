@@ -1495,6 +1495,8 @@ fn build_result(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::claude_stream::{AssistantMessage, UserMessage};
+    use crate::stream_handler::{SessionResult, StreamHandler};
 
     #[test]
     fn test_double_ctrl_c_within_window() {
@@ -1661,6 +1663,109 @@ mod tests {
 
         assert_eq!(result.extracted_text, extracted);
         assert!(result.stripped_output.contains("raw output"));
+    }
+
+    #[test]
+    fn test_resolve_termination_type_handles_sigint_exit_code() {
+        let termination = resolve_termination_type(130, TerminationType::Natural);
+        assert_eq!(termination, TerminationType::UserInterrupt);
+
+        let termination = resolve_termination_type(0, TerminationType::ForceKill);
+        assert_eq!(termination, TerminationType::ForceKill);
+    }
+
+    #[derive(Default)]
+    struct CapturingHandler {
+        texts: Vec<String>,
+        tool_calls: Vec<(String, String, serde_json::Value)>,
+        tool_results: Vec<(String, String)>,
+        errors: Vec<String>,
+        completions: Vec<SessionResult>,
+    }
+
+    impl StreamHandler for CapturingHandler {
+        fn on_text(&mut self, text: &str) {
+            self.texts.push(text.to_string());
+        }
+
+        fn on_tool_call(&mut self, name: &str, id: &str, input: &serde_json::Value) {
+            self.tool_calls
+                .push((name.to_string(), id.to_string(), input.clone()));
+        }
+
+        fn on_tool_result(&mut self, id: &str, output: &str) {
+            self.tool_results
+                .push((id.to_string(), output.to_string()));
+        }
+
+        fn on_error(&mut self, error: &str) {
+            self.errors.push(error.to_string());
+        }
+
+        fn on_complete(&mut self, result: &SessionResult) {
+            self.completions.push(result.clone());
+        }
+    }
+
+    #[test]
+    fn test_dispatch_stream_event_routes_text_and_tool_calls() {
+        let mut handler = CapturingHandler::default();
+        let mut extracted_text = String::new();
+
+        let event = ClaudeStreamEvent::Assistant {
+            message: AssistantMessage {
+                content: vec![
+                    ContentBlock::Text {
+                        text: "Hello".to_string(),
+                    },
+                    ContentBlock::ToolUse {
+                        id: "tool-1".to_string(),
+                        name: "Read".to_string(),
+                        input: serde_json::json!({"path": "README.md"}),
+                    },
+                ],
+            },
+            usage: None,
+        };
+
+        dispatch_stream_event(event, &mut handler, &mut extracted_text);
+
+        assert_eq!(handler.texts, vec!["Hello".to_string()]);
+        assert_eq!(handler.tool_calls.len(), 1);
+        assert!(extracted_text.contains("Hello"));
+        assert!(extracted_text.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_dispatch_stream_event_routes_tool_results_and_completion() {
+        let mut handler = CapturingHandler::default();
+        let mut extracted_text = String::new();
+
+        let event = ClaudeStreamEvent::User {
+            message: UserMessage {
+                content: vec![UserContentBlock::ToolResult {
+                    tool_use_id: "tool-1".to_string(),
+                    content: "done".to_string(),
+                }],
+            },
+        };
+
+        dispatch_stream_event(event, &mut handler, &mut extracted_text);
+        assert_eq!(handler.tool_results.len(), 1);
+        assert_eq!(handler.tool_results[0].0, "tool-1");
+        assert_eq!(handler.tool_results[0].1, "done");
+
+        let event = ClaudeStreamEvent::Result {
+            duration_ms: 12,
+            total_cost_usd: 0.01,
+            num_turns: 2,
+            is_error: true,
+        };
+
+        dispatch_stream_event(event, &mut handler, &mut extracted_text);
+        assert_eq!(handler.errors.len(), 1);
+        assert_eq!(handler.completions.len(), 1);
+        assert!(handler.completions[0].is_error);
     }
 
     /// Regression test: TUI mode should not spawn stdin reader thread

@@ -1445,14 +1445,20 @@ fn check_planning_session_responses(event_loop: &mut EventLoop) -> Result<()> {
         Ok(id) => id,
         Err(_) => return Ok(()), // Not in planning mode
     };
+    check_planning_session_responses_for_session(event_loop, &session_id)
+}
 
+fn check_planning_session_responses_for_session(
+    event_loop: &mut EventLoop,
+    session_id: &str,
+) -> Result<()> {
     // Get loop context to find the conversation file path
     let ctx = match event_loop.loop_context() {
         Some(ctx) => ctx,
         None => return Ok(()), // No context, can't find conversation file
     };
 
-    let conversation_path = ctx.planning_conversation_path(&session_id);
+    let conversation_path = ctx.planning_conversation_path(session_id);
 
     // Read conversation entries and look for new responses
     // We track which response IDs we've already processed to avoid duplicates
@@ -1706,6 +1712,10 @@ pub async fn start_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ralph_core::HatRegistry;
+    use ralph_core::planning_session::{ConversationEntry, ConversationType};
+    use ralph_proto::{Hat, Topic};
+    use std::sync::Mutex;
 
     #[test]
     fn test_pty_always_enabled_for_streaming() {
@@ -1821,5 +1831,141 @@ mod tests {
             Some(TerminationReason::Interrupted),
             "ForceKill should terminate in autonomous mode"
         );
+    }
+
+    #[test]
+    fn test_resolve_prompt_content_inline_precedence() {
+        let mut config = RalphConfig::default();
+        config.event_loop.prompt = Some("inline prompt".to_string());
+        config.event_loop.prompt_file = "missing.md".to_string();
+
+        let resolved = resolve_prompt_content(&config.event_loop).expect("inline prompt");
+        assert_eq!(resolved, "inline prompt");
+    }
+
+    #[test]
+    fn test_resolve_prompt_content_from_file() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let prompt_path = temp_dir.path().join("PROMPT.md");
+        std::fs::write(&prompt_path, "file prompt").expect("write prompt");
+
+        let mut config = RalphConfig::default();
+        config.event_loop.prompt = None;
+        config.event_loop.prompt_file = prompt_path.to_string_lossy().to_string();
+
+        let resolved = resolve_prompt_content(&config.event_loop).expect("file prompt");
+        assert_eq!(resolved, "file prompt");
+    }
+
+    #[test]
+    fn test_resolve_prompt_content_missing_file_errors() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let missing_path = temp_dir.path().join("missing.md");
+
+        let mut config = RalphConfig::default();
+        config.event_loop.prompt = None;
+        config.event_loop.prompt_file = missing_path.to_string_lossy().to_string();
+
+        let err = resolve_prompt_content(&config.event_loop).expect_err("missing prompt");
+        assert!(
+            err.to_string().contains("Prompt file"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_log_events_from_output_records_orphan_event() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let log_path = temp_dir.path().join("events.jsonl");
+        let mut logger = EventLogger::new(&log_path);
+
+        let mut registry = HatRegistry::new();
+        let mut hat = Hat::new("planner", "Planner");
+        hat.subscriptions.push(Topic::new("task.start"));
+        registry.register(hat);
+
+        let output = "<event topic=\"task.start\">start</event>\n\
+<event topic=\"unknown.event\">oops</event>";
+        let hat_id = HatId::new("tester");
+
+        log_events_from_output(&mut logger, 1, &hat_id, output, &registry);
+
+        let content = std::fs::read_to_string(&log_path).expect("read events");
+        let records: Vec<EventRecord> = content
+            .lines()
+            .map(|line| serde_json::from_str(line).expect("record"))
+            .collect();
+
+        let topics: std::collections::HashSet<String> =
+            records.iter().map(|record| record.topic.clone()).collect();
+        assert!(topics.contains("task.start"));
+        assert!(topics.contains("unknown.event"));
+        assert!(topics.contains("event.orphaned"));
+
+        let triggered = records
+            .iter()
+            .find(|record| record.topic == "task.start")
+            .and_then(|record| record.triggered.clone());
+        assert_eq!(triggered.as_deref(), Some("planner"));
+    }
+
+    #[test]
+    fn test_check_planning_session_responses_publishes_user_response() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let session_id = format!(
+            "session-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("time")
+                .as_nanos()
+        );
+
+        let mut config = RalphConfig::default();
+        config.core.workspace_root = temp_dir.path().to_path_buf();
+        let ctx = ralph_core::LoopContext::primary(temp_dir.path().to_path_buf());
+        let mut event_loop = EventLoop::with_context(config, ctx.clone());
+
+        let conversation_path = ctx.planning_conversation_path(&session_id);
+        std::fs::create_dir_all(conversation_path.parent().expect("parent"))
+            .expect("create conversation dir");
+
+        let prompt_entry = ConversationEntry {
+            entry_type: ConversationType::UserPrompt,
+            id: "prompt-1".to_string(),
+            text: "Which option?".to_string(),
+            ts: "2026-01-31T00:00:00Z".to_string(),
+        };
+        let response_entry = ConversationEntry {
+            entry_type: ConversationType::UserResponse,
+            id: "response-1".to_string(),
+            text: "Option A".to_string(),
+            ts: "2026-01-31T00:00:01Z".to_string(),
+        };
+        let conversation = format!(
+            "{}\n{}\n",
+            serde_json::to_string(&prompt_entry).expect("serialize prompt"),
+            serde_json::to_string(&response_entry).expect("serialize response")
+        );
+        std::fs::write(&conversation_path, conversation).expect("write conversation");
+
+        let published = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let published_clone = std::sync::Arc::clone(&published);
+        event_loop
+            .bus()
+            .add_observer(move |event| published_clone.lock().unwrap().push(event.clone()));
+
+        check_planning_session_responses_for_session(&mut event_loop, &session_id)
+            .expect("check responses");
+        {
+            let events = published.lock().unwrap();
+            assert_eq!(events.len(), 1);
+            assert_eq!(events[0].topic.as_str(), "user.response");
+            assert!(events[0].payload.contains("response-1"));
+        }
+
+        check_planning_session_responses_for_session(&mut event_loop, &session_id)
+            .expect("dedup responses");
+        let events = published.lock().unwrap();
+        assert_eq!(events.len(), 1);
     }
 }
