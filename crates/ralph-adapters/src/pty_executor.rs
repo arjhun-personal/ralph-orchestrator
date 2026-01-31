@@ -1618,6 +1618,22 @@ mod tests {
         assert_eq!(config.rows, 24);
     }
 
+    #[test]
+    fn test_pty_config_from_env_matches_env_or_defaults() {
+        let cols = std::env::var("COLUMNS")
+            .ok()
+            .and_then(|value| value.parse::<u16>().ok())
+            .unwrap_or(80);
+        let rows = std::env::var("LINES")
+            .ok()
+            .and_then(|value| value.parse::<u16>().ok())
+            .unwrap_or(24);
+
+        let config = PtyConfig::from_env();
+        assert_eq!(config.cols, cols);
+        assert_eq!(config.rows, rows);
+    }
+
     /// Verifies that the idle timeout logic in run_interactive correctly handles
     /// activity resets. Per spec (interactive-mode.spec.md lines 155-159):
     /// - Timeout resets on agent output (any bytes from PTY)

@@ -1389,4 +1389,12 @@ mod tests {
         assert_eq!(resolve_chat_id(), Some(4242));
     }
 
+    #[test]
+    fn test_load_config_bot_token_from_missing_file_returns_none() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let missing_path = temp_dir.path().join("missing.yml");
+
+        assert_eq!(load_config_bot_token_from(&missing_path), None);
+    }
+
 }
