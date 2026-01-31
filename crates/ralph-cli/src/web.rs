@@ -166,7 +166,9 @@ fn check_tsx_version_with(backend_dir: &Path, npx_cmd: &OsStr) -> Result<()> {
 
     if let Ok(output) = output {
         let version = String::from_utf8_lossy(&output.stdout);
-        if version.trim() == "4.20.0" {
+        let token = version.split_whitespace().last().unwrap_or("");
+        let cleaned = token.trim_start_matches('v');
+        if cleaned == "4.20.0" {
             anyhow::bail!(
                 "tsx 4.20.0 has known issues that affect the web server.\n\
                  Fix: npm install tsx@^4.21.0 -w @ralph-web/server"
@@ -613,6 +615,32 @@ mod tests {
         let backend_dir = temp_dir.path().join("server");
         std::fs::create_dir_all(&backend_dir).expect("backend dir");
         let npx_path = write_fake_executable(temp_dir.path(), "npx", "echo 4.20.0");
+        let err =
+            check_tsx_version_with(&backend_dir, npx_path.as_os_str()).expect_err("tsx error");
+        let msg = format!("{err}");
+        assert!(msg.contains("tsx 4.20.0"), "msg: {msg}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_tsx_version_blocks_known_bad_release_with_v_prefix() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let backend_dir = temp_dir.path().join("server");
+        std::fs::create_dir_all(&backend_dir).expect("backend dir");
+        let npx_path = write_fake_executable(temp_dir.path(), "npx", "echo v4.20.0");
+        let err =
+            check_tsx_version_with(&backend_dir, npx_path.as_os_str()).expect_err("tsx error");
+        let msg = format!("{err}");
+        assert!(msg.contains("tsx 4.20.0"), "msg: {msg}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_tsx_version_blocks_known_bad_release_with_label() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let backend_dir = temp_dir.path().join("server");
+        std::fs::create_dir_all(&backend_dir).expect("backend dir");
+        let npx_path = write_fake_executable(temp_dir.path(), "npx", "echo tsx v4.20.0");
         let err =
             check_tsx_version_with(&backend_dir, npx_path.as_os_str()).expect_err("tsx error");
         let msg = format!("{err}");

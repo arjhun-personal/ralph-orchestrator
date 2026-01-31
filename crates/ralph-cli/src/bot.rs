@@ -932,12 +932,34 @@ fn is_robot_enabled() -> bool {
         .unwrap_or(false)
 }
 
+fn normalize_token(value: Option<String>) -> Option<String> {
+    value.and_then(|raw| {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn resolve_token_from(
+    env_token: Option<String>,
+    keychain_token: Option<String>,
+    config_token: Option<String>,
+) -> Option<String> {
+    normalize_token(env_token)
+        .or_else(|| normalize_token(keychain_token))
+        .or_else(|| normalize_token(config_token))
+}
+
 /// Resolve token from all sources (env > keychain > config).
 pub(crate) fn resolve_token() -> Option<String> {
-    std::env::var("RALPH_TELEGRAM_BOT_TOKEN")
-        .ok()
-        .or_else(load_bot_token)
-        .or_else(load_config_bot_token)
+    resolve_token_from(
+        std::env::var("RALPH_TELEGRAM_BOT_TOKEN").ok(),
+        load_bot_token(),
+        load_config_bot_token(),
+    )
 }
 
 /// Resolve chat_id from telegram state.
@@ -1397,6 +1419,39 @@ mod tests {
         let _cwd = CwdGuard::set(temp_dir.path());
 
         assert_eq!(resolve_chat_id(), None);
+    }
+
+    #[test]
+    fn test_resolve_token_from_prefers_env_and_trims() {
+        let resolved = resolve_token_from(
+            Some("  env-token  ".to_string()),
+            Some("keychain-token".to_string()),
+            Some("config-token".to_string()),
+        );
+
+        assert_eq!(resolved.as_deref(), Some("env-token"));
+    }
+
+    #[test]
+    fn test_resolve_token_from_skips_empty_values() {
+        let resolved = resolve_token_from(
+            Some("   ".to_string()),
+            Some("".to_string()),
+            Some(" config-token ".to_string()),
+        );
+
+        assert_eq!(resolved.as_deref(), Some("config-token"));
+    }
+
+    #[test]
+    fn test_resolve_token_from_returns_none_when_all_empty() {
+        let resolved = resolve_token_from(
+            Some("   ".to_string()),
+            Some("".to_string()),
+            Some("   ".to_string()),
+        );
+
+        assert_eq!(resolved, None);
     }
 
     #[test]
