@@ -502,6 +502,7 @@ async fn terminate_gracefully(child: &mut Child, _grace_period: Duration) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsStr;
     use std::net::TcpListener;
     use std::path::PathBuf;
     use tempfile::TempDir;
@@ -568,6 +569,24 @@ mod tests {
         assert!(msg.contains("too old"), "msg: {msg}");
     }
 
+    #[test]
+    fn check_node_reports_missing_binary() {
+        let err =
+            check_node_with(OsStr::new("definitely-missing-node-12345")).expect_err("missing");
+        let msg = format!("{err}");
+        assert!(msg.contains("Node.js is not installed"), "msg: {msg}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_node_reports_failed_command() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let node_path = write_fake_executable(temp_dir.path(), "node", "exit 1");
+        let err = check_node_with(node_path.as_os_str()).expect_err("node failure");
+        let msg = format!("{err}");
+        assert!(msg.contains("Failed to run `node --version`"), "msg: {msg}");
+    }
+
     #[cfg(unix)]
     #[test]
     fn check_npm_reads_version() {
@@ -575,6 +594,16 @@ mod tests {
         let npm_path = write_fake_executable(temp_dir.path(), "npm", "echo 9.1.0");
         let version = check_npm_with(npm_path.as_os_str()).expect("check npm");
         assert_eq!(version.trim(), "9.1.0");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_npm_reports_failed_command() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let npm_path = write_fake_executable(temp_dir.path(), "npm", "exit 1");
+        let err = check_npm_with(npm_path.as_os_str()).expect_err("npm failure");
+        let msg = format!("{err}");
+        assert!(msg.contains("Failed to run `npm --version`"), "msg: {msg}");
     }
 
     #[cfg(unix)]

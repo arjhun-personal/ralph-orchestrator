@@ -2047,6 +2047,27 @@ mod tests {
     }
 
     #[test]
+    fn test_log_terminate_event_writes_record() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let log_path = temp_dir.path().join("events.jsonl");
+        let mut logger = EventLogger::new(&log_path);
+
+        let event = Event::new("loop.terminate", "done");
+        log_terminate_event(&mut logger, 7, &event);
+
+        let content = std::fs::read_to_string(&log_path).expect("read events");
+        let records: Vec<EventRecord> = content
+            .lines()
+            .map(|line| serde_json::from_str(line).expect("record"))
+            .collect();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].topic, "loop.terminate");
+        assert_eq!(records[0].hat, "loop");
+        assert_eq!(records[0].iteration, 7);
+    }
+
+    #[test]
     fn test_check_planning_session_responses_publishes_user_response() {
         let temp_dir = tempfile::tempdir().expect("temp dir");
         let session_id = format!(
@@ -2105,4 +2126,5 @@ mod tests {
         let events = published.lock().unwrap();
         assert_eq!(events.len(), 1);
     }
+
 }

@@ -1273,6 +1273,17 @@ mod tests {
     }
 
     #[test]
+    fn test_load_config_bot_token_from_reads_lowercase_robot() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("custom.yml");
+        let yaml = "robot:\n  telegram:\n    bot_token: token-lower\n";
+        std::fs::write(&config_path, yaml).unwrap();
+
+        let token = load_config_bot_token_from(&config_path);
+        assert_eq!(token.as_deref(), Some("token-lower"));
+    }
+
+    #[test]
     fn test_save_bot_token_config_writes_token() {
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join("config.yml");
@@ -1377,4 +1388,5 @@ mod tests {
 
         assert_eq!(resolve_chat_id(), Some(4242));
     }
+
 }

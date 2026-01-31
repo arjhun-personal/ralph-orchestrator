@@ -1514,6 +1514,27 @@ mod tests {
     }
 
     #[test]
+    fn test_input_event_from_bytes_ctrl_c() {
+        let event = InputEvent::from_bytes(vec![3]);
+        assert!(matches!(event, InputEvent::CtrlC));
+    }
+
+    #[test]
+    fn test_input_event_from_bytes_ctrl_backslash() {
+        let event = InputEvent::from_bytes(vec![28]);
+        assert!(matches!(event, InputEvent::CtrlBackslash));
+    }
+
+    #[test]
+    fn test_input_event_from_bytes_data() {
+        let event = InputEvent::from_bytes(vec![b'a']);
+        assert!(matches!(event, InputEvent::Data(_)));
+
+        let event = InputEvent::from_bytes(vec![1, 2, 3]);
+        assert!(matches!(event, InputEvent::Data(_)));
+    }
+
+    #[test]
     fn test_ctrl_c_window_expires() {
         let mut state = CtrlCState::new();
         let now = Instant::now();
@@ -1766,6 +1787,27 @@ mod tests {
         assert_eq!(handler.errors.len(), 1);
         assert_eq!(handler.completions.len(), 1);
         assert!(handler.completions[0].is_error);
+    }
+
+    #[test]
+    fn test_dispatch_stream_event_system_noop() {
+        let mut handler = CapturingHandler::default();
+        let mut extracted_text = String::new();
+
+        let event = ClaudeStreamEvent::System {
+            session_id: "session-1".to_string(),
+            model: "claude-test".to_string(),
+            tools: Vec::new(),
+        };
+
+        dispatch_stream_event(event, &mut handler, &mut extracted_text);
+
+        assert!(handler.texts.is_empty());
+        assert!(handler.tool_calls.is_empty());
+        assert!(handler.tool_results.is_empty());
+        assert!(handler.errors.is_empty());
+        assert!(handler.completions.is_empty());
+        assert!(extracted_text.is_empty());
     }
 
     /// Regression test: TUI mode should not spawn stdin reader thread
