@@ -1064,4 +1064,51 @@ mod tests {
         )
         .expect("list loops");
     }
+
+    #[test]
+    fn test_resolve_loop_exact_match_registry() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-test-9999",
+            "resolve me",
+            Some("worktrees/loop-test-9999"),
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        let (id, worktree) = resolve_loop(temp_dir.path(), "loop-test-9999").expect("resolve");
+        assert_eq!(id, "loop-test-9999");
+        assert_eq!(worktree, Some("worktrees/loop-test-9999".to_string()));
+    }
+
+    #[test]
+    fn test_resolve_loop_partial_match_registry_suffix() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-test-8888",
+            "resolve suffix",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        let (id, worktree) = resolve_loop(temp_dir.path(), "8888").expect("resolve");
+        assert_eq!(id, "loop-test-8888");
+        assert_eq!(worktree, None);
+    }
+
+    #[test]
+    fn test_resolve_loop_missing_returns_error() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let err = resolve_loop(temp_dir.path(), "does-not-exist").unwrap_err();
+        assert!(err.to_string().contains("not found"));
+    }
 }

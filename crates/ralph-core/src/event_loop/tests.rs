@@ -2643,3 +2643,300 @@ event_loop:
         "Persistent mode should still respect max_iterations"
     );
 }
+
+#[test]
+fn test_termination_reason_mappings() {
+    let cases = vec![
+        (
+            TerminationReason::CompletionPromise,
+            "completed",
+            0,
+            true,
+            true,
+        ),
+        (
+            TerminationReason::MaxIterations,
+            "max_iterations",
+            2,
+            false,
+            false,
+        ),
+        (TerminationReason::MaxRuntime, "max_runtime", 2, false, false),
+        (TerminationReason::MaxCost, "max_cost", 2, false, false),
+        (
+            TerminationReason::ConsecutiveFailures,
+            "consecutive_failures",
+            1,
+            false,
+            false,
+        ),
+        (TerminationReason::LoopThrashing, "loop_thrashing", 1, false, false),
+        (
+            TerminationReason::ValidationFailure,
+            "validation_failure",
+            1,
+            false,
+            false,
+        ),
+        (TerminationReason::Stopped, "stopped", 1, false, false),
+        (TerminationReason::Interrupted, "interrupted", 130, false, false),
+        (
+            TerminationReason::ChaosModeComplete,
+            "chaos_complete",
+            0,
+            true,
+            false,
+        ),
+        (
+            TerminationReason::ChaosModeMaxIterations,
+            "chaos_max_iterations",
+            2,
+            false,
+            false,
+        ),
+        (
+            TerminationReason::RestartRequested,
+            "restart_requested",
+            3,
+            false,
+            false,
+        ),
+    ];
+
+    for (reason, expected_str, expected_code, is_success, triggers_chaos) in cases {
+        assert_eq!(reason.as_str(), expected_str);
+        assert_eq!(reason.exit_code(), expected_code);
+        assert_eq!(reason.is_success(), is_success);
+        assert_eq!(reason.triggers_chaos_mode(), triggers_chaos);
+    }
+}
+
+#[test]
+fn test_termination_status_texts() {
+    let cases = vec![
+        (
+            TerminationReason::CompletionPromise,
+            "All tasks completed successfully.",
+        ),
+        (TerminationReason::MaxIterations, "Stopped at iteration limit."),
+        (TerminationReason::MaxRuntime, "Stopped at runtime limit."),
+        (TerminationReason::MaxCost, "Stopped at cost limit."),
+        (
+            TerminationReason::ConsecutiveFailures,
+            "Too many consecutive failures.",
+        ),
+        (
+            TerminationReason::LoopThrashing,
+            "Loop thrashing detected - same hat repeatedly blocked.",
+        ),
+        (
+            TerminationReason::ValidationFailure,
+            "Too many consecutive malformed JSONL events.",
+        ),
+        (TerminationReason::Stopped, "Manually stopped."),
+        (TerminationReason::Interrupted, "Interrupted by signal."),
+        (
+            TerminationReason::ChaosModeComplete,
+            "Chaos mode exploration complete.",
+        ),
+        (
+            TerminationReason::ChaosModeMaxIterations,
+            "Chaos mode stopped at iteration limit.",
+        ),
+        (
+            TerminationReason::RestartRequested,
+            "Restarting by human request.",
+        ),
+    ];
+
+    for (reason, expected) in cases {
+        assert_eq!(termination_status_text(&reason), expected);
+    }
+}
+
+#[test]
+fn test_format_duration_variants() {
+    use std::time::Duration;
+
+    assert_eq!(format_duration(Duration::from_secs(45)), "45s");
+    assert_eq!(format_duration(Duration::from_secs(61)), "1m 1s");
+    assert_eq!(format_duration(Duration::from_secs(3600)), "1h 0m 0s");
+    assert_eq!(format_duration(Duration::from_secs(3661)), "1h 1m 1s");
+}
+
+#[test]
+fn test_extract_task_id_first_line_and_default() {
+    assert_eq!(
+        EventLoop::extract_task_id(" task-123 \nMore details"),
+        "task-123"
+    );
+    assert_eq!(EventLoop::extract_task_id(""), "unknown");
+}
+
+#[test]
+fn test_mutation_warning_reason_variants() {
+    let fail = MutationEvidence {
+        status: MutationStatus::Fail,
+        score_percent: Some(12.5),
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&fail, Some(80.0)).unwrap(),
+        "mutation testing failed"
+    );
+
+    let warn = MutationEvidence {
+        status: MutationStatus::Warn,
+        score_percent: Some(65.5),
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&warn, Some(80.0)).unwrap(),
+        "mutation score below threshold (65.50%)"
+    );
+
+    let unknown = MutationEvidence {
+        status: MutationStatus::Unknown,
+        score_percent: None,
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&unknown, Some(80.0)).unwrap(),
+        "mutation testing status unknown"
+    );
+
+    let pass_low = MutationEvidence {
+        status: MutationStatus::Pass,
+        score_percent: Some(70.0),
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&pass_low, Some(80.0)).unwrap(),
+        "mutation score 70.00% below threshold 80.00%"
+    );
+
+    let pass_missing = MutationEvidence {
+        status: MutationStatus::Pass,
+        score_percent: None,
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&pass_missing, Some(80.0)).unwrap(),
+        "mutation score missing (threshold 80.00%)"
+    );
+
+    let pass_high = MutationEvidence {
+        status: MutationStatus::Pass,
+        score_percent: Some(95.0),
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&pass_high, Some(80.0)),
+        None
+    );
+
+    let pass_no_threshold = MutationEvidence {
+        status: MutationStatus::Pass,
+        score_percent: Some(10.0),
+    };
+    assert_eq!(
+        EventLoop::mutation_warning_reason(&pass_no_threshold, None),
+        None
+    );
+}
+
+#[test]
+fn test_extract_prompt_id_prefers_xml_id() {
+    let payload = r#"<event topic="user.prompt" id="q42">Question?</event>"#;
+    assert_eq!(EventLoop::extract_prompt_id(payload), "q42");
+}
+
+#[test]
+fn test_extract_prompt_id_fallback_prefix() {
+    let id = EventLoop::extract_prompt_id("Plain question");
+    assert!(id.starts_with('q'));
+    assert!(id.len() > 1);
+}
+
+#[test]
+fn test_check_for_user_prompt_extracts_id_and_text() {
+    let event_loop = EventLoop::new(RalphConfig::default());
+    let payload = r#"<event topic="user.prompt" id="q7">Need input</event>"#;
+    let events = vec![
+        Event::new("build.done", "ok"),
+        Event::new("user.prompt", payload),
+    ];
+
+    let prompt = event_loop.check_for_user_prompt(&events).expect("prompt");
+    assert_eq!(prompt.id, "q7");
+    assert_eq!(prompt.text, payload);
+}
+
+#[test]
+fn test_task_counts_and_open_task_list() {
+    use crate::loop_context::LoopContext;
+    use crate::task::{Task, TaskStatus};
+    use crate::task_store::TaskStore;
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let loop_context = LoopContext::primary(temp_dir.path().to_path_buf());
+    let event_loop = EventLoop::with_context(RalphConfig::default(), loop_context);
+
+    let tasks_path = temp_dir.path().join(".ralph/agent/tasks.jsonl");
+    let mut store = TaskStore::load(&tasks_path).unwrap();
+    let mut closed = Task::new("Closed task".to_string(), 1);
+    closed.status = TaskStatus::Closed;
+    let open = Task::new("Open task".to_string(), 1);
+    let open_id = open.id.clone();
+    store.add(closed);
+    store.add(open);
+    store.save().unwrap();
+
+    let (open_count, closed_count) = event_loop.count_tasks();
+    assert_eq!(open_count, 1);
+    assert_eq!(closed_count, 1);
+
+    let open_list = event_loop.get_open_task_list();
+    assert_eq!(open_list.len(), 1);
+    assert!(open_list[0].contains(&open_id));
+    assert!(open_list[0].contains("Open task"));
+}
+
+#[test]
+fn test_verify_tasks_complete_missing_and_pending() {
+    use crate::loop_context::LoopContext;
+    use crate::task::Task;
+    use crate::task_store::TaskStore;
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let loop_context = LoopContext::primary(temp_dir.path().to_path_buf());
+    let event_loop = EventLoop::with_context(RalphConfig::default(), loop_context);
+
+    // Missing tasks file should be treated as complete.
+    assert_eq!(event_loop.verify_tasks_complete().unwrap(), true);
+
+    let tasks_path = temp_dir.path().join(".ralph/agent/tasks.jsonl");
+    let mut store = TaskStore::load(&tasks_path).unwrap();
+    store.add(Task::new("Open task".to_string(), 1));
+    store.save().unwrap();
+
+    assert_eq!(event_loop.verify_tasks_complete().unwrap(), false);
+}
+
+#[test]
+fn test_verify_scratchpad_complete_variants() {
+    use crate::loop_context::LoopContext;
+    use std::fs;
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let loop_context = LoopContext::primary(temp_dir.path().to_path_buf());
+    let event_loop = EventLoop::with_context(RalphConfig::default(), loop_context);
+
+    assert!(event_loop.verify_scratchpad_complete().is_err());
+
+    let scratchpad_path = temp_dir.path().join(".ralph/agent/scratchpad.md");
+    fs::create_dir_all(scratchpad_path.parent().unwrap()).unwrap();
+    fs::write(&scratchpad_path, "## Tasks\n- [ ] Pending\n").unwrap();
+    assert_eq!(event_loop.verify_scratchpad_complete().unwrap(), false);
+
+    fs::write(
+        &scratchpad_path,
+        "## Tasks\n- [x] Done\n- [~] Cancelled\n",
+    )
+    .unwrap();
+    assert_eq!(event_loop.verify_scratchpad_complete().unwrap(), true);
+}
