@@ -20,7 +20,7 @@ Backpressure approach:
 
 ```
 Implement the feature.
-Evidence required: tests: pass, lint: pass, typecheck: pass, audit: pass
+Evidence required: tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass
 ```
 
 The AI figures out the "how" — it's smart enough. Your job is defining "what success looks like."
@@ -42,10 +42,11 @@ hats:
       - lint: pass (run `cargo clippy`)
       - typecheck: pass (run `cargo check`)
       - audit: pass (run `cargo audit`)
+      - coverage: pass (run `cargo tarpaulin` or equivalent)
 
       Include evidence in your event:
       ```
-      ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass"
+      ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass"
       ```
 ```
 
@@ -55,7 +56,7 @@ Events carry evidence of backpressure satisfaction:
 
 ```bash
 # Good: Evidence included
-ralph emit "build.done" "tests: 42 pass, lint: clean, typecheck: ok"
+ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass"
 
 # Bad: No evidence
 ralph emit "build.done" "I think it works"
@@ -200,7 +201,7 @@ Different levels of strictness:
 evidence: "tests: pass"
 
 # Later iteration: full checks
-evidence: "tests: pass, lint: pass, audit: pass, coverage: 80%+"
+evidence: "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass (>=80%)"
 ```
 
 ### Escape Hatches
@@ -230,7 +231,7 @@ instructions: |
 
 ```yaml
 # Bad: Evidence not verified
-ralph emit "build.done" "tests: pass"  # Didn't actually run tests
+ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass"  # Didn't actually run tests
 ```
 
 ### Too Many Gates

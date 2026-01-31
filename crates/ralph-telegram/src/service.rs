@@ -857,7 +857,7 @@ mod tests {
         let mut file = std::fs::File::create(&events_path).unwrap();
         writeln!(
             file,
-            r#"{{"topic":"build.done","payload":"tests: pass","ts":"2026-01-30T00:00:00Z"}}"#
+            r#"{{"topic":"build.done","payload":"tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass","ts":"2026-01-30T00:00:00Z"}}"#
         )
         .unwrap();
         // Write a human.response event

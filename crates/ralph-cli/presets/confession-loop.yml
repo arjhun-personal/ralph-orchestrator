@@ -74,7 +74,7 @@ hats:
 
       ### Event Format
       ```bash
-      ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass. Summary of what was done"
+      ralph emit "build.done" "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass. Summary of what was done"
       ```
 
       If stuck:

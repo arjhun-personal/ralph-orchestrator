@@ -362,6 +362,7 @@ tests: pass
 lint: pass
 typecheck: pass
 audit: pass
+coverage: pass
 </event>"#;
 
         let line1 = make_write_line(output_with_events, 0);

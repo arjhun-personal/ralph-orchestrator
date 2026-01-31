@@ -129,6 +129,7 @@ hats:
       lint: pass
       typecheck: pass
       audit: pass
+      coverage: pass
       </event>
 
       Always mention "Builder role activated" in your response.
@@ -1158,7 +1159,8 @@ mod tests {
                 },
                 EventRecord {
                     topic: "build.done".to_string(),
-                    payload: "tests: pass".to_string(),
+                    payload: "tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass"
+                        .to_string(),
                 },
             ],
             iterations: 2,

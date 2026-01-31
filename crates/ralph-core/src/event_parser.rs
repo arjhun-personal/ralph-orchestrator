@@ -72,12 +72,17 @@ pub struct BackpressureEvidence {
     pub lint_passed: bool,
     pub typecheck_passed: bool,
     pub audit_passed: bool,
+    pub coverage_passed: bool,
 }
 
 impl BackpressureEvidence {
     /// Returns true if all checks passed.
     pub fn all_passed(&self) -> bool {
-        self.tests_passed && self.lint_passed && self.typecheck_passed && self.audit_passed
+        self.tests_passed
+            && self.lint_passed
+            && self.typecheck_passed
+            && self.audit_passed
+            && self.coverage_passed
     }
 }
 
@@ -193,6 +198,7 @@ impl EventParser {
     /// lint: pass
     /// typecheck: pass
     /// audit: pass
+    /// coverage: pass
     /// ```
     ///
     /// Note: ANSI escape codes are stripped before parsing to handle
@@ -205,18 +211,21 @@ impl EventParser {
         let lint_passed = clean_payload.contains("lint: pass");
         let typecheck_passed = clean_payload.contains("typecheck: pass");
         let audit_passed = clean_payload.contains("audit: pass");
+        let coverage_passed = clean_payload.contains("coverage: pass");
 
         // Only return evidence if at least one check is mentioned
         if clean_payload.contains("tests:")
             || clean_payload.contains("lint:")
             || clean_payload.contains("typecheck:")
             || clean_payload.contains("audit:")
+            || clean_payload.contains("coverage:")
         {
             Some(BackpressureEvidence {
                 tests_passed,
                 lint_passed,
                 typecheck_passed,
                 audit_passed,
+                coverage_passed,
             })
         } else {
             None
@@ -524,23 +533,25 @@ Still working..."#;
 
     #[test]
     fn test_parse_backpressure_evidence_all_pass() {
-        let payload = "tests: pass\nlint: pass\ntypecheck: pass\naudit: pass";
+        let payload = "tests: pass\nlint: pass\ntypecheck: pass\naudit: pass\ncoverage: pass";
         let evidence = EventParser::parse_backpressure_evidence(payload).unwrap();
         assert!(evidence.tests_passed);
         assert!(evidence.lint_passed);
         assert!(evidence.typecheck_passed);
         assert!(evidence.audit_passed);
+        assert!(evidence.coverage_passed);
         assert!(evidence.all_passed());
     }
 
     #[test]
     fn test_parse_backpressure_evidence_some_fail() {
-        let payload = "tests: pass\nlint: fail\ntypecheck: pass\naudit: pass";
+        let payload = "tests: pass\nlint: fail\ntypecheck: pass\naudit: pass\ncoverage: pass";
         let evidence = EventParser::parse_backpressure_evidence(payload).unwrap();
         assert!(evidence.tests_passed);
         assert!(!evidence.lint_passed);
         assert!(evidence.typecheck_passed);
         assert!(evidence.audit_passed);
+        assert!(evidence.coverage_passed);
         assert!(!evidence.all_passed());
     }
 
@@ -559,17 +570,19 @@ Still working..."#;
         assert!(!evidence.lint_passed);
         assert!(!evidence.typecheck_passed);
         assert!(!evidence.audit_passed);
+        assert!(!evidence.coverage_passed);
         assert!(!evidence.all_passed());
     }
 
     #[test]
     fn test_parse_backpressure_evidence_with_ansi_codes() {
-        let payload = "\x1b[0mtests: pass\x1b[0m\n\x1b[32mlint: pass\x1b[0m\ntypecheck: pass\n\x1b[34maudit: pass\x1b[0m";
+        let payload = "\x1b[0mtests: pass\x1b[0m\n\x1b[32mlint: pass\x1b[0m\ntypecheck: pass\n\x1b[34maudit: pass\x1b[0m\n\x1b[35mcoverage: pass\x1b[0m";
         let evidence = EventParser::parse_backpressure_evidence(payload).unwrap();
         assert!(evidence.tests_passed);
         assert!(evidence.lint_passed);
         assert!(evidence.typecheck_passed);
         assert!(evidence.audit_passed);
+        assert!(evidence.coverage_passed);
         assert!(evidence.all_passed());
     }
 
@@ -643,5 +656,6 @@ Still working..."#;
         let evidence = EventParser::parse_backpressure_evidence(payload).unwrap();
         assert!(!evidence.tests_passed); // "tests: fail" not "tests: pass"
         assert!(evidence.lint_passed);
+        assert!(!evidence.coverage_passed);
     }
 }

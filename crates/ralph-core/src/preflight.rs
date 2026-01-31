@@ -320,17 +320,29 @@ impl PreflightCheck for PathsExistCheck {
 #[derive(Debug, Clone)]
 struct ToolsInPathCheck {
     required: Vec<String>,
+    optional: Vec<String>,
 }
 
 impl ToolsInPathCheck {
+    #[cfg(test)]
     fn new(required: Vec<String>) -> Self {
-        Self { required }
+        Self {
+            required,
+            optional: Vec::new(),
+        }
+    }
+
+    fn new_with_optional(required: Vec<String>, optional: Vec<String>) -> Self {
+        Self { required, optional }
     }
 }
 
 impl Default for ToolsInPathCheck {
     fn default() -> Self {
-        Self::new(vec!["git".to_string(), "cargo-audit".to_string()])
+        Self::new_with_optional(
+            vec!["git".to_string(), "cargo-audit".to_string()],
+            vec!["cargo-tarpaulin".to_string()],
+        )
     }
 }
 
@@ -341,23 +353,42 @@ impl PreflightCheck for ToolsInPathCheck {
     }
 
     async fn run(&self, _config: &RalphConfig) -> CheckResult {
-        let missing: Vec<String> = self
+        let missing_required: Vec<String> = self
             .required
             .iter()
             .filter(|tool| find_executable(tool).is_none())
             .cloned()
             .collect();
 
-        if missing.is_empty() {
+        let missing_optional: Vec<String> = self
+            .optional
+            .iter()
+            .filter(|tool| find_executable(tool).is_none())
+            .cloned()
+            .collect();
+
+        if missing_required.is_empty() && missing_optional.is_empty() {
+            let mut tools = self.required.clone();
+            tools.extend(self.optional.clone());
             CheckResult::pass(
                 self.name(),
-                format!("Required tools available ({})", self.required.join(", ")),
+                format!("Required tools available ({})", tools.join(", ")),
+            )
+        } else if missing_required.is_empty() {
+            CheckResult::warn(
+                self.name(),
+                "Missing optional tools",
+                format!("Missing: {}", missing_optional.join(", ")),
             )
         } else {
+            let mut detail = format!("required: {}", missing_required.join(", "));
+            if !missing_optional.is_empty() {
+                detail.push_str(&format!("; optional: {}", missing_optional.join(", ")));
+            }
             CheckResult::fail(
                 self.name(),
                 "Missing required tools",
-                format!("Missing: {}", missing.join(", ")),
+                format!("Missing {}", detail),
             )
         }
     }
@@ -624,6 +655,20 @@ mod tests {
         let result = check.run(&config).await;
 
         assert_eq!(result.status, CheckStatus::Fail);
+        assert!(result.message.unwrap_or_default().contains("Missing"));
+    }
+
+    #[tokio::test]
+    async fn tools_check_warns_on_missing_optional_tools() {
+        let check = ToolsInPathCheck::new_with_optional(
+            Vec::new(),
+            vec!["definitely-not-a-tool".to_string()],
+        );
+        let config = RalphConfig::default();
+
+        let result = check.run(&config).await;
+
+        assert_eq!(result.status, CheckStatus::Warn);
         assert!(result.message.unwrap_or_default().contains("Missing"));
     }
 
