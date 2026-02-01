@@ -574,6 +574,127 @@ fn has_acceptance_criteria(content: &str) -> bool {
     has_given && has_then
 }
 
+/// A single acceptance criterion extracted from a spec file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AcceptanceCriterion {
+    /// The precondition (Given clause).
+    pub given: String,
+    /// The action or trigger (When clause). Optional because some specs omit it.
+    pub when: Option<String>,
+    /// The expected outcome (Then clause).
+    pub then: String,
+}
+
+/// Extract structured Given/When/Then acceptance criteria from spec content.
+///
+/// Parses the same patterns recognized by [`has_acceptance_criteria`] but returns
+/// structured triples instead of a boolean. Each contiguous Given[/When]/Then
+/// group produces one [`AcceptanceCriterion`].
+pub fn extract_acceptance_criteria(content: &str) -> Vec<AcceptanceCriterion> {
+    let mut criteria = Vec::new();
+    let mut current_given: Option<String> = None;
+    let mut current_when: Option<String> = None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        let lower = trimmed.to_lowercase();
+
+        if let Some(text) = match_clause(&lower, trimmed, "given") {
+            // Flush any previous incomplete criterion before starting a new Given
+            if let Some(given) = current_given.take() {
+                // Previous Given without Then — skip incomplete criterion
+                let _ = given;
+            }
+            current_given = Some(text);
+            current_when = None;
+        } else if let Some(text) = match_clause(&lower, trimmed, "when") {
+            current_when = Some(text);
+        } else if let Some(text) = match_clause(&lower, trimmed, "then") {
+            if let Some(given) = current_given.take() {
+                criteria.push(AcceptanceCriterion {
+                    given,
+                    when: current_when.take(),
+                    then: text,
+                });
+            }
+            // Reset for next criterion
+            current_when = None;
+        }
+    }
+
+    criteria
+}
+
+/// Match a Given/When/Then clause line and extract the text after the keyword.
+///
+/// Handles bold (`**Given**`), plain (`Given `), list (`- Given `), and bold-list
+/// (`- **Given**`) formats. Returns the text portion after the keyword, or `None`
+/// if the line doesn't match.
+fn match_clause(lower: &str, original: &str, keyword: &str) -> Option<String> {
+    let bold = format!("**{keyword}**");
+    let plain = format!("{keyword} ");
+    let list_plain = format!("- {keyword} ");
+    let list_bold = format!("- **{keyword}**");
+
+    // Determine the offset where the actual text starts
+    let text_start = if lower.starts_with(&bold) {
+        Some(bold.len())
+    } else if lower.starts_with(&list_bold) {
+        Some(list_bold.len())
+    } else if lower.starts_with(&list_plain) {
+        Some(list_plain.len())
+    } else if lower.starts_with(&plain) {
+        Some(plain.len())
+    } else {
+        None
+    };
+
+    text_start.map(|offset| original[offset..].trim().to_string())
+}
+
+/// Extract acceptance criteria from a spec file at the given path.
+///
+/// Reads the file, skips `status: implemented` specs, and returns structured
+/// criteria. Returns an empty vec if the file is unreadable or already implemented.
+pub fn extract_criteria_from_file(path: &Path) -> Vec<AcceptanceCriterion> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    // Skip implemented specs
+    if content.to_lowercase().contains("status: implemented") {
+        return Vec::new();
+    }
+
+    extract_acceptance_criteria(&content)
+}
+
+/// Extract acceptance criteria from all spec files in a directory.
+///
+/// Returns a vec of `(filename, criteria)` pairs. Only includes specs that
+/// have at least one criterion and are not marked as implemented.
+pub fn extract_all_criteria(
+    specs_dir: &Path,
+) -> std::io::Result<Vec<(String, Vec<AcceptanceCriterion>)>> {
+    let files = collect_spec_files(specs_dir)?;
+    let mut results = Vec::new();
+
+    for path in files {
+        let criteria = extract_criteria_from_file(&path);
+        if !criteria.is_empty() {
+            let filename = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            results.push((filename, criteria));
+        }
+    }
+
+    Ok(results)
+}
+
 #[derive(Debug)]
 struct TelegramBotInfo {
     username: String,
@@ -1147,5 +1268,219 @@ Build something.
 1. It should work.
 "#;
         assert!(!has_acceptance_criteria(content));
+    }
+
+    // --- extract_acceptance_criteria tests ---
+
+    #[test]
+    fn extract_criteria_bold_format() {
+        let content = r#"
+## Acceptance Criteria
+
+**Given** `backend: "amp"` in config
+**When** Ralph executes an iteration
+**Then** both flags are included
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert_eq!(criteria.len(), 1);
+        assert_eq!(criteria[0].given, "`backend: \"amp\"` in config");
+        assert_eq!(
+            criteria[0].when.as_deref(),
+            Some("Ralph executes an iteration")
+        );
+        assert_eq!(criteria[0].then, "both flags are included");
+    }
+
+    #[test]
+    fn extract_criteria_multiple_triples() {
+        let content = r#"
+**Given** system A is running
+**When** user clicks button
+**Then** dialog appears
+
+**Given** dialog is open
+**When** user confirms
+**Then** action completes
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert_eq!(criteria.len(), 2);
+        assert_eq!(criteria[0].given, "system A is running");
+        assert_eq!(criteria[1].given, "dialog is open");
+        assert_eq!(criteria[1].then, "action completes");
+    }
+
+    #[test]
+    fn extract_criteria_list_format() {
+        let content = r#"
+## Acceptance Criteria
+
+- **Given** an adapter is configured
+- **When** a request is sent
+- **Then** the adapter responds correctly
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert_eq!(criteria.len(), 1);
+        assert_eq!(criteria[0].given, "an adapter is configured");
+        assert_eq!(criteria[0].when.as_deref(), Some("a request is sent"));
+        assert_eq!(criteria[0].then, "the adapter responds correctly");
+    }
+
+    #[test]
+    fn extract_criteria_plain_text_format() {
+        let content = r#"
+Given the server is started
+When a GET request is sent
+Then a 200 response is returned
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert_eq!(criteria.len(), 1);
+        assert_eq!(criteria[0].given, "the server is started");
+        assert_eq!(criteria[0].when.as_deref(), Some("a GET request is sent"));
+        assert_eq!(criteria[0].then, "a 200 response is returned");
+    }
+
+    #[test]
+    fn extract_criteria_given_then_without_when() {
+        let content = r#"
+**Given** the config is empty
+**Then** defaults are used
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert_eq!(criteria.len(), 1);
+        assert_eq!(criteria[0].given, "the config is empty");
+        assert!(criteria[0].when.is_none());
+        assert_eq!(criteria[0].then, "defaults are used");
+    }
+
+    #[test]
+    fn extract_criteria_empty_content() {
+        let criteria = extract_acceptance_criteria("");
+        assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn extract_criteria_no_criteria() {
+        let content = r#"
+# Spec
+
+## Goal
+
+Build something.
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn extract_criteria_incomplete_given_without_then_is_dropped() {
+        let content = r#"
+**Given** orphan precondition
+
+Some other text here.
+"#;
+        let criteria = extract_acceptance_criteria(content);
+        assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn extract_criteria_from_file_skips_implemented() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let path = temp.path().join("done.spec.md");
+        std::fs::write(
+            &path,
+            r#"---
+status: implemented
+---
+
+**Given** something
+**When** something happens
+**Then** result
+"#,
+        )
+        .expect("write");
+
+        let criteria = extract_criteria_from_file(&path);
+        assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn extract_criteria_from_file_returns_criteria() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let path = temp.path().join("feature.spec.md");
+        std::fs::write(
+            &path,
+            r#"---
+status: draft
+---
+
+# Feature
+
+**Given** the system is ready
+**When** user acts
+**Then** feature works
+"#,
+        )
+        .expect("write");
+
+        let criteria = extract_criteria_from_file(&path);
+        assert_eq!(criteria.len(), 1);
+        assert_eq!(criteria[0].given, "the system is ready");
+    }
+
+    #[test]
+    fn extract_all_criteria_collects_from_directory() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let specs_dir = temp.path().join("specs");
+        std::fs::create_dir_all(&specs_dir).expect("create dir");
+
+        std::fs::write(
+            specs_dir.join("a.spec.md"),
+            "**Given** A\n**When** B\n**Then** C\n",
+        )
+        .expect("write a");
+
+        std::fs::write(
+            specs_dir.join("b.spec.md"),
+            "**Given** X\n**Then** Y\n",
+        )
+        .expect("write b");
+
+        // Implemented spec should be excluded
+        std::fs::write(
+            specs_dir.join("c.spec.md"),
+            "---\nstatus: implemented\n---\n**Given** skip\n**Then** skip\n",
+        )
+        .expect("write c");
+
+        let results = extract_all_criteria(&specs_dir).expect("extract");
+        assert_eq!(results.len(), 2);
+
+        let filenames: Vec<&str> = results.iter().map(|(f, _)| f.as_str()).collect();
+        assert!(filenames.contains(&"a.spec.md"));
+        assert!(filenames.contains(&"b.spec.md"));
+    }
+
+    #[test]
+    fn match_clause_extracts_text() {
+        assert_eq!(
+            match_clause("**given** the system", "**Given** the system", "given"),
+            Some("the system".to_string())
+        );
+        assert_eq!(
+            match_clause("- **when** user clicks", "- **When** user clicks", "when"),
+            Some("user clicks".to_string())
+        );
+        assert_eq!(
+            match_clause("then result", "Then result", "then"),
+            Some("result".to_string())
+        );
+        assert_eq!(
+            match_clause("- given something", "- Given something", "given"),
+            Some("something".to_string())
+        );
+        assert_eq!(
+            match_clause("no match here", "No match here", "given"),
+            None
+        );
     }
 }

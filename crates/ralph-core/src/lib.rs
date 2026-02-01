@@ -94,7 +94,10 @@ pub use planning_session::{
     ConversationEntry, ConversationType, PlanningSession, PlanningSessionError, SessionMetadata,
     SessionStatus,
 };
-pub use preflight::{CheckResult, CheckStatus, PreflightCheck, PreflightReport, PreflightRunner};
+pub use preflight::{
+    AcceptanceCriterion, CheckResult, CheckStatus, PreflightCheck, PreflightReport,
+    PreflightRunner, extract_acceptance_criteria, extract_all_criteria, extract_criteria_from_file,
+};
 pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
 pub use session_recorder::{Record, SessionRecorder};
 pub use skill::{SkillEntry, SkillFrontmatter, SkillSource, parse_frontmatter};
