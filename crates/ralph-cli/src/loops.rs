@@ -1015,6 +1015,8 @@ mod tests {
     use super::*;
     use crate::test_support::CwdGuard;
     use ralph_core::loop_registry::LoopEntry;
+    use ralph_core::LoopLock;
+    use std::process::Command;
 
     #[test]
     fn test_truncate() {
@@ -1209,5 +1211,200 @@ mod tests {
             loop_id: "loop-merge-9999".to_string(),
         })
         .expect("merge button state");
+    }
+
+    #[test]
+    fn test_show_logs_falls_back_to_history() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        std::fs::create_dir_all(".ralph").expect("create .ralph");
+        std::fs::write(
+            ".ralph/history.jsonl",
+            r#"{"ts":"2026-01-01T00:00:00Z","type":"event","data":{"ok":true}}"#,
+        )
+        .expect("write history");
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-log-1234",
+            "test prompt",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        show_logs(LogsArgs {
+            loop_id: "loop-log-1234".to_string(),
+            follow: false,
+        })
+        .expect("show logs");
+    }
+
+    #[test]
+    fn test_show_history_formats_table() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        std::fs::create_dir_all(".ralph").expect("create .ralph");
+        std::fs::write(
+            ".ralph/history.jsonl",
+            r#"{"ts":"2026-01-01T00:00:00Z","type":"event","data":{"ok":true}}"#,
+        )
+        .expect("write history");
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-hist-5678",
+            "test prompt",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        show_history(HistoryArgs {
+            loop_id: "loop-hist-5678".to_string(),
+            json: false,
+        })
+        .expect("show history");
+    }
+
+    #[test]
+    fn test_retry_merge_rejects_non_needs_review_state() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let queue = MergeQueue::new(temp_dir.path());
+        queue
+            .enqueue("loop-queue-1", "prompt")
+            .expect("enqueue");
+
+        let err = retry_merge(RetryArgs {
+            loop_id: "loop-queue-1".to_string(),
+        })
+        .expect_err("retry should fail for non-needs-review");
+
+        assert!(err.to_string().contains("can only retry"));
+    }
+
+    #[test]
+    fn test_discard_loop_marks_discarded_and_deregisters() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-discard-1",
+            "discard me",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        let queue = MergeQueue::new(temp_dir.path());
+        queue
+            .enqueue("loop-discard-1", "prompt")
+            .expect("enqueue");
+
+        discard_loop(DiscardArgs {
+            loop_id: "loop-discard-1".to_string(),
+            yes: true,
+        })
+        .expect("discard loop");
+
+        let entry = queue
+            .get_entry("loop-discard-1")
+            .expect("get entry")
+            .expect("entry exists");
+        assert_eq!(entry.state, MergeState::Discarded);
+
+        assert!(registry.get("loop-discard-1").unwrap().is_none());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_stop_loop_writes_stop_requested_file() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let _lock = LoopLock::try_acquire(temp_dir.path(), "test prompt").expect("lock");
+
+        stop_loop(StopArgs {
+            loop_id: None,
+            force: false,
+        })
+        .expect("stop loop");
+
+        assert!(temp_dir.path().join(".ralph/stop-requested").exists());
+    }
+
+    #[test]
+    fn test_attach_to_loop_requires_worktree() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-inplace-1",
+            "no worktree",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        let err = attach_to_loop(AttachArgs {
+            loop_id: "loop-inplace-1".to_string(),
+        })
+        .expect_err("attach should fail for in-place loop");
+
+        assert!(err.to_string().contains("not a worktree-based loop"));
+    }
+
+    #[test]
+    fn test_show_diff_missing_branch_errors() {
+        if Command::new("git").arg("--version").output().is_err() {
+            return;
+        }
+
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let _cwd = CwdGuard::set(temp_dir.path());
+
+        Command::new("git")
+            .args(["init", "-q"])
+            .status()
+            .expect("git init");
+        Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .status()
+            .expect("git config email");
+        Command::new("git")
+            .args(["config", "user.name", "Test User"])
+            .status()
+            .expect("git config name");
+        std::fs::write("README.md", "# Test").expect("write README");
+        Command::new("git").args(["add", "."]).status().expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "Initial commit", "--quiet"])
+            .status()
+            .expect("git commit");
+
+        let registry = LoopRegistry::new(temp_dir.path());
+        let entry = LoopEntry::with_id(
+            "loop-missing-branch",
+            "diff me",
+            None::<String>,
+            temp_dir.path().display().to_string(),
+        );
+        registry.register(entry).expect("register loop");
+
+        let err = show_diff(DiffArgs {
+            loop_id: "loop-missing-branch".to_string(),
+            stat: false,
+        })
+        .expect_err("missing branch should error");
+
+        assert!(err
+            .to_string()
+            .contains("Branch 'ralph/loop-missing-branch' not found"));
     }
 }

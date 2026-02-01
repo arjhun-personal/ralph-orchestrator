@@ -2705,4 +2705,21 @@ core:
 
         assert!(list_directory_contents(&missing, false, 0).is_err());
     }
+
+    #[test]
+    fn test_print_preflight_summary_handles_failures_and_warnings() {
+        let report = PreflightReport {
+            passed: false,
+            warnings: 1,
+            failures: 1,
+            checks: vec![
+                ralph_core::CheckResult::pass("config", "Config"),
+                ralph_core::CheckResult::warn("backend", "Backend", "Missing"),
+                ralph_core::CheckResult::fail("paths", "Paths", "Missing path"),
+            ],
+        };
+
+        print_preflight_summary(&report, true, "Preflight: ", true);
+        print_preflight_summary(&report, false, "Preflight: ", false);
+    }
 }
