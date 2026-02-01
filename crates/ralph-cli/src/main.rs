@@ -397,6 +397,9 @@ enum Commands {
     /// Run first-run diagnostics and environment checks
     Doctor(doctor::DoctorArgs),
 
+    /// Interactive walkthrough of hats, presets, and workflow
+    Tutorial(TutorialArgs),
+
     /// DEPRECATED: Use `ralph run --continue` instead.
     /// Resume a previously interrupted loop from existing scratchpad.
     #[command(hide = true)]
@@ -664,6 +667,14 @@ struct EmitArgs {
     pub file: PathBuf,
 }
 
+/// Arguments for the tutorial subcommand.
+#[derive(Parser, Debug)]
+struct TutorialArgs {
+    /// Skip prompts and print the tutorial in one pass
+    #[arg(long)]
+    no_input: bool,
+}
+
 /// Arguments for the plan subcommand.
 ///
 /// Starts an interactive PDD (Prompt-Driven Development) session.
@@ -813,6 +824,7 @@ async fn main() -> Result<()> {
         Some(Commands::Doctor(args)) => {
             doctor::execute(&config_sources, args, cli.color.should_use_colors()).await
         }
+        Some(Commands::Tutorial(args)) => tutorial_command(cli.color, args),
         Some(Commands::Resume(args)) => {
             resume_command(&config_sources, cli.verbose, cli.color, args).await
         }
@@ -1923,6 +1935,145 @@ fn emit_command(color_mode: ColorMode, args: EmitArgs) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TutorialStep {
+    title: &'static str,
+    body: &'static [&'static str],
+}
+
+const TUTORIAL_STEPS: &[TutorialStep] = &[
+    TutorialStep {
+        title: "Hats: Event-driven personas",
+        body: &[
+            "Hats are named personas that subscribe to events and publish new events.",
+            "Each hat lists triggers (ex: task.start) and outputs (ex: build.task).",
+            "Inspect hats with: ralph hats list",
+            "Visualize the flow with: ralph hats graph --format ascii",
+        ],
+    },
+    TutorialStep {
+        title: "Presets: Packaged workflows",
+        body: &[
+            "Presets bundle hats, backend, and defaults into a single config.",
+            "List built-ins with: ralph init --list-presets",
+            "Create a config: ralph init --preset <name>",
+            "Run directly: ralph run -c builtin:<name>",
+        ],
+    },
+    TutorialStep {
+        title: "Workflow: The loop lifecycle",
+        body: &[
+            "Write a prompt file (ex: PROMPT.md) or pass --prompt/--prompt-file.",
+            "Run: ralph run -P PROMPT.md or ralph run -p \"...\"",
+            "Ralph emits task.start, hats process events, and the loop ends on done events.",
+            "Artifacts live in .ralph/agent (scratchpad, tasks, memories).",
+            "Check open tasks with: ralph tools task ready",
+        ],
+    },
+];
+
+fn tutorial_steps() -> &'static [TutorialStep] {
+    TUTORIAL_STEPS
+}
+
+/// Runs the interactive tutorial walkthrough.
+fn tutorial_command(color_mode: ColorMode, args: TutorialArgs) -> Result<()> {
+    let use_colors = color_mode.should_use_colors();
+    let interactive = !args.no_input && std::io::stdin().is_terminal();
+    let steps = tutorial_steps();
+
+    print_tutorial_intro(use_colors, interactive);
+
+    for (index, step) in steps.iter().enumerate() {
+        print_tutorial_step(index + 1, steps.len(), step, use_colors);
+        if interactive && index + 1 < steps.len() {
+            prompt_to_continue(use_colors)?;
+        } else {
+            println!();
+        }
+    }
+
+    print_tutorial_outro(use_colors);
+    Ok(())
+}
+
+fn print_tutorial_intro(use_colors: bool, interactive: bool) {
+    if use_colors {
+        println!(
+            "{}{}Ralph Tutorial{}",
+            colors::BOLD,
+            colors::CYAN,
+            colors::RESET
+        );
+        println!(
+            "{}Interactive walkthrough of hats, presets, and workflow.{}",
+            colors::DIM,
+            colors::RESET
+        );
+    } else {
+        println!("Ralph Tutorial");
+        println!("Interactive walkthrough of hats, presets, and workflow.");
+    }
+
+    if !interactive {
+        println!("Non-interactive mode: printing all steps.");
+    }
+
+    println!();
+}
+
+fn print_tutorial_step(index: usize, total: usize, step: &TutorialStep, use_colors: bool) {
+    if use_colors {
+        println!(
+            "{}{}Step {}/{}: {}{}",
+            colors::BOLD,
+            colors::CYAN,
+            index,
+            total,
+            step.title,
+            colors::RESET
+        );
+    } else {
+        println!("Step {}/{}: {}", index, total, step.title);
+    }
+
+    for line in step.body {
+        println!("  - {}", line);
+    }
+}
+
+fn prompt_to_continue(use_colors: bool) -> Result<()> {
+    if use_colors {
+        print!(
+            "{}Press Enter to continue...{}",
+            colors::DIM,
+            colors::RESET
+        );
+    } else {
+        print!("Press Enter to continue...");
+    }
+
+    stdout().flush()?;
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .context("Failed to read input")?;
+    println!();
+    Ok(())
+}
+
+fn print_tutorial_outro(use_colors: bool) {
+    if use_colors {
+        println!(
+            "{}Tutorial complete. Next: ralph init --list-presets, then ralph run.{}",
+            colors::GREEN,
+            colors::RESET
+        );
+    } else {
+        println!("Tutorial complete. Next: ralph init --list-presets, then ralph run.");
+    }
+}
+
 /// Starts a Prompt-Driven Development planning session.
 ///
 /// This is a thin wrapper that bypasses Ralph's event loop entirely.
@@ -2190,6 +2341,22 @@ mod tests {
         let cli = Cli::try_parse_from(["ralph", "doctor"]).expect("CLI parse failed");
 
         assert!(matches!(cli.command, Some(Commands::Doctor(_))));
+    }
+
+    #[test]
+    fn test_tutorial_parses_command() {
+        let cli = Cli::try_parse_from(["ralph", "tutorial"]).expect("CLI parse failed");
+
+        assert!(matches!(cli.command, Some(Commands::Tutorial(_))));
+    }
+
+    #[test]
+    fn test_tutorial_steps_cover_core_topics() {
+        let steps = tutorial_steps();
+        assert_eq!(steps.len(), 3);
+        assert!(steps.iter().any(|step| step.title.contains("Hats")));
+        assert!(steps.iter().any(|step| step.title.contains("Presets")));
+        assert!(steps.iter().any(|step| step.title.contains("Workflow")));
     }
 
     #[test]
