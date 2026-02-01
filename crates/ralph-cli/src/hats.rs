@@ -1003,11 +1003,11 @@ mod tests {
     #[test]
     fn test_load_config_builtin_preset_works() {
         // Builtin preset should load successfully
-        let source = ConfigSource::Builtin("confession-loop".to_string());
+        let source = ConfigSource::Builtin("feature".to_string());
         let result = load_config(&[source]);
         assert!(result.is_ok());
         let config = result.unwrap();
-        // confession-loop preset has hats defined
+        // feature preset has hats defined
         assert!(!config.hats.is_empty());
     }
 

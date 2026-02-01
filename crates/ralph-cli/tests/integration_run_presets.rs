@@ -20,7 +20,7 @@ fn test_run_dry_run_with_builtin_preset() {
             "--color",
             "never",
             "--config",
-            "builtin:tdd-red-green",
+            "builtin:feature",
             "run",
             "--dry-run",
             "--skip-preflight",

@@ -229,7 +229,7 @@ use display::colors;
 pub enum ConfigSource {
     /// Local file path (default behavior)
     File(PathBuf),
-    /// Builtin preset name (e.g., "builtin:tdd-red-green")
+    /// Builtin preset name (e.g., "builtin:feature")
     Builtin(String),
     /// Remote URL (e.g., "http://example.com/preset.yml")
     Remote(String),
@@ -2264,9 +2264,9 @@ mod tests {
 
     #[test]
     fn test_config_source_parse_builtin() {
-        let source = ConfigSource::parse("builtin:tdd-red-green");
+        let source = ConfigSource::parse("builtin:feature");
         match source {
-            ConfigSource::Builtin(name) => assert_eq!(name, "tdd-red-green"),
+            ConfigSource::Builtin(name) => assert_eq!(name, "feature"),
             _ => panic!("Expected Builtin variant"),
         }
     }

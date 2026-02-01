@@ -241,23 +241,23 @@ mod tests {
     fn test_format_preset_list() {
         let output = format_preset_list();
         assert!(output.contains("Available presets:"));
-        assert!(output.contains("confession-loop"));
-        assert!(output.contains("tdd-red-green"));
+        assert!(output.contains("feature"));
+        assert!(output.contains("code-assist"));
         assert!(output.contains("debug"));
         assert!(output.contains("Usage:"));
     }
 
     #[test]
-    fn test_init_from_preset_confession_loop_writes_config() {
+    fn test_init_from_preset_code_assist_writes_config() {
         let temp_dir = TempDir::new().expect("create temp dir");
         let _cwd = CwdGuard::set(temp_dir.path());
 
-        init_from_preset("confession-loop", None, false).expect("init_from_preset succeeds");
+        init_from_preset("code-assist", None, false).expect("init_from_preset succeeds");
 
         let content = fs::read_to_string("ralph.yml").expect("read ralph.yml");
         assert!(
-            content.contains("confession.issues_found") && content.contains("confession.clean"),
-            "expected confession events in generated config"
+            content.contains("build.start") && content.contains("LOOP_COMPLETE"),
+            "expected event loop configuration in generated config"
         );
     }
 
