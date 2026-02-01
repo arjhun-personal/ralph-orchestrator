@@ -22,6 +22,7 @@ Backpressure approach:
 Implement the feature.
 Evidence required: tests: pass, lint: pass, typecheck: pass, audit: pass, coverage: pass
 Optional (warning-only): mutants: pass (>=70%)
+Optional (fail blocks): specs: pass
 ```
 
 The AI figures out the "how" — it's smart enough. Your job is defining "what success looks like."
@@ -97,6 +98,7 @@ hats:
 | Format | `cargo fmt --check` | Style violations |
 | Build | `cargo build` | Compilation errors |
 | Mutation | `cargo mutants --in-diff <diff>` | Untested logic gaps (warning-only) |
+| Specs | Verify acceptance criteria | Spec criteria not met by tests (optional, fail blocks) |
 
 ### Behavioral Gates
 

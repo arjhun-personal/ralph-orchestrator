@@ -1805,6 +1805,7 @@ impl EventLoop {
                             complexity = evidence.complexity_score,
                             duplication = evidence.duplication_passed,
                             performance = evidence.performance_regression,
+                            specs = evidence.specs_verified,
                             "build.done rejected: backpressure checks failed"
                         );
 
@@ -1817,13 +1818,18 @@ impl EventLoop {
                             Some(false) => "pass".to_string(),
                             None => "missing".to_string(),
                         };
+                        let specs = match evidence.specs_verified {
+                            Some(true) => "pass".to_string(),
+                            Some(false) => "fail".to_string(),
+                            None => "not reported".to_string(),
+                        };
 
                         self.diagnostics.log_orchestration(
                             self.state.iteration,
                             "jsonl",
                             crate::diagnostics::OrchestrationEvent::BackpressureTriggered {
                                 reason: format!(
-                                    "backpressure checks failed: tests={}, lint={}, typecheck={}, audit={}, coverage={}, complexity={}, duplication={}, performance={}",
+                                    "backpressure checks failed: tests={}, lint={}, typecheck={}, audit={}, coverage={}, complexity={}, duplication={}, performance={}, specs={}",
                                     evidence.tests_passed,
                                     evidence.lint_passed,
                                     evidence.typecheck_passed,
@@ -1831,14 +1837,15 @@ impl EventLoop {
                                     evidence.coverage_passed,
                                     complexity,
                                     evidence.duplication_passed,
-                                    performance
+                                    performance,
+                                    specs
                                 ),
                             },
                         );
 
                         validated_events.push(Event::new(
                             "build.blocked",
-                            "Backpressure checks failed. Fix tests/lint/typecheck/audit/coverage/complexity/duplication before emitting build.done.",
+                            "Backpressure checks failed. Fix tests/lint/typecheck/audit/coverage/complexity/duplication/specs before emitting build.done.",
                         ));
                     }
                 } else {
@@ -1855,7 +1862,7 @@ impl EventLoop {
 
                     validated_events.push(Event::new(
                         "build.blocked",
-                        "Missing backpressure evidence. Include 'tests: pass', 'lint: pass', 'typecheck: pass', 'audit: pass', 'coverage: pass', 'complexity: <score>', 'duplication: pass', 'performance: pass' (optional) in build.done payload.",
+                        "Missing backpressure evidence. Include 'tests: pass', 'lint: pass', 'typecheck: pass', 'audit: pass', 'coverage: pass', 'complexity: <score>', 'duplication: pass', 'performance: pass' (optional), 'specs: pass' (optional) in build.done payload.",
                     ));
                 }
             } else if event.topic == "review.done" {
