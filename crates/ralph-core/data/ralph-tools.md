@@ -129,6 +129,21 @@ Reuse existing tags for consistency. Common tag patterns:
 3. **One concept per memory**: Split complex learnings
 4. **Tag consistently**: Reuse existing tags when possible
 
+## Decision Journal
+
+Use `.ralph/agent/decisions.md` to capture consequential decisions and their
+confidence scores. Follow the template at the top of the file and keep IDs
+sequential (DEC-001, DEC-002, ...).
+
+Template fields:
+- Decision
+- Chosen Option
+- Confidence (0-100)
+- Alternatives Considered
+- Reasoning
+- Reversibility
+- Timestamp (UTC ISO 8601)
+
 ## Output Formats
 
 All commands support `--format`:
