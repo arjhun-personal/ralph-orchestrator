@@ -134,7 +134,7 @@ strip-ansi-escapes = "0.2"
 
 # Internal crates (version required for crates.io publishing)
 ralph-proto = { version = "2.4.1", path = "crates/ralph-proto" }
-ralph-core = { version = "2.4.1", path = "crates/ralph-core" }
+ralph-core = { version = "2.4.1", path = "crates/ralph-core", features = ["recording"] }
 ralph-adapters = { version = "2.4.1", path = "crates/ralph-adapters" }
 ralph-tui = { version = "2.4.1", path = "crates/ralph-tui" }
 ralph-cli = { version = "2.4.1", path = "crates/ralph-cli" }

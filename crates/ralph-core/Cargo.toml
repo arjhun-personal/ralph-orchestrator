@@ -5,6 +5,9 @@ version.workspace = true
 license.workspace = true
 description = "Core orchestration loop, configuration, and state management for Ralph Orchestrator"
 
+[features]
+recording = []
+
 [lints]
 workspace = true
 

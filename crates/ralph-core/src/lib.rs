@@ -10,6 +10,7 @@
 //! - Terminal capture for session recording
 //! - Benchmark task definitions and workspace isolation
 
+#[cfg(feature = "recording")]
 mod cli_capture;
 mod config;
 pub mod diagnostics;
@@ -36,7 +37,9 @@ mod memory_store;
 pub mod merge_queue;
 pub mod planning_session;
 pub mod preflight;
+#[cfg(feature = "recording")]
 mod session_player;
+#[cfg(feature = "recording")]
 mod session_recorder;
 pub mod skill;
 pub mod skill_registry;
@@ -50,6 +53,7 @@ pub mod utils;
 pub mod workspace;
 pub mod worktree;
 
+#[cfg(feature = "recording")]
 pub use cli_capture::{CliCapture, CliCapturePair};
 pub use config::{
     CliConfig, ConfigError, CoreConfig, EventLoopConfig, EventMetadata, FeaturesConfig, HatBackend,
@@ -96,7 +100,9 @@ pub use preflight::{
     AcceptanceCriterion, CheckResult, CheckStatus, PreflightCheck, PreflightReport,
     PreflightRunner, extract_acceptance_criteria, extract_all_criteria, extract_criteria_from_file,
 };
+#[cfg(feature = "recording")]
 pub use session_player::{PlayerConfig, ReplayMode, SessionPlayer, TimestampedRecord};
+#[cfg(feature = "recording")]
 pub use session_recorder::{Record, SessionRecorder};
 pub use skill::{SkillEntry, SkillFrontmatter, SkillSource, parse_frontmatter};
 pub use skill_registry::SkillRegistry;
