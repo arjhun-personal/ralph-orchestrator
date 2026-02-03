@@ -345,6 +345,26 @@ impl PtyExecutor {
         // Drop the slave to signal EOF when master closes
         drop(pair.slave);
 
+        // Windows workaround: Check if child exited immediately (command not found, etc.)
+        // If the process failed to start, the PTY reader will hang indefinitely.
+        // Give a small grace period for the process to start, then check.
+        #[cfg(windows)]
+        {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            if let Ok(Some(status)) = child.try_wait() {
+                if !status.success() {
+                    let code = status.exit_code();
+                    warn!(exit_code = code, "Child process exited immediately after spawn");
+                    return Err(io::Error::other(format!(
+                        "Backend process exited immediately (exit code: {}). \
+                        Is '{}' installed and in PATH?",
+                        code,
+                        self.backend.command
+                    )));
+                }
+            }
+        }
+
         let mut output = Vec::new();
         let timeout_duration = if !self.config.interactive || self.config.idle_timeout_secs == 0 {
             None
@@ -592,6 +612,25 @@ impl PtyExecutor {
         }
 
         drop(pair.slave);
+
+        // Windows workaround: Check if child exited immediately (command not found, etc.)
+        // If the process failed to start, the PTY reader will hang indefinitely.
+        #[cfg(windows)]
+        {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            if let Ok(Some(status)) = child.try_wait() {
+                if !status.success() {
+                    let code = status.exit_code();
+                    warn!(exit_code = code, "Child process exited immediately after spawn");
+                    return Err(io::Error::other(format!(
+                        "Backend process exited immediately (exit code: {}). \
+                        Is '{}' installed and in PATH?",
+                        code,
+                        self.backend.command
+                    )));
+                }
+            }
+        }
 
         let mut output = Vec::new();
         let mut line_buffer = String::new();
