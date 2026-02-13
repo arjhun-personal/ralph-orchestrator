@@ -27,6 +27,7 @@ ralph-tui.workspace = true
 
 tokio.workspace = true
 clap.workspace = true
+clap_complete.workspace = true
 anyhow.workspace = true
 reqwest.workspace = true
 chrono.workspace = true

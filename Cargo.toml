@@ -88,7 +88,8 @@ serde_json = "1"
 serde_yaml = "0.9"
 
 # CLI parsing
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "std", "cargo"] }
+clap_complete = "4"
 
 # Regex for text processing
 regex = "1"
