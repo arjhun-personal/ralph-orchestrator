@@ -139,7 +139,9 @@ impl HatRegistry {
         let Some(hat) = self.hats.get(hat_id) else {
             return true; // Unregistered hat (ralph), no restriction
         };
-        hat.publishes.iter().any(|pub_topic| pub_topic.matches_str(topic))
+        hat.publishes
+            .iter()
+            .any(|pub_topic| pub_topic.matches_str(topic))
     }
 
     /// Returns the first hat subscribed to the given topic.

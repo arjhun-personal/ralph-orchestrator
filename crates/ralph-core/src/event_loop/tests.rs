@@ -3355,10 +3355,7 @@ fn test_chain_validation_rejects_completion_without_required_events() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let mut config = RalphConfig::default();
-    config.event_loop.required_events = vec![
-        "plan.approved".to_string(),
-        "all.built".to_string(),
-    ];
+    config.event_loop.required_events = vec!["plan.approved".to_string(), "all.built".to_string()];
     let mut event_loop = EventLoop::new(config);
     event_loop.initialize("Test");
     event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
@@ -3385,10 +3382,7 @@ fn test_chain_validation_accepts_completion_with_all_required_events() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let mut config = RalphConfig::default();
-    config.event_loop.required_events = vec![
-        "plan.approved".to_string(),
-        "all.built".to_string(),
-    ];
+    config.event_loop.required_events = vec!["plan.approved".to_string(), "all.built".to_string()];
     let mut event_loop = EventLoop::new(config);
     event_loop.initialize("Test");
     event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
@@ -3507,10 +3501,7 @@ fn test_loop_cancel_terminates_without_chain_validation() {
 
     let mut config = RalphConfig::default();
     config.event_loop.cancellation_promise = "loop.cancel".to_string();
-    config.event_loop.required_events = vec![
-        "plan.approved".to_string(),
-        "all.built".to_string(),
-    ];
+    config.event_loop.required_events = vec!["plan.approved".to_string(), "all.built".to_string()];
     let mut event_loop = EventLoop::new(config);
     event_loop.initialize("Test");
     event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
@@ -3597,8 +3588,8 @@ fn test_loop_cancel_disabled_when_empty_string() {
 // ── Phase 3: Human Timeout Event Injection Tests ──────────────────────
 
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 struct MockRobotService {
     timeout: u64,

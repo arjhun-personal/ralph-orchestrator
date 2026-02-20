@@ -1723,10 +1723,7 @@ impl EventLoop {
                 });
 
             for event in &out_of_scope {
-                let violation_hat = active_hats
-                    .first()
-                    .map(|h| h.as_str())
-                    .unwrap_or("unknown");
+                let violation_hat = active_hats.first().map(|h| h.as_str()).unwrap_or("unknown");
                 warn!(
                     active_hats = ?active_hats,
                     topic = %event.topic,
