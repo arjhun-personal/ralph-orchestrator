@@ -1709,38 +1709,43 @@ impl EventLoop {
         }
 
         // --- Scope enforcement: filter events against active hat's publishes ---
-        let active_hats = self.state.last_active_hat_ids.clone();
-        let (in_scope, out_of_scope): (Vec<_>, Vec<_>) =
-            result.events.into_iter().partition(|event| {
-                if active_hats.is_empty() {
-                    return true; // Ralph coordinating — no scope restriction
-                }
-                active_hats
-                    .iter()
-                    .any(|hat_id| self.registry.can_publish(hat_id, event.topic.as_str()))
-            });
+        // Only active when enforce_hat_scope is true in config (opt-in).
+        let events = if self.config.event_loop.enforce_hat_scope {
+            let active_hats = self.state.last_active_hat_ids.clone();
+            let (in_scope, out_of_scope): (Vec<_>, Vec<_>) =
+                result.events.into_iter().partition(|event| {
+                    if active_hats.is_empty() {
+                        return true; // Ralph coordinating — no scope restriction
+                    }
+                    active_hats
+                        .iter()
+                        .any(|hat_id| self.registry.can_publish(hat_id, event.topic.as_str()))
+                });
 
-        for event in &out_of_scope {
-            let violation_hat = active_hats
-                .first()
-                .map(|h| h.as_str())
-                .unwrap_or("unknown");
-            warn!(
-                active_hats = ?active_hats,
-                topic = %event.topic,
-                "Scope violation: active hat(s) cannot publish this topic — dropping event"
-            );
-            let violation_topic = format!("{}.scope_violation", violation_hat);
-            let violation_payload = format!(
-                "Attempted to publish '{}': {}",
-                event.topic,
-                event.payload.clone().unwrap_or_default()
-            );
-            let violation = Event::new(violation_topic, violation_payload);
-            self.bus.publish(violation);
-        }
+            for event in &out_of_scope {
+                let violation_hat = active_hats
+                    .first()
+                    .map(|h| h.as_str())
+                    .unwrap_or("unknown");
+                warn!(
+                    active_hats = ?active_hats,
+                    topic = %event.topic,
+                    "Scope violation: active hat(s) cannot publish this topic — dropping event"
+                );
+                let violation_topic = format!("{}.scope_violation", violation_hat);
+                let violation_payload = format!(
+                    "Attempted to publish '{}': {}",
+                    event.topic,
+                    event.payload.clone().unwrap_or_default()
+                );
+                let violation = Event::new(violation_topic, violation_payload);
+                self.bus.publish(violation);
+            }
 
-        let events = in_scope;
+            in_scope
+        } else {
+            result.events
+        };
         // --- End scope enforcement ---
 
         let mut has_orphans = false;

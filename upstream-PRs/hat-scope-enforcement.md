@@ -43,7 +43,7 @@ Three layers of defense-in-depth to prevent agents from bypassing hat workflow c
 | File | Lines | What changed |
 |------|-------|-------------|
 | `crates/ralph-core/src/hat_registry.rs` | +77 | `can_publish()` method + 4 unit tests |
-| `crates/ralph-core/src/config.rs` | +18 | `required_events`, `cancellation_promise` fields on `EventLoopConfig` |
+| `crates/ralph-core/src/config.rs` | +22 | `required_events`, `cancellation_promise`, `enforce_hat_scope` fields on `EventLoopConfig` |
 | `crates/ralph-core/src/event_loop/loop_state.rs` | +21 | `seen_topics`, `cancellation_requested` fields + helper methods |
 | `crates/ralph-core/src/event_loop/mod.rs` | +127/-4 | Scope filtering, `loop.cancel` detection, topic recording, chain validation gate, `check_cancellation_event()`, `Cancelled` variant, `human.timeout` injection |
 | `crates/ralph-core/src/event_loop/tests.rs` | +477 | 21 new tests (scope, chain validation, cancellation, timeout) |
@@ -66,12 +66,17 @@ Three layers of defense-in-depth to prevent agents from bypassing hat workflow c
 
 5. **`human.timeout` replaces silent continuation** — previously, `wait_for_response()` timeout logged a warning and continued with no event. Now it injects `human.timeout` through the same `response_event` mechanism as `human.response`, making it routable to any hat that subscribes.
 
+6. **All enforcement features are opt-in** — scope enforcement requires `enforce_hat_scope: true`, cancellation requires setting `cancellation_promise` to a topic string, and chain validation requires a non-empty `required_events` list. This ensures zero behavior change for existing users on upgrade.
+
 ### Backward compatibility
 
-- All new config fields have defaults (`required_events: []`, `cancellation_promise: "loop.cancel"`). Existing YAML configs work unchanged.
-- **Breaking for agents**: Events emitted outside a hat's `publishes` list are now dropped. This is intentional — it enforces the hat boundary contract.
-- Empty `required_events` (the default) preserves existing behavior — no chain gating.
-- `loop.cancel` is a new topic; no existing config uses it, so existing loops are unaffected.
+- **Zero breaking changes on upgrade.** All new config fields default to disabled:
+  - `enforce_hat_scope`: `false` (scope enforcement off)
+  - `cancellation_promise`: `""` (no cancellation topic)
+  - `required_events`: `[]` (no chain validation)
+- Existing YAML configs work identically — no enforcement is active unless explicitly opted into.
+- To enable enforcement, set `enforce_hat_scope: true`, `cancellation_promise: "loop.cancel"`, and populate `required_events` in your preset config.
+- `human.timeout` event injection is the only always-on change, but it only fires when `RObot.enabled: true` and a timeout occurs. Previously this was a silent no-op, so it's additive — existing hats that don't subscribe to `human.timeout` are unaffected.
 
 ### Test plan
 

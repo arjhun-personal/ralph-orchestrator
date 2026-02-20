@@ -3210,6 +3210,8 @@ fn test_scope_enforcement_drops_unauthorized_event() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let yaml = r#"
+event_loop:
+  enforce_hat_scope: true
 hats:
   builder:
     name: "Builder"
@@ -3243,6 +3245,8 @@ fn test_scope_enforcement_allows_authorized_event() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let yaml = r#"
+event_loop:
+  enforce_hat_scope: true
 hats:
   builder:
     name: "Builder"
@@ -3280,6 +3284,8 @@ fn test_scope_enforcement_skipped_when_no_active_hats() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let yaml = r#"
+event_loop:
+  enforce_hat_scope: true
 hats:
   builder:
     name: "Builder"
@@ -3312,6 +3318,8 @@ fn test_scope_violation_event_published() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let yaml = r#"
+event_loop:
+  enforce_hat_scope: true
 hats:
   builder:
     name: "Builder"
@@ -3498,6 +3506,7 @@ fn test_loop_cancel_terminates_without_chain_validation() {
     let events_path = temp_dir.path().join("events.jsonl");
 
     let mut config = RalphConfig::default();
+    config.event_loop.cancellation_promise = "loop.cancel".to_string();
     config.event_loop.required_events = vec![
         "plan.approved".to_string(),
         "all.built".to_string(),
@@ -3541,7 +3550,8 @@ fn test_loop_cancel_takes_priority_over_completion() {
     let temp_dir = TempDir::new().unwrap();
     let events_path = temp_dir.path().join("events.jsonl");
 
-    let config = RalphConfig::default();
+    let mut config = RalphConfig::default();
+    config.event_loop.cancellation_promise = "loop.cancel".to_string();
     let mut event_loop = EventLoop::new(config);
     event_loop.initialize("Test");
     event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
