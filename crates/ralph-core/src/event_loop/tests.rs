@@ -3199,3 +3199,480 @@ hats:
     assert!(drop_again);
     assert!(event_again.is_none());
 }
+
+// ── Phase 1: Hat Scope Enforcement Tests ──────────────────────────────
+
+#[test]
+fn test_scope_enforcement_drops_unauthorized_event() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let yaml = r#"
+hats:
+  builder:
+    name: "Builder"
+    triggers: ["build.start"]
+    publishes: ["build.done"]
+"#;
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Set builder as the active hat
+    event_loop.state.last_active_hat_ids = vec![HatId::new("builder")];
+
+    // Builder tries to emit LOOP_COMPLETE (not in its publishes)
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // completion_requested should be false — the event was dropped by scope enforcement
+    assert!(
+        !event_loop.state.completion_requested,
+        "LOOP_COMPLETE should be dropped when builder hat is active (not in publishes)"
+    );
+}
+
+#[test]
+fn test_scope_enforcement_allows_authorized_event() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let yaml = r#"
+hats:
+  builder:
+    name: "Builder"
+    triggers: ["build.start"]
+    publishes: ["build.done", "build.blocked"]
+"#;
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Set builder as the active hat
+    event_loop.state.last_active_hat_ids = vec![HatId::new("builder")];
+
+    // Builder emits build.done (in its publishes) — should pass through
+    write_event_to_jsonl(
+        &events_path,
+        "build.done",
+        "tests: pass\nlint: pass\ntypecheck: pass\naudit: pass\ncoverage: pass",
+    );
+    let _ = event_loop.process_events_from_jsonl();
+
+    // The event should have been published to the bus (not dropped)
+    assert!(
+        event_loop.has_pending_events(),
+        "build.done should pass scope enforcement when builder is active"
+    );
+}
+
+#[test]
+fn test_scope_enforcement_skipped_when_no_active_hats() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let yaml = r#"
+hats:
+  builder:
+    name: "Builder"
+    triggers: ["build.start"]
+    publishes: ["build.done"]
+"#;
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // No active hats (Ralph coordinating)
+    event_loop.state.last_active_hat_ids = vec![];
+
+    // LOOP_COMPLETE should pass through when Ralph is coordinating
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    assert!(
+        event_loop.state.completion_requested,
+        "LOOP_COMPLETE should be accepted when no active hats (Ralph coordinating)"
+    );
+}
+
+#[test]
+fn test_scope_violation_event_published() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let yaml = r#"
+hats:
+  builder:
+    name: "Builder"
+    triggers: ["build.start"]
+    publishes: ["build.done"]
+"#;
+    let config: RalphConfig = serde_yaml::from_str(yaml).unwrap();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Set builder as the active hat
+    event_loop.state.last_active_hat_ids = vec![HatId::new("builder")];
+
+    // Builder tries to emit plan.approved (not in its publishes)
+    write_event_to_jsonl(&events_path, "plan.approved", "Auto-approved");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // A scope_violation event should have been published to the bus
+    assert!(
+        event_loop.has_pending_events(),
+        "Scope violation event should be published to the bus"
+    );
+}
+
+// ── Phase 2: Event Chain Validation + loop.cancel Tests ───────────────
+
+#[test]
+fn test_chain_validation_rejects_completion_without_required_events() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec![
+        "plan.approved".to_string(),
+        "all.built".to_string(),
+    ];
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Only emit plan.approved, missing all.built
+    write_event_to_jsonl(&events_path, "plan.approved", "OK");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Now try to complete
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason, None,
+        "LOOP_COMPLETE should be rejected when required events are missing"
+    );
+}
+
+#[test]
+fn test_chain_validation_accepts_completion_with_all_required_events() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec![
+        "plan.approved".to_string(),
+        "all.built".to_string(),
+    ];
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Emit both required events across iterations
+    write_event_to_jsonl(&events_path, "plan.approved", "OK");
+    let _ = event_loop.process_events_from_jsonl();
+
+    write_event_to_jsonl(&events_path, "all.built", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Now complete
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "LOOP_COMPLETE should be accepted when all required events have been seen"
+    );
+}
+
+#[test]
+fn test_chain_validation_tracks_topics_across_iterations() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec![
+        "research.complete".to_string(),
+        "plan.approved".to_string(),
+        "all.built".to_string(),
+    ];
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Iteration 1: research.complete
+    write_event_to_jsonl(&events_path, "research.complete", "findings");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Iteration 2: plan.approved
+    write_event_to_jsonl(&events_path, "plan.approved", "ok");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Iteration 3: all.built + LOOP_COMPLETE
+    write_event_to_jsonl(&events_path, "all.built", "done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "Topics should be tracked across iterations"
+    );
+}
+
+#[test]
+fn test_chain_validation_empty_required_events_allows_completion() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let config = RalphConfig::default(); // No required_events
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "Empty required_events should allow completion (backward compatible)"
+    );
+}
+
+#[test]
+fn test_chain_validation_injects_task_resume_on_rejection() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec!["plan.approved".to_string()];
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Try to complete without the required event
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(reason, None, "Should reject completion");
+
+    // A task.resume event should have been published to the bus
+    assert!(
+        event_loop.has_pending_events(),
+        "task.resume should be published on rejection"
+    );
+}
+
+#[test]
+fn test_loop_cancel_terminates_without_chain_validation() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec![
+        "plan.approved".to_string(),
+        "all.built".to_string(),
+    ];
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Send loop.cancel without any required events seen
+    write_event_to_jsonl(&events_path, "loop.cancel", "rejected by human");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_cancellation_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::Cancelled),
+        "loop.cancel should terminate without chain validation"
+    );
+}
+
+#[test]
+fn test_loop_cancel_exit_code_is_zero() {
+    assert_eq!(
+        TerminationReason::Cancelled.exit_code(),
+        0,
+        "Cancelled should have exit code 0"
+    );
+}
+
+#[test]
+fn test_loop_cancel_is_not_success() {
+    assert!(
+        !TerminationReason::Cancelled.is_success(),
+        "Cancelled should not be a success"
+    );
+}
+
+#[test]
+fn test_loop_cancel_takes_priority_over_completion() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let config = RalphConfig::default();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Both loop.cancel and LOOP_COMPLETE in same batch
+    write_event_to_jsonl(&events_path, "loop.cancel", "rejected");
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Cancellation should take priority (checked first)
+    let cancel_reason = event_loop.check_cancellation_event();
+    assert_eq!(
+        cancel_reason,
+        Some(TerminationReason::Cancelled),
+        "Cancellation should take priority over completion"
+    );
+}
+
+#[test]
+fn test_loop_cancel_disabled_when_empty_string() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.cancellation_promise = String::new(); // Disabled
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // loop.cancel should pass through as a normal event (no termination)
+    write_event_to_jsonl(&events_path, "loop.cancel", "rejected");
+    let _ = event_loop.process_events_from_jsonl();
+
+    let reason = event_loop.check_cancellation_event();
+    assert_eq!(
+        reason, None,
+        "loop.cancel should not trigger cancellation when disabled"
+    );
+}
+
+// ── Phase 3: Human Timeout Event Injection Tests ──────────────────────
+
+use std::path::Path;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
+struct MockRobotService {
+    timeout: u64,
+    should_timeout: bool,
+}
+
+impl ralph_proto::RobotService for MockRobotService {
+    fn send_question(&self, _payload: &str) -> anyhow::Result<i32> {
+        Ok(1)
+    }
+    fn wait_for_response(&self, _events_path: &Path) -> anyhow::Result<Option<String>> {
+        if self.should_timeout {
+            Ok(None)
+        } else {
+            Ok(Some("approved".to_string()))
+        }
+    }
+    fn send_checkin(
+        &self,
+        _: u32,
+        _: Duration,
+        _: Option<&ralph_proto::CheckinContext>,
+    ) -> anyhow::Result<i32> {
+        Ok(0)
+    }
+    fn timeout_secs(&self) -> u64 {
+        self.timeout
+    }
+    fn shutdown_flag(&self) -> Arc<AtomicBool> {
+        Arc::new(AtomicBool::new(false))
+    }
+    fn stop(self: Box<Self>) {}
+}
+
+#[test]
+fn test_human_timeout_injects_timeout_event() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let config = RalphConfig::default();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+    event_loop.set_robot_service(Box::new(MockRobotService {
+        timeout: 5,
+        should_timeout: true,
+    }));
+
+    // Write a human.interact event
+    write_event_to_jsonl(&events_path, "human.interact", "Please review this plan");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // The bus should have a human.timeout event (from the mock timeout)
+    assert!(
+        event_loop.has_pending_events(),
+        "human.timeout event should be published on timeout"
+    );
+}
+
+#[test]
+fn test_human_response_still_works() {
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let config = RalphConfig::default();
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+    event_loop.set_robot_service(Box::new(MockRobotService {
+        timeout: 5,
+        should_timeout: false,
+    }));
+
+    // Write a human.interact event — mock returns "approved"
+    write_event_to_jsonl(&events_path, "human.interact", "Please review this plan");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // The bus should have a human.response event
+    assert!(
+        event_loop.has_pending_events(),
+        "human.response event should be published when response received"
+    );
+}

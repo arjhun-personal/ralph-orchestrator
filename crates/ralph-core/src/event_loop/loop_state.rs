@@ -49,6 +49,12 @@ pub struct LoopState {
     /// Hat IDs that were active in the last iteration.
     /// Used to inject `default_publishes` when agent writes no events.
     pub last_active_hat_ids: Vec<HatId>,
+
+    /// Topics seen during the loop's lifetime (for event chain validation).
+    pub seen_topics: HashSet<String>,
+
+    /// Set to true when a loop.cancel event is detected.
+    pub cancellation_requested: bool,
 }
 
 impl Default for LoopState {
@@ -70,6 +76,8 @@ impl Default for LoopState {
             exhausted_hats: HashSet::new(),
             last_checkin_at: None,
             last_active_hat_ids: Vec::new(),
+            seen_topics: HashSet::new(),
+            cancellation_requested: false,
         }
     }
 }
@@ -83,5 +91,18 @@ impl LoopState {
     /// Returns the elapsed time since the loop started.
     pub fn elapsed(&self) -> Duration {
         self.started_at.elapsed()
+    }
+
+    /// Record that a topic has been seen during this loop run.
+    pub fn record_topic(&mut self, topic: &str) {
+        self.seen_topics.insert(topic.to_string());
+    }
+
+    /// Check if all required topics have been seen.
+    pub fn missing_required_events<'a>(&self, required: &'a [String]) -> Vec<&'a String> {
+        required
+            .iter()
+            .filter(|topic| !self.seen_topics.contains(topic.as_str()))
+            .collect()
     }
 }

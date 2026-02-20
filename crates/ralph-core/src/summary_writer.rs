@@ -220,6 +220,7 @@ impl SummaryWriter {
             TerminationReason::Stopped => "Stopped manually",
             TerminationReason::Interrupted => "Interrupted by signal",
             TerminationReason::RestartRequested => "Restarting by human request",
+            TerminationReason::Cancelled => "Cancelled gracefully (human rejection or timeout)",
         }
     }
 
@@ -320,6 +321,8 @@ mod tests {
             exhausted_hats: std::collections::HashSet::new(),
             last_checkin_at: None,
             last_active_hat_ids: Vec::new(),
+            seen_topics: std::collections::HashSet::new(),
+            cancellation_requested: false,
         }
     }
 

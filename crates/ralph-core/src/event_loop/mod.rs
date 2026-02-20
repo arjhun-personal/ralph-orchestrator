@@ -48,6 +48,8 @@ pub enum TerminationReason {
     Interrupted,
     /// Restart requested via Telegram `/restart` command.
     RestartRequested,
+    /// Loop was cancelled gracefully via loop.cancel event (human rejection, timeout).
+    Cancelled,
 }
 
 impl TerminationReason {
@@ -71,6 +73,8 @@ impl TerminationReason {
             TerminationReason::Interrupted => 130,
             // Restart uses exit code 3 to signal the caller to exec-replace
             TerminationReason::RestartRequested => 3,
+            // Cancelled is a clean exit (0) — the loop stopped intentionally
+            TerminationReason::Cancelled => 0,
         }
     }
 
@@ -90,6 +94,7 @@ impl TerminationReason {
             TerminationReason::Stopped => "stopped",
             TerminationReason::Interrupted => "interrupted",
             TerminationReason::RestartRequested => "restart_requested",
+            TerminationReason::Cancelled => "cancelled",
         }
     }
 
@@ -471,12 +476,57 @@ impl EventLoop {
         None
     }
 
+    /// Check if a loop.cancel event was detected.
+    ///
+    /// Unlike check_completion_event(), this does NOT validate required_events.
+    /// Cancellation is an explicit abort — it doesn't need the workflow to be complete.
+    pub fn check_cancellation_event(&mut self) -> Option<TerminationReason> {
+        if !self.state.cancellation_requested {
+            return None;
+        }
+        self.state.cancellation_requested = false;
+        info!("Loop cancelled gracefully via loop.cancel event");
+
+        self.diagnostics.log_orchestration(
+            self.state.iteration,
+            "loop",
+            crate::diagnostics::OrchestrationEvent::LoopTerminated {
+                reason: "cancelled".to_string(),
+            },
+        );
+
+        Some(TerminationReason::Cancelled)
+    }
+
     /// Checks if a completion event was received and returns termination reason.
     ///
     /// Completion is only accepted via JSONL events (e.g., `ralph emit`).
     pub fn check_completion_event(&mut self) -> Option<TerminationReason> {
         if !self.state.completion_requested {
             return None;
+        }
+
+        // Event chain validation: check required events were seen
+        let required = &self.config.event_loop.required_events;
+        if !required.is_empty() {
+            let missing = self.state.missing_required_events(required);
+            if !missing.is_empty() {
+                warn!(
+                    missing = ?missing,
+                    "Rejecting LOOP_COMPLETE: required events not seen during loop lifetime"
+                );
+                self.state.completion_requested = false;
+
+                // Inject task.resume so the loop continues
+                let resume_payload = format!(
+                    "LOOP_COMPLETE rejected: missing required events: {:?}. \
+                     The agent must complete all workflow phases before emitting LOOP_COMPLETE. \
+                     Use loop.cancel to abort the workflow instead.",
+                    missing
+                );
+                self.bus.publish(Event::new("task.resume", resume_payload));
+                return None;
+            }
         }
 
         self.state.completion_requested = false;
@@ -1658,14 +1708,61 @@ impl EventLoop {
             return Ok(false);
         }
 
+        // --- Scope enforcement: filter events against active hat's publishes ---
+        let active_hats = self.state.last_active_hat_ids.clone();
+        let (in_scope, out_of_scope): (Vec<_>, Vec<_>) =
+            result.events.into_iter().partition(|event| {
+                if active_hats.is_empty() {
+                    return true; // Ralph coordinating — no scope restriction
+                }
+                active_hats
+                    .iter()
+                    .any(|hat_id| self.registry.can_publish(hat_id, event.topic.as_str()))
+            });
+
+        for event in &out_of_scope {
+            let violation_hat = active_hats
+                .first()
+                .map(|h| h.as_str())
+                .unwrap_or("unknown");
+            warn!(
+                active_hats = ?active_hats,
+                topic = %event.topic,
+                "Scope violation: active hat(s) cannot publish this topic — dropping event"
+            );
+            let violation_topic = format!("{}.scope_violation", violation_hat);
+            let violation_payload = format!(
+                "Attempted to publish '{}': {}",
+                event.topic,
+                event.payload.clone().unwrap_or_default()
+            );
+            let violation = Event::new(violation_topic, violation_payload);
+            self.bus.publish(violation);
+        }
+
+        let events = in_scope;
+        // --- End scope enforcement ---
+
         let mut has_orphans = false;
 
         // Validate and transform events (apply backpressure for build.done)
         let mut validated_events = Vec::new();
         let completion_topic = self.config.event_loop.completion_promise.as_str();
-        let total_events = result.events.len();
-        for (index, event) in result.events.into_iter().enumerate() {
+        let cancellation_topic = self.config.event_loop.cancellation_promise.clone();
+        let total_events = events.len();
+        for (index, event) in events.into_iter().enumerate() {
             let payload = event.payload.clone().unwrap_or_default();
+
+            // Detect loop.cancel — unconditional graceful termination
+            if !cancellation_topic.is_empty() && event.topic.as_str() == cancellation_topic {
+                info!(
+                    payload = %payload,
+                    "loop.cancel event detected — scheduling graceful termination"
+                );
+                self.state.cancellation_requested = true;
+                // Continue processing remaining events (they may contain cleanup info)
+                continue;
+            }
 
             if event.topic == completion_topic {
                 if index + 1 == total_events {
@@ -2014,14 +2111,31 @@ impl EventLoop {
                         Ok(None) => {
                             warn!(
                                 timeout_secs = robot_service.timeout_secs(),
-                                "Human response timeout — continuing without response"
+                                "Human response timeout — injecting human.timeout event"
                             );
+                            let timeout_event = Event::new(
+                                "human.timeout",
+                                format!(
+                                    "No response after {}s. Original question: {}",
+                                    robot_service.timeout_secs(),
+                                    payload
+                                ),
+                            );
+                            response_event = Some(timeout_event);
                         }
                         Err(e) => {
                             warn!(
                                 error = %e,
-                                "Error waiting for human response — continuing without response"
+                                "Error waiting for human response — injecting human.timeout event"
                             );
+                            let timeout_event = Event::new(
+                                "human.timeout",
+                                format!(
+                                    "Error waiting for response: {}. Original question: {}",
+                                    e, payload
+                                ),
+                            );
+                            response_event = Some(timeout_event);
                         }
                     }
                 }
@@ -2037,6 +2151,9 @@ impl EventLoop {
         // one subscriber. Events without a specific hat subscriber are "orphaned" —
         // Ralph handles them as the universal fallback.
         for event in validated_events {
+            // Record topic for event chain validation
+            self.state.record_topic(event.topic.as_str());
+
             self.diagnostics.log_orchestration(
                 self.state.iteration,
                 "jsonl",
@@ -2058,6 +2175,7 @@ impl EventLoop {
 
         // Publish human.response event if one was received during blocking
         if let Some(response) = response_event {
+            self.state.record_topic(response.topic.as_str());
             info!(
                 topic = %response.topic,
                 "Publishing human.response event from robot service"
@@ -2222,5 +2340,6 @@ fn termination_status_text(reason: &TerminationReason) -> &'static str {
         TerminationReason::Stopped => "Manually stopped.",
         TerminationReason::Interrupted => "Interrupted by signal.",
         TerminationReason::RestartRequested => "Restarting by human request.",
+        TerminationReason::Cancelled => "Cancelled gracefully (human rejection or timeout).",
     }
 }

@@ -602,6 +602,18 @@ pub struct EventLoopConfig {
     /// max_cost), consecutive failures, or explicit interrupt/stop.
     #[serde(default)]
     pub persistent: bool,
+
+    /// Event topics that must have been seen before LOOP_COMPLETE is accepted.
+    /// If any required event has not been seen during the loop's lifetime,
+    /// completion is rejected and a task.resume event is injected.
+    #[serde(default)]
+    pub required_events: Vec<String>,
+
+    /// Event topic that triggers graceful early termination WITHOUT chain validation.
+    /// Use this for human rejection, timeout escalation, or other abort paths.
+    /// Defaults to "loop.cancel". Set to empty string to disable.
+    #[serde(default = "default_cancellation_promise")]
+    pub cancellation_promise: String,
 }
 
 fn default_prompt_file() -> String {
@@ -624,6 +636,10 @@ fn default_max_failures() -> u32 {
     5
 }
 
+fn default_cancellation_promise() -> String {
+    "loop.cancel".to_string()
+}
+
 impl Default for EventLoopConfig {
     fn default() -> Self {
         Self {
@@ -639,6 +655,8 @@ impl Default for EventLoopConfig {
             starting_event: None,
             mutation_score_warn_threshold: None,
             persistent: false,
+            required_events: Vec::new(),
+            cancellation_promise: default_cancellation_promise(),
         }
     }
 }

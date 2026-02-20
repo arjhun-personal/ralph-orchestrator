@@ -149,6 +149,7 @@ pub fn print_termination(
         TerminationReason::Stopped => (CYAN, "?", "Manually stopped"),
         TerminationReason::Interrupted => (YELLOW, "?", "Interrupted by signal"),
         TerminationReason::RestartRequested => (CYAN, "↻", "Restarting by human request"),
+        TerminationReason::Cancelled => (CYAN, "⏹", "Cancelled gracefully"),
     };
 
     let separator = "-".repeat(58);

@@ -430,6 +430,7 @@ pub async fn run_loop_impl(
                 TerminationReason::Stopped => "stopped",
                 TerminationReason::Interrupted => "interrupted",
                 TerminationReason::RestartRequested => "restart_requested",
+                TerminationReason::Cancelled => "cancelled",
             };
 
             if matches!(reason, TerminationReason::Interrupted) {
@@ -498,6 +499,7 @@ pub async fn run_loop_impl(
                     TerminationReason::Interrupted => "interrupted by signal",
                     TerminationReason::CompletionPromise => unreachable!(),
                     TerminationReason::RestartRequested => "restart requested",
+                    TerminationReason::Cancelled => "cancelled by human",
                 };
                 if let Err(e) = queue.mark_needs_review(loop_id, reason_str) {
                     warn!(loop_id = %loop_id, error = %e, "Failed to mark merge as needs-review");
@@ -1083,6 +1085,31 @@ pub async fn run_loop_impl(
                     break; // One default is sufficient
                 }
             }
+        }
+
+        // Check cancellation first (no chain validation) — takes priority over completion
+        if let Some(reason) = event_loop.check_cancellation_event() {
+            info!("Loop cancelled gracefully via loop.cancel event.");
+
+            let terminate_event = event_loop.publish_terminate_event(&reason);
+            log_terminate_event(
+                &mut event_logger,
+                event_loop.state().iteration,
+                &terminate_event,
+            );
+            handle_termination(
+                &reason,
+                event_loop.state(),
+                &config.core.scratchpad,
+                &loop_history,
+                &loop_context,
+                auto_merge,
+                &prompt_content,
+            );
+            if let Some(handle) = tui_handle.take() {
+                let _ = handle.await;
+            }
+            return Ok(reason);
         }
 
         if let Some(reason) = event_loop.check_completion_event() {
