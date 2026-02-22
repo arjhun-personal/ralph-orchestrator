@@ -1412,6 +1412,7 @@ impl EventLoop {
                 "No events written by hat, injecting default_publishes event"
             );
 
+            self.state.record_topic(default_topic.as_str());
             self.bus.publish(default_event);
         }
     }

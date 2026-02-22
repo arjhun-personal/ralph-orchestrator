@@ -1065,6 +1065,12 @@ fn test_default_publishes_injects_when_no_events() {
         event_loop.has_pending_events(),
         "Default event should be injected"
     );
+
+    // The default_publishes topic should be recorded in seen_topics
+    assert!(
+        event_loop.state.seen_topics.contains("task.done"),
+        "default_publishes should record topic in seen_topics for chain validation"
+    );
 }
 
 #[test]
@@ -3514,6 +3520,57 @@ fn test_loop_cancel_terminates_without_chain_validation() {
         reason,
         Some(TerminationReason::Cancelled),
         "loop.cancel should terminate without chain validation"
+    );
+}
+
+#[test]
+fn test_default_publishes_satisfies_required_events_for_completion() {
+    use std::collections::HashMap;
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.required_events = vec!["plan.draft".to_string(), "all.built".to_string()];
+
+    let mut hats = HashMap::new();
+    hats.insert(
+        "planner".to_string(),
+        crate::config::HatConfig {
+            name: "planner".to_string(),
+            description: Some("Plans work".to_string()),
+            triggers: vec!["research.complete".to_string()],
+            publishes: vec!["plan.draft".to_string()],
+            instructions: "Plan".to_string(),
+            extra_instructions: vec![],
+            backend: None,
+            default_publishes: Some("plan.draft".to_string()),
+            max_activations: None,
+        },
+    );
+    config.hats = hats;
+
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Simulate: planner wrote no events, default_publishes injects plan.draft
+    let planner_id = HatId::new("planner");
+    event_loop.check_default_publishes(&planner_id);
+
+    // Then all.built arrives via JSONL
+    write_event_to_jsonl(&events_path, "all.built", "done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Now LOOP_COMPLETE should be accepted (plan.draft was from default_publishes)
+    write_event_to_jsonl(&events_path, "LOOP_COMPLETE", "Done");
+    let _ = event_loop.process_events_from_jsonl();
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "default_publishes events should satisfy required_events chain validation"
     );
 }
 
