@@ -1400,6 +1400,11 @@ impl EventLoop {
     ///
     /// Call this after `process_events_from_jsonl` returns `Ok(false)` (no events found).
     /// If the hat has `default_publishes` configured, this injects the default event.
+    ///
+    /// If the default topic matches the completion promise, `completion_requested` is set
+    /// so the loop can terminate. Without this, completion events injected via
+    /// `default_publishes` would only be published to the bus (triggering downstream hats)
+    /// but never detected by `check_completion_event`, causing an infinite loop.
     pub fn check_default_publishes(&mut self, hat_id: &HatId) {
         if let Some(config) = self.registry.get_config(hat_id)
             && let Some(default_topic) = &config.default_publishes
@@ -1413,6 +1418,19 @@ impl EventLoop {
             );
 
             self.state.record_topic(default_topic.as_str());
+
+            // If the default topic is the completion promise, set the flag directly.
+            // The normal path (process_events_from_jsonl) sets this when reading from
+            // JSONL, but default_publishes bypasses JSONL entirely.
+            if default_topic.as_str() == self.config.event_loop.completion_promise {
+                info!(
+                    hat = %hat_id.as_str(),
+                    topic = %default_topic,
+                    "default_publishes matches completion_promise — requesting termination"
+                );
+                self.state.completion_requested = true;
+            }
+
             self.bus.publish(default_event);
         }
     }

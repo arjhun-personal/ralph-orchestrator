@@ -3575,6 +3575,61 @@ fn test_default_publishes_satisfies_required_events_for_completion() {
 }
 
 #[test]
+fn test_default_publishes_completion_promise_triggers_termination() {
+    use std::collections::HashMap;
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().unwrap();
+    let events_path = temp_dir.path().join("events.jsonl");
+
+    let mut config = RalphConfig::default();
+    config.event_loop.completion_promise = "LOOP_COMPLETE".to_string();
+    config.event_loop.required_events = vec!["all.built".to_string()];
+
+    let mut hats = HashMap::new();
+    hats.insert(
+        "final_committer".to_string(),
+        crate::config::HatConfig {
+            name: "FinalCommitter".to_string(),
+            description: Some("Verifies all work is complete".to_string()),
+            triggers: vec!["all.built".to_string()],
+            publishes: vec!["LOOP_COMPLETE".to_string()],
+            instructions: "Verify and complete".to_string(),
+            extra_instructions: vec![],
+            backend: None,
+            default_publishes: Some("LOOP_COMPLETE".to_string()),
+            max_activations: None,
+        },
+    );
+    config.hats = hats;
+
+    let mut event_loop = EventLoop::new(config);
+    event_loop.initialize("Test");
+    event_loop.event_reader = crate::event_reader::EventReader::new(&events_path);
+
+    // Satisfy required_events: all.built arrives via JSONL
+    write_event_to_jsonl(&events_path, "all.built", "done");
+    let _ = event_loop.process_events_from_jsonl();
+
+    // Set active hat so check_default_publishes targets the right hat
+    event_loop.state.last_active_hat_ids = vec![HatId::new("final_committer")];
+
+    // Simulate: final_committer wrote no events, default_publishes injects LOOP_COMPLETE
+    let hat_id = HatId::new("final_committer");
+    event_loop.check_default_publishes(&hat_id);
+
+    // completion_requested should be set directly by check_default_publishes
+    // (not requiring a JSONL round-trip)
+    let reason = event_loop.check_completion_event();
+    assert_eq!(
+        reason,
+        Some(TerminationReason::CompletionPromise),
+        "default_publishes of completion_promise should trigger termination directly, \
+         not just publish to the bus where it would be lost"
+    );
+}
+
+#[test]
 fn test_loop_cancel_exit_code_is_zero() {
     assert_eq!(
         TerminationReason::Cancelled.exit_code(),
