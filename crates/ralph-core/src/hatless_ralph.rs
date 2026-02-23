@@ -50,6 +50,8 @@ pub struct HatInfo {
     pub instructions: String,
     /// Maps each published event to the hats that receive it.
     pub event_receivers: HashMap<String, Vec<EventReceiver>>,
+    /// Tools the hat is not allowed to use (prompt-level enforcement).
+    pub disallowed_tools: Vec<String>,
 }
 
 impl HatInfo {
@@ -118,6 +120,11 @@ impl HatTopology {
                     })
                     .collect();
 
+                let disallowed_tools = registry
+                    .get_config(&hat.id)
+                    .map(|c| c.disallowed_tools.clone())
+                    .unwrap_or_default();
+
                 HatInfo {
                     name: hat.name.clone(),
                     description: hat.description.clone(),
@@ -133,6 +140,7 @@ impl HatTopology {
                         .collect(),
                     instructions: hat.instructions.clone(),
                     event_receivers,
+                    disallowed_tools,
                 }
             })
             .collect();
@@ -680,6 +688,21 @@ You MUST continue until all tasks are `[x]` or `[~]`.
                 if let Some(guide) = hat_info.and_then(|info| info.event_publishing_guide()) {
                     section.push_str(&guide);
                     section.push('\n');
+                }
+
+                // Add Tool Restrictions section (prompt-level enforcement)
+                if let Some(info) = hat_info
+                    && !info.disallowed_tools.is_empty()
+                {
+                    section.push_str("### TOOL RESTRICTIONS\n\n");
+                    section.push_str("You MUST NOT use these tools in this hat:\n");
+                    for tool in &info.disallowed_tools {
+                        section.push_str(&format!("- **{}** — blocked for this hat\n", tool));
+                    }
+                    section.push_str(
+                        "\nUsing a restricted tool is a scope violation. \
+                         File modifications are audited after each iteration.\n\n",
+                    );
                 }
             }
         }

@@ -145,6 +145,7 @@ pub fn print_termination(
         TerminationReason::MaxCost => (YELLOW, "?", "Maximum cost exceeded"),
         TerminationReason::ConsecutiveFailures => (RED, "?", "Too many consecutive failures"),
         TerminationReason::LoopThrashing => (RED, "?", "Loop thrashing detected"),
+        TerminationReason::LoopStale => (RED, "?", "Stale loop detected"),
         TerminationReason::ValidationFailure => (RED, "?", "Too many malformed JSONL events"),
         TerminationReason::Stopped => (CYAN, "?", "Manually stopped"),
         TerminationReason::Interrupted => (YELLOW, "?", "Interrupted by signal"),

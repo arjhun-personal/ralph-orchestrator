@@ -1044,6 +1044,7 @@ fn test_default_publishes_injects_when_no_events() {
             backend: None,
             default_publishes: Some("task.done".to_string()),
             max_activations: None,
+            disallowed_tools: vec![],
         },
     );
     config.hats = hats;
@@ -1096,6 +1097,7 @@ fn test_default_publishes_not_injected_when_events_written() {
             backend: None,
             default_publishes: Some("task.done".to_string()),
             max_activations: None,
+            disallowed_tools: vec![],
         },
     );
     config.hats = hats;
@@ -1150,6 +1152,7 @@ fn test_default_publishes_not_injected_when_not_configured() {
             backend: None,
             default_publishes: None, // No default configured
             max_activations: None,
+            disallowed_tools: vec![],
         },
     );
     config.hats = hats;
@@ -3547,6 +3550,7 @@ fn test_default_publishes_satisfies_required_events_for_completion() {
             backend: None,
             default_publishes: Some("plan.draft".to_string()),
             max_activations: None,
+            disallowed_tools: vec![],
         },
     );
     config.hats = hats;
@@ -3599,6 +3603,7 @@ fn test_default_publishes_completion_promise_triggers_termination() {
             backend: None,
             default_publishes: Some("LOOP_COMPLETE".to_string()),
             max_activations: None,
+            disallowed_tools: vec![],
         },
     );
     config.hats = hats;

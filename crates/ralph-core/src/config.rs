@@ -1273,6 +1273,14 @@ pub struct HatConfig {
     /// When the limit is exceeded, the orchestrator publishes `<hat_id>.exhausted`
     /// instead of activating the hat again.
     pub max_activations: Option<u32>,
+
+    /// Tools the hat is not allowed to use.
+    ///
+    /// Injected as a TOOL RESTRICTIONS section in the prompt (soft enforcement).
+    /// After each iteration, a file-modification audit checks compliance when
+    /// `Edit` or `Write` are disallowed (hard enforcement via scope_violation event).
+    #[serde(default)]
+    pub disallowed_tools: Vec<String>,
 }
 
 impl HatConfig {

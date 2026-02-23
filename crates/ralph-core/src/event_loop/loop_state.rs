@@ -53,6 +53,12 @@ pub struct LoopState {
     /// Topics seen during the loop's lifetime (for event chain validation).
     pub seen_topics: HashSet<String>,
 
+    /// The last topic emitted (for stale loop detection).
+    pub last_emitted_topic: Option<String>,
+
+    /// Consecutive times the same topic was emitted (for stale loop detection).
+    pub consecutive_same_topic: u32,
+
     /// Set to true when a loop.cancel event is detected.
     pub cancellation_requested: bool,
 }
@@ -77,6 +83,8 @@ impl Default for LoopState {
             last_checkin_at: None,
             last_active_hat_ids: Vec::new(),
             seen_topics: HashSet::new(),
+            last_emitted_topic: None,
+            consecutive_same_topic: 0,
             cancellation_requested: false,
         }
     }
@@ -94,8 +102,17 @@ impl LoopState {
     }
 
     /// Record that a topic has been seen during this loop run.
+    ///
+    /// Also tracks consecutive same-topic emissions for stale loop detection.
     pub fn record_topic(&mut self, topic: &str) {
         self.seen_topics.insert(topic.to_string());
+
+        if self.last_emitted_topic.as_deref() == Some(topic) {
+            self.consecutive_same_topic += 1;
+        } else {
+            self.consecutive_same_topic = 1;
+            self.last_emitted_topic = Some(topic.to_string());
+        }
     }
 
     /// Check if all required topics have been seen.

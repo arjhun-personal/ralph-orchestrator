@@ -40,6 +40,8 @@ pub enum TerminationReason {
     ConsecutiveFailures,
     /// Loop thrashing detected (repeated blocked events).
     LoopThrashing,
+    /// Stale loop detected (same topic emitted 3+ times consecutively).
+    LoopStale,
     /// Too many consecutive malformed JSONL lines in events file.
     ValidationFailure,
     /// Manually stopped.
@@ -65,6 +67,7 @@ impl TerminationReason {
             TerminationReason::CompletionPromise => 0,
             TerminationReason::ConsecutiveFailures
             | TerminationReason::LoopThrashing
+            | TerminationReason::LoopStale
             | TerminationReason::ValidationFailure
             | TerminationReason::Stopped => 1,
             TerminationReason::MaxIterations
@@ -90,6 +93,7 @@ impl TerminationReason {
             TerminationReason::MaxCost => "max_cost",
             TerminationReason::ConsecutiveFailures => "consecutive_failures",
             TerminationReason::LoopThrashing => "loop_thrashing",
+            TerminationReason::LoopStale => "loop_stale",
             TerminationReason::ValidationFailure => "validation_failure",
             TerminationReason::Stopped => "stopped",
             TerminationReason::Interrupted => "interrupted",
@@ -456,6 +460,16 @@ impl EventLoop {
         // Check for validation failures: too many consecutive malformed JSONL lines
         if self.state.consecutive_malformed_events >= 3 {
             return Some(TerminationReason::ValidationFailure);
+        }
+
+        // Check for stale loop: same topic emitted 3+ times in a row
+        if self.state.consecutive_same_topic >= 3 {
+            warn!(
+                topic = self.state.last_emitted_topic.as_deref().unwrap_or("?"),
+                count = self.state.consecutive_same_topic,
+                "Stale loop detected: same topic emitted consecutively"
+            );
+            return Some(TerminationReason::LoopStale);
         }
 
         // Check for stop signal from Telegram /stop or CLI stop-requested
@@ -1507,12 +1521,70 @@ impl EventLoop {
 
         let _ = output;
 
+        // File-modification audit: detect when a hat with disallowed Edit/Write tools
+        // modified files. This is hard enforcement — emits a scope_violation event.
+        self.audit_file_modifications(hat_id);
+
         // Events are ONLY read from the JSONL file written by `ralph emit`.
         // This enforces tool use and prevents confabulation (agent claiming to emit without actually doing so).
         // See process_events_from_jsonl() for event processing.
 
         // Check termination conditions
         self.check_termination()
+    }
+
+    /// Audits file modifications after a hat iteration.
+    ///
+    /// If the hat has `Edit` or `Write` in its `disallowed_tools`, checks whether
+    /// files were modified (via `git diff --stat HEAD`). If so, emits a
+    /// `<hat_id>.scope_violation` event.
+    fn audit_file_modifications(&mut self, hat_id: &HatId) {
+        let config = match self.registry.get_config(hat_id) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let has_write_restriction = config
+            .disallowed_tools
+            .iter()
+            .any(|t| t == "Edit" || t == "Write");
+
+        if !has_write_restriction {
+            return;
+        }
+
+        let workspace = &self.config.core.workspace_root;
+        let diff_output = std::process::Command::new("git")
+            .args(["diff", "--stat", "HEAD"])
+            .current_dir(workspace)
+            .output();
+
+        match diff_output {
+            Ok(output) if !output.stdout.is_empty() => {
+                let diff_stat =
+                    String::from_utf8_lossy(&output.stdout).trim().to_string();
+                warn!(
+                    hat = %hat_id.as_str(),
+                    diff = %diff_stat,
+                    "Hat modified files despite tool restrictions (scope violation)"
+                );
+
+                let violation_topic = format!("{}.scope_violation", hat_id.as_str());
+                let violation = Event::new(
+                    violation_topic.as_str(),
+                    format!(
+                        "Hat '{}' modified files with Edit/Write disallowed:\n{}",
+                        hat_id.as_str(),
+                        diff_stat
+                    ),
+                );
+                self.bus.publish(violation);
+            }
+            Err(e) => {
+                debug!(error = %e, "Could not run git diff for file-modification audit");
+            }
+            _ => {} // No modifications — all good
+        }
     }
 
     /// Extracts task identifier from build.blocked payload.
@@ -2356,6 +2428,9 @@ fn termination_status_text(reason: &TerminationReason) -> &'static str {
         TerminationReason::ConsecutiveFailures => "Too many consecutive failures.",
         TerminationReason::LoopThrashing => {
             "Loop thrashing detected - same hat repeatedly blocked."
+        }
+        TerminationReason::LoopStale => {
+            "Stale loop detected - same topic emitted 3+ times consecutively."
         }
         TerminationReason::ValidationFailure => "Too many consecutive malformed JSONL events.",
         TerminationReason::Stopped => "Manually stopped.",

@@ -611,6 +611,7 @@ mod tests {
             backend,
             default_publishes: None,
             max_activations: None,
+            disallowed_tools: vec![],
         }
     }
 
