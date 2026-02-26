@@ -480,3 +480,42 @@ task.start ──► Planner reads specs, creates plan
 ```
 
 This is the essence of Ralph: a **reactive event-driven loop** where agents coordinate through topic-based events, quality is enforced through backpressure gates, and the orchestrator stays thin — steering with signals rather than prescribing steps.
+
+### 10. Implementation Deep Dive: The Flat Loop
+
+A common question: **is there a while loop inside each hat?** No. The architecture is intentionally a flat loop with a state machine — not nested loops.
+
+#### The Single `loop {}` in `loop_runner.rs`
+
+There is exactly one `loop {}` at `crates/ralph-cli/src/loop_runner.rs:590`. This is the entire orchestration engine. Each iteration of this loop is one "turn":
+
+```
+CLI loop_runner.rs
+  └─ loop {                          // The ONE loop
+       check_termination()           // Max iterations, runtime, cost, failures
+       next_hat()                    // EventBus routing — who has pending events?
+       build_prompt(hat_id)          // Pure prompt assembly (no side effects)
+       execute via PTY               // One CLI invocation of the agent
+       process_output()              // Parse results, check completion promise
+       process_events_from_jsonl()   // Feed bus for next iteration
+     }
+```
+
+#### No Inner Loop Per Hat
+
+Each hat gets exactly **one execution per iteration**. `HatlessRalph::build_prompt()` is a pure function — it assembles a prompt string and returns it. No looping, no retries internally.
+
+The "cycling" between hats happens through the EventBus:
+- Agents emit events (e.g. `plan.ready`, `build.done`, `build.blocked`) by writing JSONL to the events file
+- The orchestrator reads those events and routes them to hats based on topic subscriptions
+- `next_hat()` finds whichever hat has pending events
+- In **multi-hat mode**, `next_hat()` always returns `"ralph"` — custom hats define topology (subscriptions/publishes) but Ralph is always the executor with the active hat's instructions injected into the prompt
+- In **solo mode** (no custom hats), Ralph handles everything directly
+
+#### Recovery from Stalled Loops
+
+If no hat has pending events (the agent forgot to emit), the loop has a fallback mechanism (`inject_fallback_event()` at `event_loop/mod.rs:695`) that injects a `task.resume` event to give Ralph a chance to recover. It retries up to 3 times before terminating with `Stopped`.
+
+#### Key Architectural Invariant
+
+The `EventLoop` struct in `ralph-core` is a **state machine**, not a runner. It exposes methods like `initialize()`, `next_hat()`, `build_prompt()`, `process_output()`, and `check_termination()` — but it never drives itself. The CLI crate's `loop_runner.rs` is the sole driver, calling these methods in sequence within the single `loop {}`. This separation keeps the core crate testable (you can step through iterations in unit tests) while the CLI handles all the async/PTY/signal complexity.
