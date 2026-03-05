@@ -109,6 +109,7 @@ impl CliBackend {
                 "--output-format".to_string(),
                 "stream-json".to_string(),
                 "--disallowedTools=TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet".to_string(),
+                "--chrome".to_string(),
             ],
             prompt_mode: PromptMode::Arg,
             prompt_flag: Some("-p".to_string()),
@@ -694,6 +695,7 @@ mod tests {
                 "--output-format",
                 "stream-json",
                 "--disallowedTools=TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
+                "--chrome",
                 "-p",
                 "test prompt"
             ]
@@ -914,6 +916,7 @@ mod tests {
                 "--output-format",
                 "stream-json",
                 "--disallowedTools=TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet",
+                "--chrome",
                 "-p",
                 "test prompt"
             ]
