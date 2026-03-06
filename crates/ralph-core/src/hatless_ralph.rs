@@ -847,6 +847,7 @@ You MUST NOT use echo/cat to write events because shell escaping breaks JSON.
 **Constraints:**
 - You MUST stop working after publishing an event because a new iteration will start with fresh context
 - You MUST NOT continue with additional work after publishing because the next iteration handles it with the appropriate hat persona
+- You MUST NOT emit `build.complete` — the correct topic is `build.done`
 "#,
             detailed_output_hint = detailed_output_hint
         )
