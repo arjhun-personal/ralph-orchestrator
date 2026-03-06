@@ -827,7 +827,7 @@ impl EventLoop {
                     .join("\n");
 
                 // Build base prompt and prepend memories + scratchpad if available
-                let base_prompt = self.ralph.build_prompt(&events_context, &active_hats);
+                let mut base_prompt = self.ralph.build_prompt(&events_context, &active_hats);
 
                 // Build prompt with active hats - filters instructions to only active hats
                 debug!(
@@ -837,6 +837,28 @@ impl EventLoop {
                         .map(|h| h.id.as_str())
                         .collect::<Vec<_>>()
                 );
+
+                // Inject stale-topic warning when the same topic has been emitted 2+ times
+                // consecutively. This warns the agent before the loop terminates at count >= 3.
+                if self.state.consecutive_same_topic >= 2 {
+                    let stale_topic = self
+                        .state
+                        .last_emitted_topic
+                        .as_deref()
+                        .unwrap_or("unknown");
+                    warn!(
+                        topic = stale_topic,
+                        count = self.state.consecutive_same_topic,
+                        "Injecting stale-topic warning into prompt"
+                    );
+                    base_prompt.push_str(&format!(
+                        "\n\n> **ORCHESTRATOR WARNING**: The topic `{stale_topic}` has been emitted {count} times in a row. \
+                        If there is no more work to do, you MUST emit a terminal event (e.g. `all.built`, `build.noop`) \
+                        instead of repeating `{stale_topic}`. Emitting the same topic one more time will terminate the loop as stale.",
+                        stale_topic = stale_topic,
+                        count = self.state.consecutive_same_topic,
+                    ));
+                }
 
                 // Clear guidance after active_hats references are no longer needed
                 self.ralph.clear_robot_guidance();
